@@ -1,0 +1,12 @@
+{
+  "name": "fl-finance",
+  "version": "1.0.0",
+  "description": "Raiz project fl-finance",
+  "scripts": {
+    "compose:up": "docker-compose up -d --build --remove-orphan",
+    "compose:down": "docker-compose down --remove-orphans"
+  },
+  "keywords": [],
+  "author": "Filipe Lima - flimamcz",
+  "license": "ISC"
+}

@@ -1,0 +1,44 @@
+version: "3.9"
+services:
+  frontend:
+    build: ./frontend
+    container_name: app_frontend_finance
+    restart: always
+    ports:
+      - 3000:3000
+    platform: linux/x86_64
+    working_dir: /app-frontend
+
+  backend:
+    container_name: app_backend_finance
+    build: ./backend
+    ports:
+      - 3001:3001
+    platform: linux/x86_64
+    working_dir: /app-backend
+    restart: always
+    command: dev
+    volumes:
+      - ./backend/src:/app-backend/src
+
+    environment:
+      - JWT_SECRET=jwt_secret
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=password
+      - MYSQL_HOST=db
+      - API_PORT=3001
+  db:
+    container_name: app_database_finance
+    image: mysql:5.7
+    platform: linux/x86_64
+    restart: always
+    ports:
+      - 3306:3306
+      - 33060:33060
+    environment:
+      - MYSQL_ROOT_PASSWORD=flp5660
+    volumes:
+      - flp-finance:/var/lib/mysql
+
+volumes:
+  flp-finance:
