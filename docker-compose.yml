@@ -8,6 +8,9 @@ services:
       - 3000:3000
     platform: linux/x86_64
     working_dir: /app-frontend
+    volumes:
+      - ./backend/src:/app-frontend/src
+
 
   backend:
     container_name: app_backend_finance
