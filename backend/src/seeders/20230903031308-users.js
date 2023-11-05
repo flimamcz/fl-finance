@@ -1,25 +1,29 @@
 // src/seeders/[timestamp]-users.js
 
-'use strict';
+"use strict";
 
 module.exports = {
   up: async (queryInterface, Sequelize) =>
     queryInterface.bulkInsert(
-      'Users',
+      "users",
       [
         {
-          fullName: 'Leonardo',
-          email: 'leo@test.com',
-          password: 'password',
+          fullName: "Leonardo",
+          email: "leo@test.com",
+          password: "test1213",
+          position_work: "AADM",
+          user_pf: "filipe.fla",
         },
         {
-          fullName: 'JEduardo',
-          email: 'edu@test.com',
-          password: 'password',
+          fullName: "JEduardo",
+          email: "edu@test.com",
+          password: "test121323",
+          position_work: "APF",
+          user_pf: "filipe.fla",
         },
       ],
       {}
     ),
 
-  down: async (queryInterface) => queryInterface.bulkDelete('Users', null, {}),
+  down: async (queryInterface) => queryInterface.bulkDelete("Users", null, {}),
 };
