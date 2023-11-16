@@ -15,7 +15,7 @@ module.exports = {
           user_pf: "filipe.fla",
         },
         {
-          fullName: "JEduardo",
+          fullName: "Eduardo",
           email: "edu@test.com",
           password: "test121323",
           position_work: "APF",
