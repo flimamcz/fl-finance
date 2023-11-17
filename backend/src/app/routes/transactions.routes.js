@@ -6,10 +6,12 @@ const {
   deleteTransaction,
 } = require("../controllers/Transaction.controller");
 
+const validateTransaction = require("../middlewares/Transaction.middleware");
+
 const router = express.Router();
 
 router.get("/", searchTrasctions);
-router.post("/", createTrasaction);
+router.post("/", validateTransaction.validateTransaction, createTrasaction);
 router.delete("/:id", deleteTransaction);
 
 module.exports = router;
