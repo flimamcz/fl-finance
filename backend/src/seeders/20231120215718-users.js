@@ -13,6 +13,8 @@ module.exports = {
           password: "test1213",
           position_work: "AADM",
           user_pf: "filipe.fla",
+          created_at: new Date(),
+          updated_at: new Date(),
         },
         {
           fullName: "Eduardo",
@@ -20,10 +22,12 @@ module.exports = {
           password: "test121323",
           position_work: "APF",
           user_pf: "filipe.fla",
+          created_at: new Date(),
+          updated_at: new Date(),
         },
       ],
       {}
     ),
 
-  down: async (queryInterface) => queryInterface.bulkDelete("Users", null, {}),
+  down: async (queryInterface) => queryInterface.bulkDelete("users", null, {}),
 };

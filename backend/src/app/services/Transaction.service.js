@@ -19,13 +19,32 @@ const createTransaction = async (dataTransaction) => {
   return { error: null, message: newTransaction };
 };
 
+const updateTransaction = async (dataTransaction) => {
+  const findTransaction = await Transaction.findOne({
+    where: { id: dataTransaction.id },
+  });
+  if (!findTransaction)
+    return { error: "NOT_FOUND", message: "Transação não encontrada!" };
+
+  const transactionUpdated = await Transaction.update(dataTransaction, {
+    where: {
+      id: findTransaction.id,
+    },
+  });
+
+  if (!transactionUpdated)
+    return { error: "ERROR", message: "Error in update product" };
+
+  return {
+    error: null,
+    message: `Sucess in update transaction with id ${dataTransaction.id}`,
+  };
+};
+
 const deleteTransaction = async (id) => {
   const deletedTransaction = await Transaction.destroy({
     where: { id },
   });
-
-  console.log(id);
-  console.log(deleteTransaction);
 
   if (!deletedTransaction) {
     return {
@@ -36,4 +55,9 @@ const deleteTransaction = async (id) => {
   return { error: null, message: `Transação de ID ${id} deletada com sucesso` };
 };
 
-module.exports = { searchTransactions, createTransaction, deleteTransaction };
+module.exports = {
+  searchTransactions,
+  createTransaction,
+  deleteTransaction,
+  updateTransaction,
+};

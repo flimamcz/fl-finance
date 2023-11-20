@@ -26,10 +26,19 @@ const createTrasaction = async (req, res) => {
 
   const returnMessage = {
     message: "Transação criada com sucesso!",
-    transaction: message,
+    operation: message,
   };
 
   return res.status(201).json(returnMessage);
+};
+
+const updateTransaction = async (req, res) => {
+  const { error, message } = await transactionService.updateTransaction(
+    req.body
+  );
+  if (error) return res.status(400).json(message);
+
+  return res.status(200).json({ transaction: message });
 };
 
 const deleteTransaction = async (req, res) => {
@@ -48,4 +57,5 @@ module.exports = {
   searchTrasctions,
   createTrasaction,
   deleteTransaction,
+  updateTransaction,
 };
