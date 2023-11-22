@@ -3,8 +3,12 @@ import IconBank from "../../assets/BANK-ICON.png";
 import IconInvestiment from "../../assets/INVESTIMENT.png";
 import IconRecipes from "../../assets/RECIPES.png";
 import IconExpenses from "../../assets/EXPENSE.png";
+import moment from "moment";
 
 function Home() {
+  const month = moment().format("M");
+  console.log(month);
+
   return (
     <div>
       <Header />
@@ -43,6 +47,14 @@ function Home() {
             src={IconInvestiment}
             alt="Icone representando os investimentos"
           />
+        </div>
+      </section>
+
+      <section>
+        <div>
+          <button>{"<"}</button>
+          <span></span>
+          <button>{">"}</button>
         </div>
       </section>
     </div>
