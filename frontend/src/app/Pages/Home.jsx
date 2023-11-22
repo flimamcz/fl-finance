@@ -1,5 +1,8 @@
 import Header from "../Components/Header";
 import IconBank from "../../assets/BANK-ICON.png";
+import IconInvestiment from "../../assets/INVESTIMENT.png";
+import IconRecipes from "../../assets/RECIPES.png";
+import IconExpenses from "../../assets/EXPENSE.png";
 
 function Home() {
   return (
@@ -20,7 +23,7 @@ function Home() {
             <h2>Entradas</h2>
             <p>R$ 0,00</p>
           </span>
-          <img src={IconBank} alt="Icone representando um banco" />
+          <img src={IconRecipes} alt="Icone representando as entradas" />
         </div>
 
         <div className="card-demonstrative expenses">
@@ -28,7 +31,7 @@ function Home() {
             <h2>Despesas</h2>
             <p>R$ 0,00</p>
           </span>
-          <img src={IconBank} alt="Icone representando um banco" />
+          <img src={IconExpenses} alt="Icone representando as despesas" />
         </div>
 
         <div className="card-demonstrative investiment">
@@ -36,7 +39,10 @@ function Home() {
             <h2>Investido</h2>
             <p>R$ 0,00</p>
           </span>
-          <img src={IconBank} alt="Icone representando um banco" />
+          <img
+            src={IconInvestiment}
+            alt="Icone representando os investimentos"
+          />
         </div>
       </section>
     </div>
