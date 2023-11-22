@@ -7,10 +7,10 @@ function Header() {
       <div>
         <img src={Porco} alt="Icone-logo de um porco - fl finanças" />
       </div>
-
-      <div>
+      <h1>Controle financeiro</h1>
+      <button type="button">
         <img src={Profile} alt="Icone de perfil" />
-      </div>
+      </button>
     </header>
   );
 }
