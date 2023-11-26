@@ -152,6 +152,7 @@ function Home() {
                 <tr key={transaction.id}>
                   <td>
                     <img
+                      width={24}
                       src={transaction.status ? Checked : Pending}
                       alt="Icone representando transação pendente ou efetivado"
                     />
@@ -163,6 +164,20 @@ function Home() {
                   <td>
                     <button>Editar</button>
                     <button>Remover</button>
+                  </td>
+                  <td>
+                    <img
+                      width={24}
+                      src={
+                        findTypeTransaction(transaction.typeId) === "RECEITA"
+                          ? IconRecipes
+                          : findTypeTransaction(transaction.typeId) ===
+                            "DESPESA"
+                          ? IconExpenses
+                          : IconInvestiment
+                      }
+                      alt="Icone representando transação pendente ou efetivado"
+                    />
                   </td>
                 </tr>
               ))}
