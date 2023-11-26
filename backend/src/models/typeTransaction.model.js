@@ -1,24 +1,23 @@
 const typeTransactionModel = (sequelize, DataTypes) => {
-  const typeTransaction = sequelize.define(
-    "typeTransaction",
+  const Type = sequelize.define(
+    "Type",
     {
-      typeId: {
+      id: {
         allowNull: false,
         type: DataTypes.INTEGER,
         autoIncrement: true,
         primaryKey: true,
-        field: "type_id",
       },
-      
+
       type: {
         type: DataTypes.STRING,
         allowNull: false,
       },
     },
-    { underscored: true, timestamps: false }
+    { underscored: false, timestamps: false }
   );
 
-  return typeTransaction;
+  return Type;
 };
 
 module.exports = typeTransactionModel;

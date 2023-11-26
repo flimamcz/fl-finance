@@ -2,7 +2,7 @@
 
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable("types", {
+    await queryInterface.createTable("Types", {
       id: {
         allowNull: false,
         autoIncrement: true,
@@ -13,15 +13,11 @@ module.exports = {
       type: {
         allowNull: false,
         type: Sequelize.STRING,
-        unique: {
-          args: true,
-          msg: "Existing type",
-        },
       },
     });
   },
 
   async down(queryInterface, Sequelize) {
-    await queryInterface.dropTable("types");
+    await queryInterface.dropTable("Types");
   },
 };

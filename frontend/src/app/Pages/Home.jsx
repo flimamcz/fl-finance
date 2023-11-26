@@ -3,12 +3,19 @@ import IconBank from "../../assets/BANK-ICON.png";
 import IconInvestiment from "../../assets/INVESTIMENT.png";
 import IconRecipes from "../../assets/RECIPES.png";
 import IconExpenses from "../../assets/EXPENSE.png";
-import { useState } from "react";
+import { useContext, useState } from "react";
+
+import Checked from "../../assets/checked.png";
+import Pending from "../../assets/pending.png";
 
 import Moment from "moment";
+import MyContext from "../Context/Context";
 
 function Home() {
-  Moment.locale("pt", {
+  const [currentMonth, setCurrentMonth] = useState("");
+  const { transactions, typesTransactions } = useContext(MyContext);
+  const years = ["2023", "2022", "2021"];
+  Moment.updateLocale("pt", {
     months: [
       "Janeiro",
       "Fevereiro",
@@ -25,14 +32,27 @@ function Home() {
     ],
   });
 
-  const years = ["2023", "2022", "2021"];
-  const [currentMonth, setCurrentMonth] = useState("");
   const date = Moment();
 
   const months = date._locale._months;
 
   const handleChangeDate = ({ target }) => {
     setCurrentMonth(target.value);
+  };
+
+  const formatDate = (date) => {
+    return Moment(date).format("DD/MM/YYYY");
+  };
+
+  const formatCurrencyMoney = (money) => {
+    return money.toLocaleString("pt-br", {
+      style: "currency",
+      currency: "BRL",
+    });
+  };
+
+  const findTypeTransaction = (idTransaction) => {
+    return typesTransactions.find(({ id }) => id === idTransaction).type;
   };
 
   return (
@@ -98,12 +118,7 @@ function Home() {
           </label>
 
           <label className="year">
-            <select
-              name="date"
-              id="date"
-              value={currentMonth}
-              onChange={handleChangeDate}
-            >
+            <select name="year" id="year" value={currentMonth}>
               <option value="" disabled>
                 Selecione um ano
               </option>
@@ -132,30 +147,25 @@ function Home() {
           </thead>
 
           <tbody>
-            <tr>
-              <td>ICONE</td>
-              <td>10/12/2023</td>
-              <td>COMPRA NO CESTA</td>
-              <td>Despesa</td>
-              <td>R$ 542,56</td>
-              <td>
-                <button>Editar</button>
-                <button>Remover</button>
-              </td>
-              <td>STATUS</td>
-            </tr>
-
-            <tr>
-              <td>ICONE</td>
-              <td>09/12/2023</td>
-              <td>SALÁRIO DE NOVEMBRO</td>
-              <td>Despesa</td>
-              <td>R$ 542,56</td>
-              <td>
-                <button>Editar</button>
-                <button>Remover</button>
-              </td>
-            </tr>
+            {transactions &&
+              transactions.map((transaction) => (
+                <tr key={transaction.id}>
+                  <td>
+                    <img
+                      src={transaction.status ? Checked : Pending}
+                      alt="Icone representando transação pendente ou efetivado"
+                    />
+                  </td>
+                  <td>{formatDate(transaction.date)}</td>
+                  <td>{transaction.description}</td>
+                  <td>{findTypeTransaction(transaction.typeId)}</td>
+                  <td>R$ {formatCurrencyMoney(transaction.value)}</td>
+                  <td>
+                    <button>Editar</button>
+                    <button>Remover</button>
+                  </td>
+                </tr>
+              ))}
           </tbody>
         </table>
       </section>
