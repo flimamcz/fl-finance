@@ -15,7 +15,6 @@ function Home() {
   const { transactions, typesTransactions, getAllTransactions } =
     useContext(MyContext);
   const [currentMonth, setCurrentMonth] = useState("");
-  const [deleteConfirmed, setDeleteConfirmed] = useState(Boolean);
   const [activeButtonQuestingDelete, setActiveButtonQuestingDelete] =
     useState(false);
   const years = ["2023", "2022", "2021"];
@@ -56,11 +55,8 @@ function Home() {
   };
 
   const findTypeTransaction = (idTransaction) => {
-    if(idTransaction) {
-      return typesTransactions.find(({ id }) => id === idTransaction).type;
-    }
-
-    return 'Nenhum tipo encontrado!'
+    const type = typesTransactions.find(({ id }) => id === idTransaction).type;
+    return type;
   };
 
   const deleteTransaction = ({ id }) => {
@@ -169,7 +165,7 @@ function Home() {
           </thead>
 
           <tbody>
-            {transactions &&
+            {transactions.length ? (
               transactions.map((transaction) => (
                 <tr key={transaction.id}>
                   <td>
@@ -181,7 +177,9 @@ function Home() {
                   </td>
                   <td>{formatDate(transaction.date)}</td>
                   <td>{transaction.description}</td>
-                  <td>{findTypeTransaction(transaction.typeId)}</td>
+                  <td>
+                    {findTypeTransaction(transaction.typeId)}
+                  </td>
                   <td>R$ {formatCurrencyMoney(transaction.value)}</td>
                   <td>
                     <button>Editar</button>
@@ -222,7 +220,10 @@ function Home() {
                     />
                   </td>
                 </tr>
-              ))}
+              ))
+            ) : (
+              <p>Nenhuma transação encontrada!</p>
+            )}
           </tbody>
         </table>
       </section>
