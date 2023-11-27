@@ -28,6 +28,35 @@ module.exports = {
           date: new Date(),
           status: false,
         },
+
+        {
+          type_id: 3,
+          value: "1.135,45",
+          description: "DESPESA",
+          date: new Date(),
+          status: false,
+        },
+        {
+          type_id: 3,
+          value: "1.135,45",
+          description: "INVESTIDO",
+          date: new Date(),
+          status: false,
+        },
+        {
+          type_id: 2,
+          value: "1.135,45",
+          description: "INVESTIDO",
+          date: new Date(),
+          status: false,
+        },
+        {
+          type_id: 1,
+          value: "1.135,45",
+          description: "RECIPES",
+          date: new Date(),
+          status: false,
+        },
       ],
       {}
     ),

@@ -46,7 +46,7 @@ const deleteTransaction = async (req, res) => {
     req.params.id
   );
 
-  if (!error) {
+  if (error) {
     return res.status(400).json(message);
   }
 

@@ -3,7 +3,7 @@ import IconBank from "../../assets/BANK-ICON.png";
 import IconInvestiment from "../../assets/INVESTIMENT.png";
 import IconRecipes from "../../assets/RECIPES.png";
 import IconExpenses from "../../assets/EXPENSE.png";
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 
 import Checked from "../../assets/checked.png";
 import Pending from "../../assets/pending.png";
@@ -12,8 +12,12 @@ import Moment from "moment";
 import MyContext from "../Context/Context";
 
 function Home() {
+  const { transactions, typesTransactions, getAllTransactions } =
+    useContext(MyContext);
   const [currentMonth, setCurrentMonth] = useState("");
-  const { transactions, typesTransactions } = useContext(MyContext);
+  const [deleteConfirmed, setDeleteConfirmed] = useState(Boolean);
+  const [activeButtonQuestingDelete, setActiveButtonQuestingDelete] =
+    useState(false);
   const years = ["2023", "2022", "2021"];
   Moment.updateLocale("pt", {
     months: [
@@ -52,8 +56,26 @@ function Home() {
   };
 
   const findTypeTransaction = (idTransaction) => {
-    return typesTransactions.find(({ id }) => id === idTransaction).type;
+    if(idTransaction) {
+      return typesTransactions.find(({ id }) => id === idTransaction).type;
+    }
+
+    return 'Nenhum tipo encontrado!'
   };
+
+  const deleteTransaction = ({ id }) => {
+    fetch(`http://localhost:3001/transactions/${id}`, {
+      method: "DELETE",
+    });
+  };
+
+  const confirmedDelete = () => {
+    setActiveButtonQuestingDelete(true);
+  };
+
+  useEffect(() => {
+    getAllTransactions();
+  }, [transactions]);
 
   return (
     <div>
@@ -163,7 +185,27 @@ function Home() {
                   <td>R$ {formatCurrencyMoney(transaction.value)}</td>
                   <td>
                     <button>Editar</button>
-                    <button>Remover</button>
+                    <button onClick={() => confirmedDelete(transaction)}>
+                      Remover
+                    </button>
+
+                    {activeButtonQuestingDelete && (
+                      <label>
+                        Deseja realmente deletar?
+                        <button
+                          className="confirm-delete"
+                          onClick={() => deleteTransaction(transaction)}
+                        >
+                          Sim
+                        </button>
+                        <button
+                          className="confirm-delete"
+                          onClick={() => setActiveButtonQuestingDelete(false)}
+                        >
+                          Não
+                        </button>
+                      </label>
+                    )}
                   </td>
                   <td>
                     <img
