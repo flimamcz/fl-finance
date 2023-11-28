@@ -15,6 +15,7 @@ function Home() {
   const { transactions, typesTransactions, getAllTransactions } =
     useContext(MyContext);
   const [currentMonth, setCurrentMonth] = useState("");
+  const [deletingById, setDeletingById] = useState(null);
   const [activeButtonQuestingDelete, setActiveButtonQuestingDelete] =
     useState(false);
   const years = ["2023", "2022", "2021"];
@@ -59,14 +60,17 @@ function Home() {
     return type;
   };
 
-  const deleteTransaction = ({ id }) => {
-    fetch(`http://localhost:3001/transactions/${id}`, {
+  const deleteTransaction = async ({ id }) => {
+    await fetch(`http://localhost:3001/transactions/${id}`, {
       method: "DELETE",
     });
+    setActiveButtonQuestingDelete(false);
+    setDeletingById(null);
   };
 
-  const confirmedDelete = () => {
+  const confirmedDelete = (transaction) => {
     setActiveButtonQuestingDelete(true);
+    setDeletingById(transaction);
   };
 
   useEffect(() => {
@@ -177,33 +181,13 @@ function Home() {
                   </td>
                   <td>{formatDate(transaction.date)}</td>
                   <td>{transaction.description}</td>
-                  <td>
-                    {findTypeTransaction(transaction.typeId)}
-                  </td>
+                  <td>{findTypeTransaction(transaction.typeId)}</td>
                   <td>R$ {formatCurrencyMoney(transaction.value)}</td>
                   <td>
                     <button>Editar</button>
                     <button onClick={() => confirmedDelete(transaction)}>
                       Remover
                     </button>
-
-                    {activeButtonQuestingDelete && (
-                      <label>
-                        Deseja realmente deletar?
-                        <button
-                          className="confirm-delete"
-                          onClick={() => deleteTransaction(transaction)}
-                        >
-                          Sim
-                        </button>
-                        <button
-                          className="confirm-delete"
-                          onClick={() => setActiveButtonQuestingDelete(false)}
-                        >
-                          Não
-                        </button>
-                      </label>
-                    )}
                   </td>
                   <td>
                     <img
@@ -224,6 +208,29 @@ function Home() {
             ) : (
               <p>Nenhuma transação encontrada!</p>
             )}
+
+            <div>
+              {activeButtonQuestingDelete && (
+                <label>
+                  <p>
+                    Deseja realmente deletar a transação de ID{" "}
+                    {`${deletingById.id}`}?
+                  </p>
+                  <button
+                    className="confirm-delete"
+                    onClick={() => deleteTransaction(deletingById)}
+                  >
+                    Sim
+                  </button>
+                  <button
+                    className="confirm-delete"
+                    onClick={() => setActiveButtonQuestingDelete(false)}
+                  >
+                    Não
+                  </button>
+                </label>
+              )}
+            </div>
           </tbody>
         </table>
       </section>
