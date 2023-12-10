@@ -12,12 +12,13 @@ import Moment from "moment";
 import MyContext from "../Context/Context";
 
 function Home() {
-  const { transactions, typesTransactions, getAllTransactions } =
+  const { transactions, typesTransactions, getAllTransactions, amounts } =
     useContext(MyContext);
   const [currentMonth, setCurrentMonth] = useState("");
   const [deletingById, setDeletingById] = useState(null);
   const [activeButtonQuestingDelete, setActiveButtonQuestingDelete] =
     useState(false);
+
   const years = ["2023", "2022", "2021"];
   Moment.updateLocale("pt", {
     months: [
@@ -56,7 +57,7 @@ function Home() {
   };
 
   const findTypeTransaction = (idTransaction) => {
-    const type = typesTransactions.find(({ id }) => id === idTransaction).type;
+    const type = typesTransactions ? typesTransactions.find(({ id }) => id === idTransaction).type : 0;
     return type;
   };
 
@@ -77,6 +78,10 @@ function Home() {
     getAllTransactions();
   }, [transactions]);
 
+  const amountTotal = amounts.length
+    ? Number(amounts[0].amount) - Number(amounts[1].amount).toFixed(2)
+    : " Carregando saldo...";
+
   return (
     <div>
       <Header />
@@ -84,7 +89,10 @@ function Home() {
         <div className="card-demonstrative balance">
           <span>
             <h2>Saldo atual</h2>
-            <p>R$ 0,00</p>
+            <p>
+              {"R$ "}
+              <span>{amountTotal}</span>
+            </p>
           </span>
           <img src={IconBank} alt="Icone representando um banco" />
         </div>
@@ -92,7 +100,17 @@ function Home() {
         <div className="card-demonstrative recipes">
           <span>
             <h2>Entradas</h2>
-            <p>R$ 0,00</p>
+            <p>
+              R${" "}
+              <span>
+                {amounts.length
+                  ? amounts[0].amount.toLocaleString("pt-BR", {
+                      style: "currency",
+                      currency: "BRL",
+                    })
+                  : 0}
+              </span>
+            </p>
           </span>
           <img src={IconRecipes} alt="Icone representando as entradas" />
         </div>
@@ -100,7 +118,17 @@ function Home() {
         <div className="card-demonstrative expenses">
           <span>
             <h2>Despesas</h2>
-            <p>R$ 0,00</p>
+            <p>
+              R${" "}
+              <span>
+                {amounts.length
+                  ? amounts[1].amount.toLocaleString("pt-BR", {
+                      style: "currency",
+                      currency: "BRL",
+                    })
+                  : 0}
+              </span>
+            </p>
           </span>
           <img src={IconExpenses} alt="Icone representando as despesas" />
         </div>
@@ -108,7 +136,17 @@ function Home() {
         <div className="card-demonstrative investiment">
           <span>
             <h2>Investido</h2>
-            <p>R$ 0,00</p>
+            <p>
+              R${" "}
+              <span>
+                {amounts.length
+                  ? amounts[2].amount.toLocaleString("pt-BR", {
+                      style: "currency",
+                      currency: "BRL",
+                    })
+                  : 0}
+              </span>
+            </p>
           </span>
           <img
             src={IconInvestiment}
