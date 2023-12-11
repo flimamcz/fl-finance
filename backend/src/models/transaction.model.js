@@ -26,7 +26,7 @@ const transactionModel = (sequelize, DataTypes) => {
       },
 
       date: {
-        type: DataTypes.DATE,
+        type: DataTypes.STRING,
         allowNull: false,
       },
 
