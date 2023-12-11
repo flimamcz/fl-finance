@@ -18,6 +18,10 @@ function Home() {
   const [deletingById, setDeletingById] = useState(null);
   const [activeButtonQuestingDelete, setActiveButtonQuestingDelete] =
     useState(false);
+  const [compensate, setCompensate] = useState(null);
+  const [typeTransaction, setTypeTransaction] = useState(1);
+  const [dateTransaction, setDateTransaction] = useState("");
+  const [modalActive, setModalActive] = useState(false);
 
   const years = ["2023", "2022", "2021"];
   Moment.updateLocale("pt", {
@@ -57,7 +61,9 @@ function Home() {
   };
 
   const findTypeTransaction = (idTransaction) => {
-    const type = typesTransactions ? typesTransactions.find(({ id }) => id === idTransaction).type : 0;
+    const type = typesTransactions.length
+      ? typesTransactions.find(({ id }) => id === idTransaction).type
+      : 0;
     return type;
   };
 
@@ -74,24 +80,46 @@ function Home() {
     setDeletingById(transaction);
   };
 
+  const handleChangeRadio = ({ target }) => {
+    setCompensate(eval(target.value));
+  };
+
+  const handleChangeSelect = ({ target }) => {
+    const auxValues = typesTransactions[target.value - 1];
+    setTypeTransaction(auxValues.id);
+  };
+
+  const handleDate = ({ target }) => {
+    setDateTransaction(target.value);
+  };
+
+  const toggleModal = () => {
+    setModalActive(!modalActive);
+  };
+
+  const createTransaction = () => {
+    console.log("transaction created");
+    setModalActive(false);
+  };
+
   useEffect(() => {
     getAllTransactions();
-  }, [transactions]);
+  }, [activeButtonQuestingDelete]);
 
   const amountTotal = amounts.length
-    ? Number(amounts[0].amount) - Number(amounts[1].amount).toFixed(2)
-    : " Carregando saldo...";
+    ? Number(amounts[0].amount) - Number(amounts[1].amount)
+    : 0;
 
   return (
     <div>
       <Header />
-      <section>
+      <section className="cards-balance">
         <div className="card-demonstrative balance">
           <span>
             <h2>Saldo atual</h2>
             <p>
               {"R$ "}
-              <span>{amountTotal}</span>
+              <span>{amountTotal.toFixed(2)}</span>
             </p>
           </span>
           <img src={IconBank} alt="Icone representando um banco" />
@@ -191,6 +219,12 @@ function Home() {
               ;
             </select>
           </label>
+
+          <div>
+            <button type="button" onClick={() => toggleModal()}>
+              + NOVA TRANSAÇÃO
+            </button>
+          </div>
         </form>
 
         <table>
@@ -272,6 +306,75 @@ function Home() {
           </tbody>
         </table>
       </section>
+
+      {modalActive && (
+        <form className="modal-register-transaction">
+          <h2>Nova transação</h2>
+
+          <label htmlFor="value">
+            <input type="text" placeholder="R$ 0.00" />
+          </label>
+
+          <div>
+            <label htmlFor="yes-compensate">
+              Efetivado
+              <input
+                type="radio"
+                name="compensate"
+                id="yes-compensate"
+                value={true}
+                onChange={handleChangeRadio}
+              />
+            </label>
+
+            <label htmlFor="not-compensate">
+              Á compensar
+              <input
+                type="radio"
+                name="compensate"
+                id="not-compensate"
+                value={false}
+                onChange={handleChangeRadio}
+              />
+            </label>
+          </div>
+
+          <select
+            name="type-transaction"
+            id="type-transaction"
+            value={typeTransaction}
+            onChange={handleChangeSelect}
+          >
+            <option value="1" defaultValue>
+              Entrada
+            </option>
+
+            <option value="2">Saída</option>
+
+            <option value="3">Investimento</option>
+          </select>
+          <textarea
+            name="description"
+            id="description"
+            cols="50"
+            rows="2"
+            placeholder="Descrição"
+          ></textarea>
+
+          <label htmlFor="date">
+            <input type="date" name="date" id="date" onChange={handleDate} />
+          </label>
+
+          <label htmlFor="buttons">
+            <button type="button" onClick={() => toggleModal()}>
+              CANCELAR
+            </button>
+            <button type="button" onClick={createTransaction}>
+              SALVAR
+            </button>
+          </label>
+        </form>
+      )}
     </div>
   );
 }
