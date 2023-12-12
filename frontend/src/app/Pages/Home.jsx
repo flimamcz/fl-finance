@@ -15,6 +15,7 @@ function Home() {
   const { transactions, typesTransactions, getAllTransactions, amounts } =
     useContext(MyContext);
   const [currentMonth, setCurrentMonth] = useState("");
+  const [value, setValue] = useState("");
   const [deletingById, setDeletingById] = useState(null);
   const [activeButtonQuestingDelete, setActiveButtonQuestingDelete] =
     useState(false);
@@ -22,6 +23,9 @@ function Home() {
   const [typeTransaction, setTypeTransaction] = useState(1);
   const [dateTransaction, setDateTransaction] = useState("");
   const [modalActive, setModalActive] = useState(false);
+  const [buttonCreateTransaction, setButtonCreateTransaction] = useState(true);
+
+  const [descriptionTransaction, setDescriptionTransaction] = useState("");
 
   const years = ["2023", "2022", "2021"];
   Moment.updateLocale("pt", {
@@ -51,6 +55,18 @@ function Home() {
 
   const formatDate = (date) => {
     return Moment(date).format("DD/MM/YYYY");
+  };
+
+  const verifyInputs = () => {
+    const existDescription = descriptionTransaction.length >= 5;
+    const existValue = Number(value) > 0;
+
+    if (existDescription && existValue) {
+      setButtonCreateTransaction(false);
+    }
+    if (!existDescription || !existValue) {
+      setButtonCreateTransaction(true);
+    }
   };
 
   const formatCurrencyMoney = (money) => {
@@ -91,14 +107,24 @@ function Home() {
 
   const handleDate = ({ target }) => {
     setDateTransaction(target.value);
+    verifyInputs();
+  };
+
+  const handleDescription = ({ target }) => {
+    setDescriptionTransaction(target.value);
+    verifyInputs();
   };
 
   const toggleModal = () => {
     setModalActive(!modalActive);
   };
 
+  const handleValue = ({ target }) => {
+    verifyInputs();
+    setValue(target.value);
+  };
+
   const createTransaction = () => {
-    console.log("transaction created");
     setModalActive(false);
   };
 
@@ -312,7 +338,12 @@ function Home() {
           <h2>Nova transação</h2>
 
           <label htmlFor="value">
-            <input type="text" placeholder="R$ 0.00" />
+            <input
+              type="text"
+              placeholder="R$ 0.00"
+              onChange={handleValue}
+              value={value}
+            />
           </label>
 
           <div>
@@ -358,18 +389,30 @@ function Home() {
             id="description"
             cols="50"
             rows="2"
+            value={descriptionTransaction}
+            onChange={handleDescription}
             placeholder="Descrição"
           ></textarea>
 
           <label htmlFor="date">
-            <input type="date" name="date" id="date" onChange={handleDate} />
+            <input
+              type="date"
+              name="date"
+              id="date"
+              onChange={handleDate}
+              value={dateTransaction}
+            />
           </label>
 
           <label htmlFor="buttons">
             <button type="button" onClick={() => toggleModal()}>
               CANCELAR
             </button>
-            <button type="button" onClick={createTransaction}>
+            <button
+              type="button"
+              disabled={buttonCreateTransaction}
+              onClick={createTransaction}
+            >
               SALVAR
             </button>
           </label>
