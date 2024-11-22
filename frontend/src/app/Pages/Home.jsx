@@ -3,13 +3,12 @@ import IconBank from "../../assets/BANK-ICON.png";
 import IconInvestiment from "../../assets/INVESTIMENT.png";
 import IconRecipes from "../../assets/RECIPES.png";
 import IconExpenses from "../../assets/EXPENSE.png";
-import { useContext, useEffect, useState } from "react";
-
 import Checked from "../../assets/checked.png";
 import Pending from "../../assets/pending.png";
-
+import { useContext, useEffect, useState } from "react";
 import Moment from "moment";
 import MyContext from "../Context/Context";
+import "../Styles/Home.css";
 
 function Home() {
   const { transactions, typesTransactions, getAllTransactions, amounts } =
@@ -24,7 +23,6 @@ function Home() {
   const [dateTransaction, setDateTransaction] = useState("");
   const [modalActive, setModalActive] = useState(false);
   const [buttonCreateTransaction, setButtonCreateTransaction] = useState(true);
-
   const [descriptionTransaction, setDescriptionTransaction] = useState("");
 
   const years = ["2023", "2022", "2021"];
@@ -46,35 +44,23 @@ function Home() {
   });
 
   const date = Moment();
-
   const months = date._locale._months;
 
-  const handleChangeDate = ({ target }) => {
-    setCurrentMonth(target.value);
-  };
+  const handleChangeDate = ({ target }) => setCurrentMonth(target.value);
 
-  const formatDate = (date) => {
-    return Moment(date).format("DD/MM/YYYY");
-  };
+  const formatDate = (date) => Moment(date).format("DD/MM/YYYY");
 
   const verifyInputs = () => {
     const existDescription = descriptionTransaction.length >= 5;
     const existValue = Number(value) > 0;
-
-    if (existDescription && existValue) {
-      setButtonCreateTransaction(false);
-    }
-    if (!existDescription || !existValue) {
-      setButtonCreateTransaction(true);
-    }
+    setButtonCreateTransaction(!(existDescription && existValue));
   };
 
-  const formatCurrencyMoney = (money) => {
-    return money.toLocaleString("pt-br", {
+  const formatCurrencyMoney = (money) =>
+    money.toLocaleString("pt-br", {
       style: "currency",
       currency: "BRL",
     });
-  };
 
   const findTypeTransaction = (idTransaction) => {
     const type = typesTransactions.length
@@ -96,9 +82,7 @@ function Home() {
     setDeletingById(transaction);
   };
 
-  const handleChangeRadio = ({ target }) => {
-    setCompensate(eval(target.value));
-  };
+  const handleChangeRadio = ({ target }) => setCompensate(eval(target.value));
 
   const handleChangeSelect = ({ target }) => {
     const auxValues = typesTransactions[target.value - 1];
@@ -115,18 +99,14 @@ function Home() {
     verifyInputs();
   };
 
-  const toggleModal = () => {
-    setModalActive(!modalActive);
-  };
+  const toggleModal = () => setModalActive(!modalActive);
 
   const handleValue = ({ target }) => {
     verifyInputs();
     setValue(target.value);
   };
 
-  const createTransaction = () => {
-    setModalActive(false);
-  };
+  const createTransaction = () => setModalActive(false);
 
   useEffect(() => {
     getAllTransactions();
@@ -144,11 +124,10 @@ function Home() {
           <span>
             <h2>Saldo atual</h2>
             <p>
-              {"R$ "}
-              <span>{amountTotal.toFixed(2)}</span>
+              R$ <span>{amountTotal.toFixed(2)}</span>
             </p>
           </span>
-          <img src={IconBank} alt="Icone representando um banco" />
+          <img src={IconBank} alt="Ícone de banco" />
         </div>
 
         <div className="card-demonstrative recipes">
@@ -166,7 +145,7 @@ function Home() {
               </span>
             </p>
           </span>
-          <img src={IconRecipes} alt="Icone representando as entradas" />
+          <img src={IconRecipes} alt="Ícone de entradas" />
         </div>
 
         <div className="card-demonstrative expenses">
@@ -184,7 +163,7 @@ function Home() {
               </span>
             </p>
           </span>
-          <img src={IconExpenses} alt="Icone representando as despesas" />
+          <img src={IconExpenses} alt="Ícone de despesas" />
         </div>
 
         <div className="card-demonstrative investiment">
@@ -202,16 +181,13 @@ function Home() {
               </span>
             </p>
           </span>
-          <img
-            src={IconInvestiment}
-            alt="Icone representando os investimentos"
-          />
+          <img src={IconInvestiment} alt="Ícone de investimentos" />
         </div>
       </section>
 
       <section>
         <form>
-          <label className="month">
+          {/* <label className="month">
             <select
               name="date"
               id="date"
@@ -221,36 +197,30 @@ function Home() {
               <option value="" disabled>
                 Selecione um mês
               </option>
-              {months &&
-                months.map((month) => (
-                  <option key={month} value={month}>
-                    {month}
-                  </option>
-                ))}{" "}
-              ;
+              {months.map((month) => (
+                <option key={month} value={month}>
+                  {month}
+                </option>
+              ))}
             </select>
-          </label>
+          </label> */}
 
-          <label className="year">
+          {/* <label className="year">
             <select name="year" id="year" value={currentMonth}>
               <option value="" disabled>
                 Selecione um ano
               </option>
-              {years &&
-                years.map((year) => (
-                  <option key={year} value={year}>
-                    {year}
-                  </option>
-                ))}{" "}
-              ;
+              {years.map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
             </select>
-          </label>
+          </label> */}
 
-          <div>
-            <button type="button" onClick={() => toggleModal()}>
-              + NOVA TRANSAÇÃO
-            </button>
-          </div>
+          <button className="button-new-transaction" type="button" onClick={toggleModal}>
+            + NOVA TRANSAÇÃO
+          </button>
         </form>
 
         <table>
@@ -262,10 +232,9 @@ function Home() {
               <td>Tipo</td>
               <td>Valor</td>
               <td>Ações</td>
-              <td>Entradas/Saída/Investimento</td>
+              <td>Categoria</td>
             </tr>
           </thead>
-
           <tbody>
             {transactions.length ? (
               transactions.map((transaction) => (
@@ -274,7 +243,7 @@ function Home() {
                     <img
                       width={24}
                       src={transaction.status ? Checked : Pending}
-                      alt="Icone representando transação pendente ou efetivado"
+                      alt="Status"
                     />
                   </td>
                   <td>{formatDate(transaction.date)}</td>
@@ -282,10 +251,15 @@ function Home() {
                   <td>{findTypeTransaction(transaction.typeId)}</td>
                   <td>R$ {formatCurrencyMoney(transaction.value)}</td>
                   <td>
-                    <button>Editar</button>
-                    <button onClick={() => confirmedDelete(transaction)}>
-                      Remover
-                    </button>
+                    <div className="action-buttons">
+                      <button className="edit-button">Editar</button>
+                      <button
+                        className="remove-button"
+                        onClick={() => confirmedDelete(transaction)}
+                      >
+                        Remover
+                      </button>
+                    </div>
                   </td>
                   <td>
                     <img
@@ -298,17 +272,19 @@ function Home() {
                           ? IconExpenses
                           : IconInvestiment
                       }
-                      alt="Icone representando transação pendente ou efetivado"
+                      alt="Categoria"
                     />
                   </td>
                 </tr>
               ))
             ) : (
-              <p>Nenhuma transação encontrada!</p>
+              <tr>
+                <td className="not-transaction-paragraph" colSpan="7">Nenhuma transação encontrada!</td>
+              </tr>
             )}
 
-            <div>
-              {activeButtonQuestingDelete && (
+            {activeButtonQuestingDelete && (
+              <div className="center-content">
                 <label>
                   <p>
                     Deseja realmente deletar a transação de ID{" "}
@@ -327,8 +303,8 @@ function Home() {
                     Não
                   </button>
                 </label>
-              )}
-            </div>
+              </div>
+            )}
           </tbody>
         </table>
       </section>
@@ -336,86 +312,59 @@ function Home() {
       {modalActive && (
         <form className="modal-register-transaction">
           <h2>Nova transação</h2>
-
-          <label htmlFor="value">
-            <input
-              type="text"
-              placeholder="R$ 0.00"
-              onChange={handleValue}
-              value={value}
-            />
-          </label>
-
+          <input
+            type="text"
+            placeholder="R$ 0.00"
+            onChange={handleValue}
+            value={value}
+          />
           <div>
-            <label htmlFor="yes-compensate">
+            <label>
               Efetivado
               <input
                 type="radio"
                 name="compensate"
-                id="yes-compensate"
                 value={true}
                 onChange={handleChangeRadio}
               />
             </label>
-
-            <label htmlFor="not-compensate">
+            <label>
               Á compensar
               <input
                 type="radio"
                 name="compensate"
-                id="not-compensate"
                 value={false}
                 onChange={handleChangeRadio}
               />
             </label>
           </div>
-
           <select
             name="type-transaction"
-            id="type-transaction"
             value={typeTransaction}
             onChange={handleChangeSelect}
           >
-            <option value="1" defaultValue>
-              Entrada
+            <option value="" disabled>
+              Escolha um tipo
             </option>
-
-            <option value="2">Saída</option>
-
-            <option value="3">Investimento</option>
+            {typesTransactions.map((type) => (
+              <option key={type.id} value={type.id}>
+                {type.type}
+              </option>
+            ))}
           </select>
           <textarea
-            name="description"
-            id="description"
-            cols="50"
-            rows="2"
+            placeholder="Descrição"
             value={descriptionTransaction}
             onChange={handleDescription}
-            placeholder="Descrição"
-          ></textarea>
-
-          <label htmlFor="date">
-            <input
-              type="date"
-              name="date"
-              id="date"
-              onChange={handleDate}
-              value={dateTransaction}
-            />
-          </label>
-
-          <label htmlFor="buttons">
-            <button type="button" onClick={() => toggleModal()}>
-              CANCELAR
-            </button>
-            <button
-              type="button"
-              disabled={buttonCreateTransaction}
-              onClick={createTransaction}
-            >
-              SALVAR
-            </button>
-          </label>
+          />
+          <input type="date" value={dateTransaction} onChange={handleDate} />
+          <button
+            type="button"
+            disabled={buttonCreateTransaction}
+            onClick={createTransaction}
+          >
+            Criar
+          </button>
         </form>
       )}
     </div>

@@ -1,5 +1,7 @@
 import Porco from "../../assets/porco-cofre.png";
 import Profile from "../../assets/gg_profile.png";
+import "../Styles/Header.css";
+
 
 function Header() {
   return (

@@ -1,0 +1,284 @@
+/* Reset básico */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: Arial, sans-serif;
+}
+
+body {
+  background-color: #f9f9f9;
+  color: #333;
+}
+
+h2,
+p {
+  margin-bottom: 8px;
+}
+
+/* Estilização principal */
+div {
+  padding: 1rem;
+}
+
+.cards-balance {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin: 2rem auto;
+  max-width: 1200px;
+}
+
+.card-demonstrative {
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 1rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  transition: transform 0.2s;
+}
+
+.card-demonstrative:hover {
+  transform: scale(1.03);
+}
+
+.card-demonstrative img {
+  width: 48px;
+  margin-top: 8px;
+}
+
+.card-demonstrative span p {
+  font-size: 1.4rem;
+  font-weight: bold;
+  color: #2c7d59;
+}
+
+/* Formulário */
+form {
+  max-width: 600px;
+  margin: 2rem auto;
+  background-color: #fff;
+  padding: 1rem;
+  border-radius: 8px;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+form label {
+  display: block;
+  margin-bottom: 1rem;
+  font-weight: bold;
+}
+
+form input,
+form select,
+form textarea,
+form button {
+  width: 100%;
+  padding: 0.5rem;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  margin-bottom: 1rem;
+  font-size: 1rem;
+}
+
+form button {
+  background-color: #2c7d59;
+  color: #fff;
+  font-weight: bold;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+form button:hover {
+  background-color: #236e49;
+}
+
+form button[disabled] {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.button-new-transaction {
+  padding: 20px;
+}
+
+/* Tabela */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+thead tr {
+  background-color: #2c7d59;
+  color: #fff;
+  text-align: left;
+}
+
+thead td {
+  padding: 0.75rem;
+}
+
+tbody tr {
+  border-bottom: 1px solid #ddd;
+}
+
+tbody td {
+  padding: 0.75rem;
+}
+
+tbody tr:hover {
+  background-color: #f1f1f1;
+}
+
+/* Modal */
+.modal-register-transaction {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #fff;
+  width: 90%;
+  max-width: 500px;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0px 8px 15px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+}
+
+.modal-register-transaction h2 {
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+  text-align: center;
+}
+
+.modal-register-transaction textarea {
+  resize: none;
+}
+
+.modal-register-transaction label {
+  display: flex;
+  justify-content: space-between;
+}
+
+.modal-register-transaction button {
+  width: 48%;
+}
+
+/* Botões de confirmação de exclusão */
+.confirm-delete {
+  background-color: #d9534f;
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1rem;
+  margin: 0.5rem;
+  cursor: pointer;
+  border-radius: 4px;
+  font-weight: bold;
+  transition: background-color 0.3s;
+}
+
+.confirm-delete:hover {
+  background-color: #c9302c;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .cards-balance {
+    grid-template-columns: 1fr;
+  }
+
+  form {
+    width: 90%;
+  }
+}
+
+/* Estilização da célula de ações */
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Botão de editar */
+.edit-button {
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  padding: 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.edit-button:hover {
+  background-color: #45a049;
+}
+
+/* Botão de remover */
+.remove-button {
+  background-color: #f44336;
+  color: white;
+  border: none;
+  padding: 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.remove-button:hover {
+  background-color: #d32f2f;
+}
+
+.center-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(255, 255, 255, 0.9);
+  /* opcional */
+  padding: 20px;
+  /* opcional */
+  border-radius: 8px;
+  /* opcional */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  /* opcional */
+}
+
+.center-content button {
+  margin: 5px;
+  /* espaçamento entre os botões */
+  width: 100px;
+  /* define a largura dos botões, opcional */
+}
+
+.confirm-delete {
+  background-color: #ff4d4d;
+  /* exemplo de cor para os botões de confirmar a remoção */
+  color: white;
+  padding: 10px;
+  border: none;
+  cursor: pointer;
+  border-radius: 5px;
+}
+
+.confirm-delete:hover {
+  background-color: #e60000;
+}
+
+.not-transaction-paragraph {
+  font-size: 1.4rem;
+  font-weight: 700;
+  text-align: center;
+  padding: 30px;
+}
