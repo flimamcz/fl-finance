@@ -168,7 +168,18 @@ tbody tr:hover {
 }
 
 .modal-register-transaction button {
-  width: 48%;
+  width: 50%;
+}
+
+.modal-register-transaction button:last-child {
+  background-color: rgb(236, 19, 19);
+}
+
+.button-modal-register {
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+
 }
 
 /* Botões de confirmação de exclusão */

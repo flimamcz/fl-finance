@@ -13,46 +13,53 @@ import "../Styles/Home.css";
 function Home() {
   const { transactions, typesTransactions, getAllTransactions, amounts } =
     useContext(MyContext);
-  const [currentMonth, setCurrentMonth] = useState("");
-  const [value, setValue] = useState("");
+  // const [currentMonth, setCurrentMonth] = useState("");
   const [deletingById, setDeletingById] = useState(null);
   const [activeButtonQuestingDelete, setActiveButtonQuestingDelete] =
     useState(false);
-  const [compensate, setCompensate] = useState(null);
   const [typeTransaction, setTypeTransaction] = useState(1);
-  const [dateTransaction, setDateTransaction] = useState("");
   const [modalActive, setModalActive] = useState(false);
+  const [modalRegister, setModalRegister] = useState(false);
   const [buttonCreateTransaction, setButtonCreateTransaction] = useState(true);
-  const [descriptionTransaction, setDescriptionTransaction] = useState("");
 
-  const years = ["2023", "2022", "2021"];
-  Moment.updateLocale("pt", {
-    months: [
-      "Janeiro",
-      "Fevereiro",
-      "Março",
-      "Abril",
-      "Maio",
-      "Junho",
-      "Julho",
-      "Agosto",
-      "Setembro",
-      "Outubro",
-      "Novembro",
-      "Dezembro",
-    ],
-  });
+  const dataObjectModelTransaction = {
+    value: String,
+    description: String,
+    date: Date,
+    status: Boolean,
+    typeId: 1,
+  };
 
-  const date = Moment();
-  const months = date._locale._months;
+  const [transactionData, setTransactionData] = useState(
+    dataObjectModelTransaction
+  );
 
-  const handleChangeDate = ({ target }) => setCurrentMonth(target.value);
+  // const years = ["2023", "2022", "2021"];
+  // Moment.updateLocale("pt", {
+  //   months: [
+  //     "Janeiro",
+  //     "Fevereiro",
+  //     "Março",
+  //     "Abril",
+  //     "Maio",
+  //     "Junho",
+  //     "Julho",
+  //     "Agosto",
+  //     "Setembro",
+  //     "Outubro",
+  //     "Novembro",
+  //     "Dezembro",
+  //   ],
+  // });
+
+  // const date = Moment();
+  // const months = date._locale._months;
 
   const formatDate = (date) => Moment(date).format("DD/MM/YYYY");
 
   const verifyInputs = () => {
-    const existDescription = descriptionTransaction.length >= 5;
-    const existValue = Number(value) > 0;
+    const existDescription = transactionData.description.length >= 5;
+    const existValue = Number(transactionData.value) > 0;
     setButtonCreateTransaction(!(existDescription && existValue));
   };
 
@@ -82,31 +89,26 @@ function Home() {
     setDeletingById(transaction);
   };
 
-  const handleChangeRadio = ({ target }) => setCompensate(eval(target.value));
-
-  const handleChangeSelect = ({ target }) => {
-    const auxValues = typesTransactions[target.value - 1];
-    setTypeTransaction(auxValues.id);
-  };
-
-  const handleDate = ({ target }) => {
-    setDateTransaction(target.value);
-    verifyInputs();
-  };
-
-  const handleDescription = ({ target }) => {
-    setDescriptionTransaction(target.value);
-    verifyInputs();
-  };
-
   const toggleModal = () => setModalActive(!modalActive);
 
-  const handleValue = ({ target }) => {
-    verifyInputs();
-    setValue(target.value);
-  };
+  const handleChange = ({ target }) => {
+    const { name, value, type } = target;
 
-  const createTransaction = () => setModalActive(false);
+    if (type === "radio") {
+      setTransactionData((prevData) => ({
+        ...prevData,
+        [name]: JSON.parse(value),
+      }));
+    } else if (name === "type-transaction") {
+      setTypeTransaction(value);
+    } else {
+      setTransactionData((prevData) => ({
+        ...prevData,
+        [name]: value,
+      }));
+    }
+    verifyInputs();
+  };
 
   useEffect(() => {
     getAllTransactions();
@@ -115,6 +117,25 @@ function Home() {
   const amountTotal = amounts.length
     ? Number(amounts[0].amount) - Number(amounts[1].amount)
     : 0;
+
+  const createTransaction = async () => {
+    console.log(transactionData);
+    setTimeout(() => {
+      setTransactionData(dataObjectModelTransaction);
+    }, 1000);
+  };
+
+  const closeModalRegister = () => {
+    setModalActive(false);
+    setTransactionData(dataObjectModelTransaction);
+  };
+
+  document.onkeydown = (e) => {
+    if (e.key === "Escape") {
+      setModalActive(false);
+    }
+  };
+
 
   return (
     <div>
@@ -218,7 +239,11 @@ function Home() {
             </select>
           </label> */}
 
-          <button className="button-new-transaction" type="button" onClick={toggleModal}>
+          <button
+            className="button-new-transaction"
+            type="button"
+            onClick={toggleModal}
+          >
             + NOVA TRANSAÇÃO
           </button>
         </form>
@@ -279,7 +304,9 @@ function Home() {
               ))
             ) : (
               <tr>
-                <td className="not-transaction-paragraph" colSpan="7">Nenhuma transação encontrada!</td>
+                <td className="not-transaction-paragraph" colSpan="7">
+                  Nenhuma transação encontrada!
+                </td>
               </tr>
             )}
 
@@ -315,34 +342,33 @@ function Home() {
           <input
             type="text"
             placeholder="R$ 0.00"
-            onChange={handleValue}
-            value={value}
+            name="value"
+            onChange={handleChange}
+            value={transactionData.value}
           />
           <div>
             <label>
               Efetivado
               <input
                 type="radio"
-                name="compensate"
+                name="status"
                 value={true}
-                onChange={handleChangeRadio}
+                onChange={handleChange}
+                checked={transactionData.status === true}
               />
             </label>
             <label>
               Á compensar
               <input
                 type="radio"
-                name="compensate"
+                name="status"
                 value={false}
-                onChange={handleChangeRadio}
+                onChange={handleChange}
+                checked={transactionData.status === false}
               />
             </label>
           </div>
-          <select
-            name="type-transaction"
-            value={typeTransaction}
-            onChange={handleChangeSelect}
-          >
+          <select name="typeId" id="typeId" onChange={handleChange}>
             <option value="" disabled>
               Escolha um tipo
             </option>
@@ -353,18 +379,29 @@ function Home() {
             ))}
           </select>
           <textarea
+            name="description"
             placeholder="Descrição"
-            value={descriptionTransaction}
-            onChange={handleDescription}
+            value={transactionData.description}
+            onChange={handleChange}
           />
-          <input type="date" value={dateTransaction} onChange={handleDate} />
-          <button
-            type="button"
-            disabled={buttonCreateTransaction}
-            onClick={createTransaction}
-          >
-            Criar
-          </button>
+          <input
+            type="date"
+            name="date"
+            value={Moment(transactionData.date).format("YYYY-MM-DD")}
+            onChange={handleChange}
+          />
+          <div className="button-modal-register">
+            <button
+              type="button"
+              disabled={buttonCreateTransaction}
+              onClick={createTransaction}
+            >
+              Criar
+            </button>
+            <button onClick={closeModalRegister} type="button">
+              Fechar
+            </button>
+          </div>
         </form>
       )}
     </div>
