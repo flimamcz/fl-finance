@@ -5,10 +5,11 @@ import IconRecipes from "../../assets/RECIPES.png";
 import IconExpenses from "../../assets/EXPENSE.png";
 import Checked from "../../assets/checked.png";
 import Pending from "../../assets/pending.png";
-import { useContext, useEffect, useState } from "react";
+import { Fragment, useContext, useEffect, useState } from "react";
 import Moment from "moment";
 import MyContext from "../Context/Context";
 import "../Styles/Home.css";
+import { requestPost } from "../Services/request";
 
 function Home() {
   const { transactions, typesTransactions, getAllTransactions, amounts } =
@@ -18,6 +19,8 @@ function Home() {
   const [activeButtonQuestingDelete, setActiveButtonQuestingDelete] =
     useState(false);
   const [typeTransaction, setTypeTransaction] = useState(1);
+
+  const [loading, setLoading] = useState(false);
   const [modalActive, setModalActive] = useState(false);
   const [modalRegister, setModalRegister] = useState(false);
   const [buttonCreateTransaction, setButtonCreateTransaction] = useState(true);
@@ -29,31 +32,11 @@ function Home() {
     status: Boolean,
     typeId: 1,
   };
+  const port_backend = 3002;
 
   const [transactionData, setTransactionData] = useState(
     dataObjectModelTransaction
   );
-
-  // const years = ["2023", "2022", "2021"];
-  // Moment.updateLocale("pt", {
-  //   months: [
-  //     "Janeiro",
-  //     "Fevereiro",
-  //     "Março",
-  //     "Abril",
-  //     "Maio",
-  //     "Junho",
-  //     "Julho",
-  //     "Agosto",
-  //     "Setembro",
-  //     "Outubro",
-  //     "Novembro",
-  //     "Dezembro",
-  //   ],
-  // });
-
-  // const date = Moment();
-  // const months = date._locale._months;
 
   const formatDate = (date) => Moment(date).format("DD/MM/YYYY");
 
@@ -77,7 +60,9 @@ function Home() {
   };
 
   const deleteTransaction = async ({ id }) => {
-    await fetch(`http://localhost:3001/transactions/${id}`, {
+    console.log(id);
+
+    await fetch(`http://localhost:${port_backend}/transactions/${id}`, {
       method: "DELETE",
     });
     setActiveButtonQuestingDelete(false);
@@ -107,22 +92,26 @@ function Home() {
         [name]: value,
       }));
     }
+
     verifyInputs();
   };
 
-  useEffect(() => {
-    getAllTransactions();
-  }, [activeButtonQuestingDelete]);
 
   const amountTotal = amounts.length
     ? Number(amounts[0].amount) - Number(amounts[1].amount)
     : 0;
 
-  const createTransaction = async () => {
-    console.log(transactionData);
+  const createTransaction = async (e) => {
+    setLoading(true);
+    e.preventDefault();
+    await requestPost("/transactions", transactionData);
+    closeModalRegister();
+
     setTimeout(() => {
       setTransactionData(dataObjectModelTransaction);
-    }, 1000);
+      getAllTransactions();
+      setLoading(false);
+    }, 1200);
   };
 
   const closeModalRegister = () => {
@@ -136,6 +125,9 @@ function Home() {
     }
   };
 
+  useEffect(() => {
+    getAllTransactions();
+  }, [activeButtonQuestingDelete]);
 
   return (
     <div>
@@ -208,37 +200,6 @@ function Home() {
 
       <section>
         <form>
-          {/* <label className="month">
-            <select
-              name="date"
-              id="date"
-              value={currentMonth}
-              onChange={handleChangeDate}
-            >
-              <option value="" disabled>
-                Selecione um mês
-              </option>
-              {months.map((month) => (
-                <option key={month} value={month}>
-                  {month}
-                </option>
-              ))}
-            </select>
-          </label> */}
-
-          {/* <label className="year">
-            <select name="year" id="year" value={currentMonth}>
-              <option value="" disabled>
-                Selecione um ano
-              </option>
-              {years.map((year) => (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              ))}
-            </select>
-          </label> */}
-
           <button
             className="button-new-transaction"
             type="button"
@@ -261,53 +222,60 @@ function Home() {
             </tr>
           </thead>
           <tbody>
-            {transactions.length ? (
-              transactions.map((transaction) => (
-                <tr key={transaction.id}>
-                  <td>
-                    <img
-                      width={24}
-                      src={transaction.status ? Checked : Pending}
-                      alt="Status"
-                    />
-                  </td>
-                  <td>{formatDate(transaction.date)}</td>
-                  <td>{transaction.description}</td>
-                  <td>{findTypeTransaction(transaction.typeId)}</td>
-                  <td>R$ {formatCurrencyMoney(transaction.value)}</td>
-                  <td>
-                    <div className="action-buttons">
-                      <button className="edit-button">Editar</button>
-                      <button
-                        className="remove-button"
-                        onClick={() => confirmedDelete(transaction)}
-                      >
-                        Remover
-                      </button>
-                    </div>
-                  </td>
-                  <td>
-                    <img
-                      width={24}
-                      src={
-                        findTypeTransaction(transaction.typeId) === "RECEITA"
-                          ? IconRecipes
-                          : findTypeTransaction(transaction.typeId) ===
-                            "DESPESA"
-                          ? IconExpenses
-                          : IconInvestiment
-                      }
-                      alt="Categoria"
-                    />
-                  </td>
-                </tr>
-              ))
+            {loading ? (
+              <div className="loader"></div>
             ) : (
-              <tr>
-                <td className="not-transaction-paragraph" colSpan="7">
-                  Nenhuma transação encontrada!
-                </td>
-              </tr>
+              <Fragment>
+                {transactions.length ? (
+                  transactions.map((transaction) => (
+                    <tr key={transaction.id}>
+                      <td>
+                        <img
+                          width={24}
+                          src={transaction.status ? Checked : Pending}
+                          alt="Status"
+                        />
+                      </td>
+                      <td>{formatDate(transaction.date)}</td>
+                      <td>{transaction.description}</td>
+                      <td>{findTypeTransaction(transaction.typeId)}</td>
+                      <td>R$ {formatCurrencyMoney(transaction.value)}</td>
+                      <td>
+                        <div className="action-buttons">
+                          <button className="edit-button">Editar</button>
+                          <button
+                            className="remove-button"
+                            onClick={() => confirmedDelete(transaction)}
+                          >
+                            Remover
+                          </button>
+                        </div>
+                      </td>
+                      <td>
+                        <img
+                          width={24}
+                          src={
+                            findTypeTransaction(transaction.typeId) ===
+                            "RECEITA"
+                              ? IconRecipes
+                              : findTypeTransaction(transaction.typeId) ===
+                                "DESPESA"
+                              ? IconExpenses
+                              : IconInvestiment
+                          }
+                          alt="Categoria"
+                        />
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td className="not-transaction-paragraph" colSpan="7">
+                      Nenhuma transação encontrada!
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
             )}
 
             {activeButtonQuestingDelete && (
@@ -341,7 +309,7 @@ function Home() {
           <h2>Nova transação</h2>
           <input
             type="text"
-            placeholder="R$ 0.00"
+            placeholder="R$ 0.00 (USE PONTO (.) R$ 2.23)"
             name="value"
             onChange={handleChange}
             value={transactionData.value}

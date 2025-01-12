@@ -7,14 +7,23 @@ function Provider({ children }) {
 
   const [amounts, setAmounts] = useState([]);
 
+  const port_backend = 3002
+
   const getAllTransactions = useCallback(async () => {
     try {
       let recipes = 0;
       let expenses = 0;
       let investiments = 0;
-      const req = await fetch("http://localhost:3001/transactions");
+      const req = await fetch(`http://localhost:${port_backend}/transactions`);
       const data = await req.json();
-      setTransactions(data);
+      const dataSort = () => {
+        const sorted = data.sort((a, b) => {
+          return a.date - b.date
+        })
+        return sorted
+      }
+      
+      setTransactions(dataSort());
 
       data.forEach((transaction) => {
         if (transaction.typeId === 1)
@@ -48,7 +57,7 @@ function Provider({ children }) {
 
   const getAllTypes = useCallback(async () => {
     try {
-      const req = await fetch("http://localhost:3001/types");
+      const req = await fetch(`http://localhost:${port_backend}/types`);
       const data = await req.json();
       setTypesTransactions(data);
     } catch (error) {

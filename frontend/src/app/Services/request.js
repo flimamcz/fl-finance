@@ -1,10 +1,11 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: `http://${'localhost' || '192.168.0.191'}:${3001}}`,
+  baseURL: `http://localhost:${'3002'|| "3002"}`,
 });
 
 export const requestPost = async (endpoint, body) => {
+  console.log(endpoint, body);
   const { data } = await api.post(endpoint, body);
   return data;
 };
