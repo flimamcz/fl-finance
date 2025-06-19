@@ -9,7 +9,7 @@ import { Fragment, useContext, useEffect, useState } from "react";
 import Moment from "moment";
 import MyContext from "../Context/Context";
 import "../Styles/Home.css";
-import { requestPost } from "../Services/request";
+import { requestPost, requestUpdate } from "../Services/request";
 
 function Home() {
   const { transactions, typesTransactions, getAllTransactions, amounts } =
@@ -19,6 +19,8 @@ function Home() {
   const [activeButtonQuestingDelete, setActiveButtonQuestingDelete] =
     useState(false);
   const [typeTransaction, setTypeTransaction] = useState(1);
+  const [activeModalEditTransaction, setActiveModalEditTransaction] =
+    useState(false);
   const [transactionCurrentEdit, setTransactionCurrentEdit] = useState({});
 
   const [loading, setLoading] = useState(false);
@@ -126,399 +128,419 @@ function Home() {
   };
 
   const modalEditTransaction = (transactionEdit) => {
-    console.log(transactionEdit);
-
+    setActiveModalEditTransaction(true);
     setTransactionCurrentEdit(transactionEdit);
+  };
+
+  const saveTransactionEdit = () => {
+    try {
+      setLoading(true);
+      requestUpdate("/transactions", transactionCurrentEdit);
+      setActiveModalEditTransaction(false);
+      setLoading(false);
+      setTransactionCurrentEdit({});
+    } catch (error) {
+      setActiveModalEditTransaction(false);
+      setLoading(false);
+      setTransactionCurrentEdit(false);
+      alert("Erro ao atualizar transação!");
+      console.log(error);
+    }
   };
 
   useEffect(() => {
     getAllTransactions();
-  }, [activeButtonQuestingDelete]);
+  }, [activeButtonQuestingDelete, saveTransactionEdit]);
 
   return (
     <div>
       <Header />
-      <section className="cards-balance">
-        <div className="card-demonstrative balance">
-          <span>
-            <h2>Saldo atual</h2>
-            <p>
-              R$ <span>{amountTotal.toFixed(2)}</span>
-            </p>
-          </span>
-          <img src={IconBank} alt="Ícone de banco" />
-        </div>
+      <div className="body">
+        <section className="cards-balance">
+          <div className="card-demonstrative balance">
+            <span>
+              <h2>Saldo atual</h2>
+              <p>
+                R$ <span>{amountTotal.toFixed(2)}</span>
+              </p>
+            </span>
+            <abbr title="Ícone de Banco">
+              <img src={IconBank} alt="Ícone de banco" />
+            </abbr>
+          </div>
 
-        <div className="card-demonstrative recipes">
-          <span>
-            <h2>Entradas</h2>
-            <p>
-              R${" "}
-              <span>
-                {amounts.length
-                  ? amounts[0].amount.toLocaleString("pt-BR", {
-                      style: "currency",
-                      currency: "BRL",
-                    })
-                  : 0}
-              </span>
-            </p>
-          </span>
-          <img src={IconRecipes} alt="Ícone de entradas" />
-        </div>
+          <div className="card-demonstrative recipes">
+            <span>
+              <h2>Entradas</h2>
+              <p>
+                R${" "}
+                <span>
+                  {amounts.length
+                    ? amounts[0].amount.toLocaleString("pt-BR", {
+                        style: "currency",
+                        currency: "BRL",
+                      })
+                    : 0}
+                </span>
+              </p>
+            </span>
+            <abbr title="Ícone de Receitas">
+              <img src={IconRecipes} alt="Ícone de entradas" />
+            </abbr>
+          </div>
 
-        <div className="card-demonstrative expenses">
-          <span>
-            <h2>Despesas</h2>
-            <p>
-              R${" "}
-              <span>
-                {amounts.length
-                  ? amounts[1].amount.toLocaleString("pt-BR", {
-                      style: "currency",
-                      currency: "BRL",
-                    })
-                  : 0}
-              </span>
-            </p>
-          </span>
-          <img src={IconExpenses} alt="Ícone de despesas" />
-        </div>
+          <div className="card-demonstrative expenses">
+            <span>
+              <h2>Despesas</h2>
+              <p>
+                R${" "}
+                <span>
+                  {amounts.length
+                    ? amounts[1].amount.toLocaleString("pt-BR", {
+                        style: "currency",
+                        currency: "BRL",
+                      })
+                    : 0}
+                </span>
+              </p>
+            </span>
+            <abbr title="Ícone de Despesa">
+              <img src={IconExpenses} alt="Ícone de despesas" />
+            </abbr>
+          </div>
 
-        <div className="card-demonstrative investiment">
-          <span>
-            <h2>Investido</h2>
-            <p>
-              R${" "}
-              <span>
-                {amounts.length
-                  ? amounts[2].amount.toLocaleString("pt-BR", {
-                      style: "currency",
-                      currency: "BRL",
-                    })
-                  : 0}
-              </span>
-            </p>
-          </span>
-          <img src={IconInvestiment} alt="Ícone de investimentos" />
-        </div>
-      </section>
+          <div className="card-demonstrative investiment">
+            <span>
+              <h2>Investido</h2>
+              <p>
+                R${" "}
+                <span>
+                  {amounts.length
+                    ? amounts[2].amount.toLocaleString("pt-BR", {
+                        style: "currency",
+                        currency: "BRL",
+                      })
+                    : 0}
+                </span>
+              </p>
+            </span>
+            <abbr title="Ícone de Investmentos">
+              <img src={IconInvestiment} alt="Ícone de investimentos" />
+            </abbr>
+          </div>
+        </section>
 
-      <section>
-        <form>
-          <button
-            className="button-new-transaction"
-            type="button"
-            onClick={toggleModal}
-          >
-            + NOVA TRANSAÇÃO
-          </button>
-        </form>
+        <section>
+          <form>
+            <button
+              className="button-new-transaction"
+              type="button"
+              onClick={toggleModal}
+            >
+              + NOVA TRANSAÇÃO
+            </button>
+          </form>
 
-        <table>
-          <thead>
-            <tr>
-              <td>Situação</td>
-              <td>Data</td>
-              <td>Descrição</td>
-              <td>Tipo</td>
-              <td>Valor</td>
-              <td>Ações</td>
-              <td>Categoria</td>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <div className="loader"></div>
-            ) : (
-              <Fragment>
-                {transactions.length ? (
-                  transactions.map((transaction) => (
-                    <tr key={transaction.id}>
-                      <td>
-                        <img
-                          width={24}
-                          src={transaction.status ? Checked : Pending}
-                          alt="Status"
-                        />
-                      </td>
-                      <td>{formatDate(transaction.date)}</td>
-                      <td>{transaction.description}</td>
-                      <td>{findTypeTransaction(transaction.typeId)}</td>
-                      <td>R$ {formatCurrencyMoney(transaction.value)}</td>
-                      <td>
-                        <div className="action-buttons">
-                          <button
-                            className="edit-button"
-                            onClick={() => modalEditTransaction(transaction)}
-                          >
-                            Editar
-                          </button>
-                          <button
-                            className="remove-button"
-                            onClick={() => confirmedDelete(transaction)}
-                          >
-                            Remover
-                          </button>
-                        </div>
-                      </td>
-                      <td>
-                        <img
-                          width={24}
-                          src={
-                            findTypeTransaction(transaction.typeId) ===
-                            "RECEITA"
-                              ? IconRecipes
-                              : findTypeTransaction(transaction.typeId) ===
-                                "DESPESA"
-                              ? IconExpenses
-                              : IconInvestiment
-                          }
-                          alt="Categoria"
-                        />
+          <table>
+            <thead>
+              <tr>
+                <td>Situação</td>
+                <td>Data</td>
+                <td>Descrição</td>
+                <td>Tipo</td>
+                <td>Valor</td>
+                <td>Ações</td>
+                <td>Categoria</td>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <div className="loader"></div>
+              ) : (
+                <Fragment>
+                  {transactions.length ? (
+                    transactions.map((transaction) => (
+                      <tr key={transaction.id}>
+                        <td>
+                          <img
+                            width={24}
+                            src={transaction.status ? Checked : Pending}
+                            alt="Status"
+                          />
+                        </td>
+                        <td>{formatDate(transaction.date)}</td>
+                        <td>{transaction.description}</td>
+                        <td>{findTypeTransaction(transaction.typeId)}</td>
+                        <td>R$ {formatCurrencyMoney(transaction.value)}</td>
+                        <td>
+                          <div className="action-buttons">
+                            <button
+                              className="edit-button"
+                              onClick={() => modalEditTransaction(transaction)}
+                            >
+                              Editar
+                            </button>
+                            <button
+                              className="remove-button"
+                              onClick={() => confirmedDelete(transaction)}
+                            >
+                              Remover
+                            </button>
+                          </div>
+                        </td>
+                        <td>
+                          <img
+                            width={24}
+                            src={
+                              findTypeTransaction(transaction.typeId) ===
+                              "RECEITA"
+                                ? IconRecipes
+                                : findTypeTransaction(transaction.typeId) ===
+                                  "DESPESA"
+                                ? IconExpenses
+                                : IconInvestiment
+                            }
+                            alt="Categoria"
+                          />
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td className="not-transaction-paragraph" colSpan="7">
+                        Nenhuma transação encontrada!
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td className="not-transaction-paragraph" colSpan="7">
-                      Nenhuma transação encontrada!
-                    </td>
-                  </tr>
-                )}
-              </Fragment>
-            )}
+                  )}
+                </Fragment>
+              )}
 
-            {activeButtonQuestingDelete && (
-              <div className="center-content">
-                <label>
-                  <p>
-                    Deseja realmente deletar a transação de ID{" "}
-                    {`${deletingById.id}`}?
-                  </p>
-                  <button
-                    className="confirm-delete"
-                    onClick={() => deleteTransaction(deletingById)}
-                  >
-                    Sim
-                  </button>
-                  <button
-                    className="confirm-delete"
-                    onClick={() => setActiveButtonQuestingDelete(false)}
-                  >
-                    Não
-                  </button>
-                </label>
-              </div>
-            )}
-          </tbody>
-        </table>
-      </section>
-
-      {modalActive && (
-        <form className="modal-register-transaction">
-          <h2>Nova transação</h2>
-          <input
-            type="text"
-            placeholder="R$ 0.00 (USE PONTO (.) R$ 2.23)"
-            name="value"
-            onChange={handleChange}
-            value={transactionData.value}
-          />
-          <div>
-            <label>
-              Efetivado
-              <input
-                type="radio"
-                name="status"
-                value={true}
-                onChange={handleChange}
-                checked={transactionData.status === true}
-              />
-            </label>
-            <label>
-              Á compensar
-              <input
-                type="radio"
-                name="status"
-                value={false}
-                onChange={handleChange}
-                checked={transactionData.status === false}
-              />
-            </label>
-          </div>
-          <select name="typeId" id="typeId" onChange={handleChange}>
-            <option value="" disabled>
-              Escolha um tipo
-            </option>
-            {typesTransactions.map((type) => (
-              <option key={type.id} value={type.id}>
-                {type.type}
-              </option>
-            ))}
-          </select>
-          <textarea
-            name="description"
-            placeholder="Descrição"
-            value={transactionData.description}
-            onChange={handleChange}
-          />
-          <input
-            type="date"
-            name="date"
-            value={Moment(transactionData.date).format("YYYY-MM-DD")}
-            onChange={handleChange}
-          />
-          <div className="button-modal-register">
-            <button
-              type="button"
-              disabled={buttonCreateTransaction}
-              onClick={createTransaction}
-            >
-              Criar
-            </button>
-            <button onClick={closeModalRegister} type="button">
-              Fechar
-            </button>
-          </div>
-        </form>
-      )}
-
-      <div className="modal-edit-transaction">
-        <p>Editar transação</p>
-        <div>
-          {/* {transactionCurrentEdit.id ? (
-            <div>
-              <p>TRANSACAO</p>
-              <p>ID: {transactionCurrentEdit.id}</p>
-              <p>Valor: {transactionCurrentEdit.value}</p>
-              <p>Descrição: {transactionCurrentEdit.description}</p>
-              <p>Data: {formatDate(transactionCurrentEdit.date)}</p>
-              <p>Tipo de transação: {transactionCurrentEdit.typeId}</p>
-              <p>Status: {transactionCurrentEdit.status ? 'Ativo' : 'Desabilitado'}</p>
-            </div>
-          ) : (
-            "SEM TRANSACAO"
-          )} */}
-
-          {transactionCurrentEdit.id && (
-            <div className="modal">
-              <div className="modal-content">
-                <h2>Editar Transação</h2>
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    console.log("Salvar:", transactionCurrentEdit);
-                    // Chama requestUpdate aqui se quiser
-                    setTransactionCurrentEdit({});
-                  }}
-                >
+              {activeButtonQuestingDelete && (
+                <div className="center-content">
                   <label>
-                    Valor:
-                    <input
-                      type="number"
-                      value={transactionCurrentEdit.value}
-                      onChange={(e) =>
-                        setTransactionCurrentEdit((prev) => ({
-                          ...prev,
-                          value: e.target.value,
-                        }))
-                      }
-                      required
-                    />
-                  </label>
-
-                  <label>
-                    Descrição:
-                    <input
-                      type="text"
-                      value={transactionCurrentEdit.description}
-                      onChange={(e) =>
-                        setTransactionCurrentEdit((prev) => ({
-                          ...prev,
-                          description: e.target.value,
-                        }))
-                      }
-                      required
-                    />
-                  </label>
-
-                  <label>
-                    Data:
-                    <input
-                      type="date"
-                      value={
-                        transactionCurrentEdit.date
-                          ? Moment(transactionCurrentEdit.date).format(
-                              "YYYY-MM-DD"
-                            )
-                          : ""
-                      }
-                      onChange={(e) =>
-                        setTransactionCurrentEdit((prev) => ({
-                          ...prev,
-                          date: e.target.value,
-                        }))
-                      }
-                      required
-                    />
-                  </label>
-
-                  {/* Exemplo mostrando a data formatada para o usuário */}
-                  <p>
-                    Data formatada:{" "}
-                    {transactionCurrentEdit.date
-                      ? formatDate(transactionCurrentEdit.date)
-                      : "-"}
-                  </p>
-
-                  <label>
-                    Tipo de transação:
-                    <select
-                      value={transactionCurrentEdit.typeId}
-                      onChange={(e) =>
-                        setTransactionCurrentEdit((prev) => ({
-                          ...prev,
-                          typeId: e.target.value,
-                        }))
-                      }
-                      required
-                    >
-                      <option value="">Selecione</option>
-                      <option value="1">Entrada</option>
-                      <option value="2">Saída</option>
-                      <option value="3">Investimento</option>
-                    </select>
-                  </label>
-
-                  <label>
-                    Status:
-                    <input
-                      type="checkbox"
-                      checked={transactionCurrentEdit.status}
-                      onChange={(e) =>
-                        setTransactionCurrentEdit((prev) => ({
-                          ...prev,
-                          status: e.target.checked,
-                        }))
-                      }
-                    />
-                    Ativo
-                  </label>
-
-                  <div className="modal-actions">
+                    <p>
+                      Deseja realmente deletar a transação de ID{" "}
+                      {`${deletingById.id}`}?
+                    </p>
                     <button
-                      type="button"
-                      onClick={() => setTransactionCurrentEdit({})}
+                      className="confirm-delete"
+                      onClick={() => deleteTransaction(deletingById)}
                     >
-                      Cancelar
+                      Sim
                     </button>
-                    <button type="submit">Salvar</button>
-                  </div>
-                </form>
-              </div>
+                    <button
+                      className="confirm-delete"
+                      onClick={() => setActiveButtonQuestingDelete(false)}
+                    >
+                      Não
+                    </button>
+                  </label>
+                </div>
+              )}
+            </tbody>
+          </table>
+        </section>
+
+        {modalActive && (
+          <form className="modal-register-transaction">
+            <h2>Nova transação</h2>
+            <input
+              type="text"
+              placeholder="R$ 0.00 (USE PONTO (.) R$ 2.23)"
+              name="value"
+              onChange={handleChange}
+              value={transactionData.value}
+            />
+            <div>
+              <label>
+                Efetivado
+                <input
+                  type="radio"
+                  name="status"
+                  value={true}
+                  onChange={handleChange}
+                  checked={transactionData.status === true}
+                />
+              </label>
+              <label>
+                Á compensar
+                <input
+                  type="radio"
+                  name="status"
+                  value={false}
+                  onChange={handleChange}
+                  checked={transactionData.status === false}
+                />
+              </label>
             </div>
-          )}
+            <select name="typeId" id="typeId" onChange={handleChange}>
+              <option value="" disabled>
+                Escolha um tipo
+              </option>
+              {typesTransactions.map((type) => (
+                <option key={type.id} value={type.id}>
+                  {type.type}
+                </option>
+              ))}
+            </select>
+            <textarea
+              name="description"
+              placeholder="Descrição"
+              value={transactionData.description}
+              onChange={handleChange}
+            />
+            <input
+              type="date"
+              name="date"
+              value={Moment(transactionData.date).format("YYYY-MM-DD")}
+              onChange={handleChange}
+            />
+            <div className="button-modal-register">
+              <button
+                type="button"
+                disabled={buttonCreateTransaction}
+                onClick={createTransaction}
+              >
+                Criar
+              </button>
+              <button onClick={closeModalRegister} type="button">
+                Fechar
+              </button>
+            </div>
+          </form>
+        )}
+
+        <div className="modal-edit-transaction">
+          <div>
+            {activeModalEditTransaction && (
+              <div className="modal">
+                <p className="title-edit-transaction">Editar transação</p>
+                <div className="modal-content">
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      console.log("Salvar:", transactionCurrentEdit);
+                      // Chama requestUpdate aqui se quiser
+                      setTransactionCurrentEdit({});
+                    }}
+                  >
+                    <label>
+                      Valor:
+                      <input
+                        type="number"
+                        value={transactionCurrentEdit.value}
+                        onChange={(e) =>
+                          setTransactionCurrentEdit((prev) => ({
+                            ...prev,
+                            value: e.target.value,
+                          }))
+                        }
+                        required
+                      />
+                    </label>
+
+                    <label>
+                      Descrição:
+                      <input
+                        type="text"
+                        value={transactionCurrentEdit.description}
+                        onChange={(e) =>
+                          setTransactionCurrentEdit((prev) => ({
+                            ...prev,
+                            description: e.target.value,
+                          }))
+                        }
+                        required
+                      />
+                    </label>
+
+                    <label>
+                      Data:
+                      <input
+                        type="date"
+                        value={
+                          transactionCurrentEdit.date
+                            ? Moment(transactionCurrentEdit.date).format(
+                                "YYYY-MM-DD"
+                              )
+                            : ""
+                        }
+                        onChange={(e) =>
+                          setTransactionCurrentEdit((prev) => ({
+                            ...prev,
+                            date: e.target.value,
+                          }))
+                        }
+                        required
+                      />
+                    </label>
+
+                    {/* Exemplo mostrando a data formatada para o usuário */}
+                    <p>
+                      Data formatada:{" "}
+                      {transactionCurrentEdit.date
+                        ? formatDate(transactionCurrentEdit.date)
+                        : "-"}
+                    </p>
+
+                    <label>
+                      Tipo de transação:
+                      <select
+                        value={transactionCurrentEdit.typeId}
+                        onChange={(e) =>
+                          setTransactionCurrentEdit((prev) => ({
+                            ...prev,
+                            typeId: e.target.value,
+                          }))
+                        }
+                        required
+                      >
+                        <option value="">Selecione</option>
+                        <option value="1">Entrada</option>
+                        <option value="2">Saída</option>
+                        <option value="3">Investimento</option>
+                      </select>
+                    </label>
+
+                    <label>
+                      Status:
+                      <input
+                        type="checkbox"
+                        checked={transactionCurrentEdit.status}
+                        onChange={(e) =>
+                          setTransactionCurrentEdit((prev) => ({
+                            ...prev,
+                            status: e.target.checked,
+                          }))
+                        }
+                      />
+                      Ativo
+                    </label>
+
+                    <div className="modal-actions">
+                      <button
+                        type="button"
+                        onClick={() => (
+                          setTransactionCurrentEdit({}),
+                          setActiveModalEditTransaction(false)
+                        )}
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          saveTransactionEdit();
+                        }}
+                      >
+                        Salvar
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
