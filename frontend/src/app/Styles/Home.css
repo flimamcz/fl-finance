@@ -321,6 +321,7 @@ tbody tr:hover {
   height: 6px;
   background-color: #333;
 }
+
 .modal-content input[type="checkbox"] {
   width: 18px;
   height: 18px;
@@ -335,7 +336,8 @@ tbody tr:hover {
   position: relative;
   cursor: pointer;
   transition: background 0.2s, border 0.2s;
-  margin: 0 5px; /* Remove margens padrão */
+  margin: 0 5px;
+  /* Remove margens padrão */
 }
 
 .modal-content input[type="checkbox"]:checked {
@@ -352,6 +354,54 @@ tbody tr:hover {
   left: 50%;
   transform: translate(-50%, -50%);
 }
+
+.radio-group {
+  display: flex;
+  gap: 20px;
+  margin-top: 10px;
+}
+
+.radio-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  color: #333;
+}
+
+.radio-option input[type="radio"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #3498db;
+  border-radius: 50%;
+  display: inline-block;
+  position: relative;
+  margin: 0;
+  padding: 0;
+  vertical-align: middle;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.radio-option input[type="radio"]:checked {
+  background-color: #3498db;
+  border-color: #2980b9;
+}
+
+.radio-option input[type="radio"]:checked::before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 6px;
+  height: 6px;
+  background-color: white;
+  border-radius: 50%;
+}
+
 
 
 @keyframes spin {

@@ -351,28 +351,29 @@ function Home() {
               onChange={handleChange}
               value={transactionData.value}
             />
-            <div>
-              <label>
-                Efetivado
-                <input
-                  type="radio"
-                  name="status"
-                  value={true}
-                  onChange={handleChange}
-                  checked={transactionData.status === true}
-                />
-              </label>
-              <label>
-                Á compensar
-                <input
-                  type="radio"
-                  name="status"
-                  value={false}
-                  onChange={handleChange}
-                  checked={transactionData.status === false}
-                />
-              </label>
-            </div>
+            <div className="radio-group">
+  <label className="radio-option">
+    <input
+      type="radio"
+      name="status"
+      value={true}
+      onChange={handleChange}
+      checked={transactionData.status === true}
+    />
+    Efetivado
+  </label>
+  <label className="radio-option">
+    <input
+      type="radio"
+      name="status"
+      value={false}
+      onChange={handleChange}
+      checked={transactionData.status === false}
+    />
+    À compensar
+  </label>
+</div>
+
             <select name="typeId" id="typeId" onChange={handleChange}>
               <option value="" disabled>
                 Escolha um tipo
