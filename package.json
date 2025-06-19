@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "description": "Raiz project fl-finance",
   "scripts": {
-    "compose:up": "docker-compose up -d --build",
-    "compose:down": "docker-compose down"
+    "compose:up": "docker compose up -d --build",
+    "compose:down": "docker compose down"
   },
   "keywords": [],
   "author": "Filipe Lima - flimamcz",

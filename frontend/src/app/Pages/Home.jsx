@@ -19,6 +19,7 @@ function Home() {
   const [activeButtonQuestingDelete, setActiveButtonQuestingDelete] =
     useState(false);
   const [typeTransaction, setTypeTransaction] = useState(1);
+  const [transactionCurrentEdit, setTransactionCurrentEdit] = useState({});
 
   const [loading, setLoading] = useState(false);
   const [modalActive, setModalActive] = useState(false);
@@ -96,7 +97,6 @@ function Home() {
     verifyInputs();
   };
 
-
   const amountTotal = amounts.length
     ? Number(amounts[0].amount) - Number(amounts[1].amount)
     : 0;
@@ -123,6 +123,12 @@ function Home() {
     if (e.key === "Escape") {
       setModalActive(false);
     }
+  };
+
+  const modalEditTransaction = (transactionEdit) => {
+    console.log(transactionEdit);
+
+    setTransactionCurrentEdit(transactionEdit);
   };
 
   useEffect(() => {
@@ -242,7 +248,12 @@ function Home() {
                       <td>R$ {formatCurrencyMoney(transaction.value)}</td>
                       <td>
                         <div className="action-buttons">
-                          <button className="edit-button">Editar</button>
+                          <button
+                            className="edit-button"
+                            onClick={() => modalEditTransaction(transaction)}
+                          >
+                            Editar
+                          </button>
                           <button
                             className="remove-button"
                             onClick={() => confirmedDelete(transaction)}
@@ -372,6 +383,144 @@ function Home() {
           </div>
         </form>
       )}
+
+      <div className="modal-edit-transaction">
+        <p>Editar transação</p>
+        <div>
+          {/* {transactionCurrentEdit.id ? (
+            <div>
+              <p>TRANSACAO</p>
+              <p>ID: {transactionCurrentEdit.id}</p>
+              <p>Valor: {transactionCurrentEdit.value}</p>
+              <p>Descrição: {transactionCurrentEdit.description}</p>
+              <p>Data: {formatDate(transactionCurrentEdit.date)}</p>
+              <p>Tipo de transação: {transactionCurrentEdit.typeId}</p>
+              <p>Status: {transactionCurrentEdit.status ? 'Ativo' : 'Desabilitado'}</p>
+            </div>
+          ) : (
+            "SEM TRANSACAO"
+          )} */}
+
+          {transactionCurrentEdit.id && (
+            <div className="modal">
+              <div className="modal-content">
+                <h2>Editar Transação</h2>
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    console.log("Salvar:", transactionCurrentEdit);
+                    // Chama requestUpdate aqui se quiser
+                    setTransactionCurrentEdit({});
+                  }}
+                >
+                  <label>
+                    Valor:
+                    <input
+                      type="number"
+                      value={transactionCurrentEdit.value}
+                      onChange={(e) =>
+                        setTransactionCurrentEdit((prev) => ({
+                          ...prev,
+                          value: e.target.value,
+                        }))
+                      }
+                      required
+                    />
+                  </label>
+
+                  <label>
+                    Descrição:
+                    <input
+                      type="text"
+                      value={transactionCurrentEdit.description}
+                      onChange={(e) =>
+                        setTransactionCurrentEdit((prev) => ({
+                          ...prev,
+                          description: e.target.value,
+                        }))
+                      }
+                      required
+                    />
+                  </label>
+
+                  <label>
+                    Data:
+                    <input
+                      type="date"
+                      value={
+                        transactionCurrentEdit.date
+                          ? Moment(transactionCurrentEdit.date).format(
+                              "YYYY-MM-DD"
+                            )
+                          : ""
+                      }
+                      onChange={(e) =>
+                        setTransactionCurrentEdit((prev) => ({
+                          ...prev,
+                          date: e.target.value,
+                        }))
+                      }
+                      required
+                    />
+                  </label>
+
+                  {/* Exemplo mostrando a data formatada para o usuário */}
+                  <p>
+                    Data formatada:{" "}
+                    {transactionCurrentEdit.date
+                      ? formatDate(transactionCurrentEdit.date)
+                      : "-"}
+                  </p>
+
+                  <label>
+                    Tipo de transação:
+                    <select
+                      value={transactionCurrentEdit.typeId}
+                      onChange={(e) =>
+                        setTransactionCurrentEdit((prev) => ({
+                          ...prev,
+                          typeId: e.target.value,
+                        }))
+                      }
+                      required
+                    >
+                      <option value="">Selecione</option>
+                      <option value="1">Entrada</option>
+                      <option value="2">Saída</option>
+                      <option value="3">Investimento</option>
+                    </select>
+                  </label>
+
+                  <label>
+                    Status:
+                    <input
+                      type="checkbox"
+                      checked={transactionCurrentEdit.status}
+                      onChange={(e) =>
+                        setTransactionCurrentEdit((prev) => ({
+                          ...prev,
+                          status: e.target.checked,
+                        }))
+                      }
+                    />
+                    Ativo
+                  </label>
+
+                  <div className="modal-actions">
+                    <button
+                      type="button"
+                      onClick={() => setTransactionCurrentEdit({})}
+                    >
+                      Cancelar
+                    </button>
+                    <button type="submit">Salvar</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
