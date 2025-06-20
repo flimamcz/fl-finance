@@ -1,0 +1,119 @@
+/* Container geral */
+.profile-container {
+  max-width: 500px;
+  margin: 30px auto;
+  background: #f9f9f9;
+  padding: 25px 30px;
+  border-radius: 10px;
+  box-shadow: 0 0 8px rgba(0,0,0,0.1);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Título */
+.profile-container h1 {
+  text-align: center;
+  margin-bottom: 25px;
+  color: #222;
+}
+
+/* Preview da foto */
+.profile-picture-preview {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.profile-picture-preview img {
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 3px solid #3498db;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+/* Formulário */
+.profile-form .form-group {
+  margin-bottom: 18px;
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-form label {
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #333;
+  user-select: none;
+}
+
+/* Inputs */
+.profile-form input[type="text"],
+.profile-form input[type="email"],
+.profile-form input[type="date"],
+.profile-form input[type="password"],
+.profile-form input[type="file"] {
+  padding: 10px 12px;
+  border: 1.5px solid #ccc;
+  border-radius: 6px;
+  font-size: 15px;
+  transition: border-color 0.3s ease;
+}
+
+.profile-form input[type="text"]:focus,
+.profile-form input[type="email"]:focus,
+.profile-form input[type="date"]:focus,
+.profile-form input[type="password"]:focus,
+.profile-form input[type="file"]:focus {
+  border-color: #3498db;
+  outline: none;
+  box-shadow: 0 0 6px #a6c8ff;
+  background: #fff;
+  color: #222;
+  font-weight: 600;
+}
+
+/* Separador */
+.profile-form hr {
+  margin: 25px 0;
+  border: none;
+  border-top: 1px solid #ddd;
+}
+
+/* Botão */
+.profile-form button {
+  margin-top: 20px;
+  width: 100%;
+  padding: 13px 0;
+  background-color: #3498db;
+  color: white;
+  font-weight: 700;
+  font-size: 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.25s ease;
+}
+
+.profile-form button:hover {
+  background-color: #2980b9;
+}
+
+/* Checkbox para alterar senha */
+.checkbox-group label {
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500;
+  color: #333;
+}
+
+.checkbox-group input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  margin: 0;
+  padding: 0;
+  accent-color: #3498db; /* Cor moderna para checkbox no Chrome/Edge/Firefox */
+}
