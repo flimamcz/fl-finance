@@ -7,7 +7,7 @@ function Profile() {
   const [formData, setFormData] = useState({
     name: "Filipe Lima",
     email: "filipe@email.com",
-    birthDate: "1998-04-25",
+    birthDate: "2001-10-12",
     photo: null,
     newPassword: "",
     confirmPassword: "",

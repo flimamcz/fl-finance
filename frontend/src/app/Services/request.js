@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: `http://localhost:${'3002'|| "3002"}`,
+  baseURL: `http://localhost:${'3001'|| "3001"}`,
 });
 
 export const requestPost = async (endpoint, body) => {

@@ -25,7 +25,7 @@ services:
     environment:
       - JWT_SECRET=jwt_secret
       - MYSQL_USER=root
-      - MYSQL_PASSWORD=password
+      - MYSQL_PASSWORD=flp5660
       - MYSQL_HOST=db
       - API_PORT=3001
   db:
@@ -37,7 +37,7 @@ services:
       - 3306:3306
       - 33060:33060
     environment:
-      - MYSQL_ROOT_PASSWORD=ntim4ster
+      - MYSQL_ROOT_PASSWORD=flp5660
     volumes:
       - flp-finance:/var/lib/mysql
 

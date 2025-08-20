@@ -35,7 +35,7 @@ function Home() {
     status: Boolean,
     typeId: 1,
   };
-  const port_backend = 3002;
+  const port_backend = 3001;
 
   const [transactionData, setTransactionData] = useState(
     dataObjectModelTransaction
@@ -63,8 +63,6 @@ function Home() {
   };
 
   const deleteTransaction = async ({ id }) => {
-    console.log(id);
-
     await fetch(`http://localhost:${port_backend}/transactions/${id}`, {
       method: "DELETE",
     });
@@ -262,11 +260,22 @@ function Home() {
                     transactions.map((transaction) => (
                       <tr key={transaction.id}>
                         <td>
-                          <img
-                            width={24}
-                            src={transaction.status ? Checked : Pending}
-                            alt="Status"
-                          />
+                          {transaction.status && (
+                            <img
+                              width={24}
+                              src={transaction.status && Checked}
+                              alt="Status"
+                              title="Transação confirmada!"
+                            />
+                          )}
+                          {!transaction.status && (
+                            <img
+                              width={24}
+                              src={!transaction.status && Pending}
+                              alt="Status"
+                              title="Transação pendente!"
+                            />
+                          )}
                         </td>
                         <td>{formatDate(transaction.date)}</td>
                         <td>{transaction.description}</td>
@@ -352,27 +361,27 @@ function Home() {
               value={transactionData.value}
             />
             <div className="radio-group">
-  <label className="radio-option">
-    <input
-      type="radio"
-      name="status"
-      value={true}
-      onChange={handleChange}
-      checked={transactionData.status === true}
-    />
-    Efetivado
-  </label>
-  <label className="radio-option">
-    <input
-      type="radio"
-      name="status"
-      value={false}
-      onChange={handleChange}
-      checked={transactionData.status === false}
-    />
-    À compensar
-  </label>
-</div>
+              <label className="radio-option">
+                <input
+                  type="radio"
+                  name="status"
+                  value={true}
+                  onChange={handleChange}
+                  checked={transactionData.status === true}
+                />
+                Efetivado
+              </label>
+              <label className="radio-option">
+                <input
+                  type="radio"
+                  name="status"
+                  value={false}
+                  onChange={handleChange}
+                  checked={transactionData.status === false}
+                />
+                À compensar
+              </label>
+            </div>
 
             <select name="typeId" id="typeId" onChange={handleChange}>
               <option value="" disabled>

@@ -7,7 +7,7 @@ function Provider({ children }) {
 
   const [amounts, setAmounts] = useState([]);
 
-  const port_backend = 3002
+  const port_backend = 3001
 
   const getAllTransactions = useCallback(async () => {
     try {

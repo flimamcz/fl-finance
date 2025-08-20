@@ -8,7 +8,9 @@ function Header() {
   return (
     <header>
       <div>
-        <img src={Porco} alt="Icone-logo de um porco - fl finanças" />
+        <Link to="/home">
+          <img src={Porco} alt="Icone-logo de um porco - fl finanças" />
+        </Link>
       </div>
       <h1>Controle financeiro</h1>
       <div>
