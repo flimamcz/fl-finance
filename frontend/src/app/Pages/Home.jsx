@@ -420,138 +420,142 @@ function Home() {
           </form>
         )}
 
-        <div className="modal-edit-transaction">
-          <div>
-            {activeModalEditTransaction && (
-              <div className="modal">
-                <p className="title-edit-transaction">Editar transação</p>
-                <div className="modal-content">
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      console.log("Salvar:", transactionCurrentEdit);
-                      // Chama requestUpdate aqui se quiser
-                      setTransactionCurrentEdit({});
-                    }}
-                  >
-                    <label>
-                      Valor:
-                      <input
-                        type="number"
-                        value={transactionCurrentEdit.value}
-                        onChange={(e) =>
-                          setTransactionCurrentEdit((prev) => ({
-                            ...prev,
-                            value: e.target.value,
-                          }))
-                        }
-                        required
-                      />
-                    </label>
+        {activeModalEditTransaction && (
+          <div className="modal-edit-transaction">
+            <div>
+              {activeModalEditTransaction && (
+                <div className="modal">
+                  <div className="modal-content">
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        console.log("Salvar:", transactionCurrentEdit);
+                        // Chama requestUpdate aqui se quiser
+                        setTransactionCurrentEdit({});
+                      }}
+                    >
+                      <p className="title-edit-transaction">Editar transação</p>
 
-                    <label>
-                      Descrição:
-                      <input
-                        type="text"
-                        value={transactionCurrentEdit.description}
-                        onChange={(e) =>
-                          setTransactionCurrentEdit((prev) => ({
-                            ...prev,
-                            description: e.target.value,
-                          }))
-                        }
-                        required
-                      />
-                    </label>
+                      <label>
+                        Valor:
+                        <input
+                          type="number"
+                          value={transactionCurrentEdit.value}
+                          onChange={(e) =>
+                            setTransactionCurrentEdit((prev) => ({
+                              ...prev,
+                              value: e.target.value,
+                            }))
+                          }
+                          required
+                        />
+                      </label>
 
-                    <label>
-                      Data:
-                      <input
-                        type="date"
-                        value={
-                          transactionCurrentEdit.date
-                            ? Moment(transactionCurrentEdit.date).format(
-                                "YYYY-MM-DD"
-                              )
-                            : ""
-                        }
-                        onChange={(e) =>
-                          setTransactionCurrentEdit((prev) => ({
-                            ...prev,
-                            date: e.target.value,
-                          }))
-                        }
-                        required
-                      />
-                    </label>
+                      <label>
+                        Descrição:
+                        <input
+                          type="text"
+                          value={transactionCurrentEdit.description}
+                          onChange={(e) =>
+                            setTransactionCurrentEdit((prev) => ({
+                              ...prev,
+                              description: e.target.value,
+                            }))
+                          }
+                          required
+                        />
+                      </label>
 
-                    {/* Exemplo mostrando a data formatada para o usuário */}
-                    <p>
-                      Data formatada:{" "}
-                      {transactionCurrentEdit.date
-                        ? formatDate(transactionCurrentEdit.date)
-                        : "-"}
-                    </p>
+                      <label>
+                        Data:
+                        <input
+                          type="date"
+                          value={
+                            transactionCurrentEdit.date
+                              ? Moment(transactionCurrentEdit.date).format(
+                                  "YYYY-MM-DD"
+                                )
+                              : ""
+                          }
+                          onChange={(e) =>
+                            setTransactionCurrentEdit((prev) => ({
+                              ...prev,
+                              date: e.target.value,
+                            }))
+                          }
+                          required
+                        />
+                      </label>
 
-                    <label>
-                      Tipo de transação:
-                      <select
-                        value={transactionCurrentEdit.typeId}
-                        onChange={(e) =>
-                          setTransactionCurrentEdit((prev) => ({
-                            ...prev,
-                            typeId: e.target.value,
-                          }))
-                        }
-                        required
-                      >
-                        <option value="">Selecione</option>
-                        <option value="1">Entrada</option>
-                        <option value="2">Saída</option>
-                        <option value="3">Investimento</option>
-                      </select>
-                    </label>
+                      {/* Exemplo mostrando a data formatada para o usuário */}
+                      <p>
+                        Data formatada:{" "}
+                        {transactionCurrentEdit.date
+                          ? formatDate(transactionCurrentEdit.date)
+                          : "-"}
+                      </p>
 
-                    <label>
-                      Status:
-                      <input
-                        type="checkbox"
-                        checked={transactionCurrentEdit.status}
-                        onChange={(e) =>
-                          setTransactionCurrentEdit((prev) => ({
-                            ...prev,
-                            status: e.target.checked,
-                          }))
-                        }
-                      />
-                      Ativo
-                    </label>
+                      <label>
+                        Tipo de transação:
+                        <select
+                          value={transactionCurrentEdit.typeId}
+                          onChange={(e) =>
+                            setTransactionCurrentEdit((prev) => ({
+                              ...prev,
+                              typeId: e.target.value,
+                            }))
+                          }
+                          required
+                        >
+                          <option value="">Selecione</option>
+                          <option value="1">Entrada</option>
+                          <option value="2">Saída</option>
+                          <option value="3">Investimento</option>
+                        </select>
+                      </label>
 
-                    <div className="modal-actions">
-                      <button
-                        type="button"
-                        onClick={() => (
-                          setTransactionCurrentEdit({}),
-                          setActiveModalEditTransaction(false)
-                        )}
-                      >
-                        Cancelar
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          saveTransactionEdit();
-                        }}
-                      >
-                        Salvar
-                      </button>
-                    </div>
-                  </form>
+                      <label>
+                        Status:
+                        <input
+                          type="checkbox"
+                          checked={transactionCurrentEdit.status}
+                          onChange={(e) =>
+                            setTransactionCurrentEdit((prev) => ({
+                              ...prev,
+                              status: e.target.checked,
+                            }))
+                          }
+                        />
+                        Ativo
+                      </label>
+
+                      <div className="modal-actions">
+                        <button
+                          type="button"
+                          onClick={() => (
+                            setTransactionCurrentEdit({}),
+                            setActiveModalEditTransaction(false)
+                          )}
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            saveTransactionEdit();
+                            // activeModalEditTransaction(false)
+                          }}
+                        >
+                          Salvar
+                        </button>
+                      </div>
+                    </form>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
