@@ -6,7 +6,7 @@ const { authenticate } = require('../middlewares/auth.middleware');
 
 const router = express.Router();
 
-router.get("/", authenticate, searchUsers);
+router.get("/", searchUsers);
 router.post("/register", createUser);
 
 module.exports = router;

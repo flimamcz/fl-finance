@@ -1,14 +1,32 @@
 import { useState, useContext } from "react";
-import { 
-  FiPlus, FiDownload, FiTrendingUp, 
-  FiTrendingDown, FiDollarSign, FiPieChart,
-  FiCheckCircle, FiClock, FiEdit2, FiTrash2,
-  FiArrowUp, FiArrowDown, FiTarget
+import {
+  FiPlus,
+  FiDownload,
+  FiTrendingUp,
+  FiTrendingDown,
+  FiDollarSign,
+  FiPieChart,
+  FiCheckCircle,
+  FiClock,
+  FiEdit2,
+  FiTrash2,
+  FiArrowUp,
+  FiArrowDown,
+  FiTarget,
 } from "react-icons/fi";
-import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, 
-  Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend
-} from 'recharts';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+} from "recharts";
 import Moment from "moment";
 import Header from "../Components/Header";
 import MyContext from "../Context/Context";
@@ -16,8 +34,9 @@ import "../Styles/Home.css";
 import { requestDelete, requestPost } from "../Services/request";
 
 function Home() {
-  const { transactions, typesTransactions, amounts, getAllTransactions } = useContext(MyContext);
-  
+  const { transactions, typesTransactions, amounts, getAllTransactions } =
+    useContext(MyContext);
+
   // Estados
   const [loading, setLoading] = useState(false);
   const [activeFilter, setActiveFilter] = useState("all");
@@ -26,56 +45,64 @@ function Home() {
   const [viewMode, setViewMode] = useState("grid"); // grid ou list
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [timeRange, setTimeRange] = useState("month");
-  
+
   const [transactionData, setTransactionData] = useState({
     value: "",
     description: "",
-    date: new Date().toISOString().split('T')[0],
+    date: new Date().toISOString().split("T")[0],
     status: true,
-    typeId: 1
+    typeId: 1,
   });
 
   // Dados para gráficos
-  const chartData = transactions.map(t => ({
-    name: Moment(t.date).format('DD/MM'),
+  const chartData = transactions.map((t) => ({
+    name: Moment(t.date).format("DD/MM"),
     value: t.value,
-    type: t.typeId === 1 ? 'Receita' : t.typeId === 2 ? 'Despesa' : 'Investimento'
+    type:
+      t.typeId === 1 ? "Receita" : t.typeId === 2 ? "Despesa" : "Investimento",
   }));
 
   const categoryData = [
-    { name: 'Receitas', value: amounts[0]?.amount || 0, color: '#10b981' },
-    { name: 'Despesas', value: amounts[1]?.amount || 0, color: '#ef4444' },
-    { name: 'Investimentos', value: amounts[2]?.amount || 0, color: '#8b5cf6' }
+    { name: "Receitas", value: amounts[0]?.amount || 0, color: "#10b981" },
+    { name: "Despesas", value: amounts[1]?.amount || 0, color: "#ef4444" },
+    { name: "Investimentos", value: amounts[2]?.amount || 0, color: "#8b5cf6" },
   ];
 
   // Funções auxiliares
   const formatCurrency = (value) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
     }).format(value);
   };
 
   const getTypeIcon = (typeId) => {
-    switch(typeId) {
-      case 1: return <FiTrendingUp className="icon-income" />;
-      case 2: return <FiTrendingDown className="icon-expense" />;
-      case 3: return <FiTarget className="icon-investment" />;
-      default: return <FiDollarSign />;
+    switch (typeId) {
+      case 1:
+        return <FiTrendingUp className="icon-income" />;
+      case 2:
+        return <FiTrendingDown className="icon-expense" />;
+      case 3:
+        return <FiTarget className="icon-investment" />;
+      default:
+        return <FiDollarSign />;
     }
   };
 
   const getStatusIcon = (status) => {
-    return status ? 
-      <FiCheckCircle className="status-confirmed" /> : 
-      <FiClock className="status-pending" />;
+    return status ? (
+      <FiCheckCircle className="status-confirmed" />
+    ) : (
+      <FiClock className="status-pending" />
+    );
   };
 
-  const amountTotal = amounts.length ? 
-    Number(amounts[0].amount) - Number(amounts[1].amount) : 0;
+  const amountTotal = amounts.length
+    ? Number(amounts[0].amount) - Number(amounts[1].amount)
+    : 0;
 
   // Filtros
-  const filteredTransactions = transactions.filter(t => {
+  const filteredTransactions = transactions.filter((t) => {
     if (activeFilter === "all") return true;
     if (activeFilter === "income") return t.typeId === 1;
     if (activeFilter === "expense") return t.typeId === 2;
@@ -86,28 +113,58 @@ function Home() {
   const deleteItem = async (endpoint, id) => {
     try {
       await requestDelete(`${endpoint}/${id}`);
-      await getAllTransactions()
-    } catch (error) {
-      alert(error.message);
-    }
-  }
-
-  const saveTransaction = async () => {
-    try {
-      console.log(transactionData);
-      await requestPost('transactions', transactionData);
-      alert('Transação criada com sucesso!');
-      setModalActive(false);
       await getAllTransactions();
     } catch (error) {
       alert(error.message);
     }
-  }
+  };
+
+  const saveTransaction = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const dataToSend = {
+        ...transactionData,
+        value: parseFloat(transactionData.value), // CONVERTE PARA NÚMERO
+        typeId: parseInt(transactionData.typeId),
+      };
+
+      console.log("Enviando:", dataToSend);
+
+      const response = await fetch("http://192.168.0.10:3001/transactions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify(dataToSend),
+      });
+
+      if (!response.ok) throw new Error(`Erro ${response.status}`);
+
+      // Fecha modal e limpa
+      setModalActive(false);
+      setTransactionData({
+        value: "",
+        description: "",
+        date: new Date().toISOString().split("T")[0],
+        status: true,
+        typeId: 1,
+      });
+
+      alert("✅ Transação criada!");
+    } catch (error) {
+      alert(`❌ Erro: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="dashboard-container">
       <Header />
-      
+
       <div className="dashboard-content">
         {/* Banner Welcome */}
         <div className="welcome-banner">
@@ -116,7 +173,7 @@ function Home() {
             <p>Gerencie suas finanças de forma inteligente</p>
           </div>
           <div className="date-info">
-            <span>{Moment().format('DD [de] MMMM [de] YYYY')}</span>
+            <span>{Moment().format("DD [de] MMMM [de] YYYY")}</span>
           </div>
         </div>
 
@@ -127,9 +184,7 @@ function Home() {
               <FiDollarSign className="card-icon" />
               <h3>Saldo Total</h3>
             </div>
-            <div className="card-value">
-              {formatCurrency(amountTotal)}
-            </div>
+            <div className="card-value">{formatCurrency(amountTotal)}</div>
             <div className="card-trend">
               <span className="trend-positive">
                 <FiArrowUp /> 12% vs mês passado
@@ -188,8 +243,8 @@ function Home() {
           <div className="chart-card">
             <div className="chart-header">
               <h3>Fluxo Financeiro</h3>
-              <select 
-                value={timeRange} 
+              <select
+                value={timeRange}
                 onChange={(e) => setTimeRange(e.target.value)}
                 className="chart-filter"
               >
@@ -204,12 +259,12 @@ function Home() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis dataKey="name" stroke="#64748b" />
                   <YAxis stroke="#64748b" />
-                  <Tooltip 
-                    formatter={(value) => [formatCurrency(value), 'Valor']}
-                    contentStyle={{ 
-                      backgroundColor: 'white', 
-                      border: '1px solid #e2e8f0',
-                      borderRadius: '8px'
+                  <Tooltip
+                    formatter={(value) => [formatCurrency(value), "Valor"]}
+                    contentStyle={{
+                      backgroundColor: "white",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: "8px",
                     }}
                   />
                   <Bar dataKey="value" fill="#6366f1" radius={[4, 4, 0, 0]} />
@@ -230,7 +285,9 @@ function Home() {
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={(entry) => `${entry.name}: ${formatCurrency(entry.value)}`}
+                    label={(entry) =>
+                      `${entry.name}: ${formatCurrency(entry.value)}`
+                    }
                     outerRadius={80}
                     fill="#8884d8"
                     dataKey="value"
@@ -253,33 +310,41 @@ function Home() {
             <h2>Transações Recentes</h2>
             <div className="section-actions">
               <div className="filter-buttons">
-                <button 
-                  className={`filter-btn ${activeFilter === 'all' ? 'active' : ''}`}
-                  onClick={() => setActiveFilter('all')}
+                <button
+                  className={`filter-btn ${
+                    activeFilter === "all" ? "active" : ""
+                  }`}
+                  onClick={() => setActiveFilter("all")}
                 >
                   Todas
                 </button>
-                <button 
-                  className={`filter-btn ${activeFilter === 'income' ? 'active' : ''}`}
-                  onClick={() => setActiveFilter('income')}
+                <button
+                  className={`filter-btn ${
+                    activeFilter === "income" ? "active" : ""
+                  }`}
+                  onClick={() => setActiveFilter("income")}
                 >
                   Receitas
                 </button>
-                <button 
-                  className={`filter-btn ${activeFilter === 'expense' ? 'active' : ''}`}
-                  onClick={() => setActiveFilter('expense')}
+                <button
+                  className={`filter-btn ${
+                    activeFilter === "expense" ? "active" : ""
+                  }`}
+                  onClick={() => setActiveFilter("expense")}
                 >
                   Despesas
                 </button>
-                <button 
-                  className={`filter-btn ${activeFilter === 'investment' ? 'active' : ''}`}
-                  onClick={() => setActiveFilter('investment')}
+                <button
+                  className={`filter-btn ${
+                    activeFilter === "investment" ? "active" : ""
+                  }`}
+                  onClick={() => setActiveFilter("investment")}
                 >
                   Investimentos
                 </button>
               </div>
-              
-              <button 
+
+              <button
                 className="btn-primary"
                 onClick={() => setModalActive(true)}
               >
@@ -300,7 +365,7 @@ function Home() {
                   <FiDollarSign size={48} />
                   <h3>Nenhuma transação encontrada</h3>
                   <p>Comece adicionando sua primeira transação</p>
-                  <button 
+                  <button
                     className="btn-primary"
                     onClick={() => setModalActive(true)}
                   >
@@ -308,7 +373,13 @@ function Home() {
                   </button>
                 </div>
               ) : (
-                <div className={viewMode === 'grid' ? 'transactions-grid' : 'transactions-list'}>
+                <div
+                  className={
+                    viewMode === "grid"
+                      ? "transactions-grid"
+                      : "transactions-list"
+                  }
+                >
                   {filteredTransactions.map((transaction) => (
                     <div key={transaction.id} className="transaction-card">
                       <div className="transaction-header">
@@ -318,24 +389,30 @@ function Home() {
                         <div className="transaction-info">
                           <h4>{transaction.description}</h4>
                           <span className="transaction-date">
-                            {Moment(transaction.date).format('DD/MM/YYYY')}
+                            {Moment(transaction.date).format("DD/MM/YYYY")}
                           </span>
                         </div>
                         <div className="transaction-amount">
-                          <span className={`amount ${transaction.typeId === 1 ? 'positive' : 'negative'}`}>
-                            {transaction.typeId === 1 ? '+ ' : '- '}
+                          <span
+                            className={`amount ${
+                              transaction.typeId === 1 ? "positive" : "negative"
+                            }`}
+                          >
+                            {transaction.typeId === 1 ? "+ " : "- "}
                             {formatCurrency(transaction.value)}
                           </span>
                         </div>
                       </div>
-                      
+
                       <div className="transaction-footer">
                         <div className="transaction-status">
                           {getStatusIcon(transaction.status)}
-                          <span>{transaction.status ? 'Confirmado' : 'Pendente'}</span>
+                          <span>
+                            {transaction.status ? "Confirmado" : "Pendente"}
+                          </span>
                         </div>
                         <div className="transaction-actions">
-                          <button 
+                          <button
                             className="btn-icon"
                             onClick={() => {
                               setSelectedTransaction(transaction);
@@ -344,11 +421,15 @@ function Home() {
                           >
                             <FiEdit2 />
                           </button>
-                          <button 
+                          <button
                             className="btn-icon btn-danger"
                             onClick={() => {
-                              if(window.confirm('Deseja realmente excluir esta transação?')) {
-                               deleteItem('transactions', transaction.id);
+                              if (
+                                window.confirm(
+                                  "Deseja realmente excluir esta transação?"
+                                )
+                              ) {
+                                deleteItem("transactions", transaction.id);
                               }
                             }}
                           >
@@ -369,7 +450,10 @@ function Home() {
                 <FiDownload /> Exportar Extrato
               </button>
               <div className="pagination">
-                <span>Mostrando {filteredTransactions.length} de {transactions.length} transações</span>
+                <span>
+                  Mostrando {filteredTransactions.length} de{" "}
+                  {transactions.length} transações
+                </span>
               </div>
             </div>
           )}
@@ -382,18 +466,20 @@ function Home() {
           <div className="modal-content">
             <div className="modal-header">
               <h2>Nova Transação</h2>
-              <button 
+              <button
                 className="btn-close"
                 onClick={() => setModalActive(false)}
               >
                 ×
               </button>
             </div>
-            
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              // createTransaction();
-            }}>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                // createTransaction();
+              }}
+            >
               <div className="form-grid">
                 <div className="form-group">
                   <label>Valor (R$)</label>
@@ -402,26 +488,41 @@ function Home() {
                     step="0.01"
                     placeholder="0.00"
                     value={transactionData.value}
-                    onChange={(e) => setTransactionData({...transactionData, value: e.target.value})}
+                    onChange={(e) =>
+                      setTransactionData({
+                        ...transactionData,
+                        value: e.target.value,
+                      })
+                    }
                     required
                   />
                 </div>
-                
+
                 <div className="form-group">
                   <label>Data</label>
                   <input
                     type="date"
                     value={transactionData.date}
-                    onChange={(e) => setTransactionData({...transactionData, date: e.target.value})}
+                    onChange={(e) =>
+                      setTransactionData({
+                        ...transactionData,
+                        date: e.target.value,
+                      })
+                    }
                     required
                   />
                 </div>
-                
+
                 <div className="form-group">
                   <label>Tipo</label>
                   <select
                     value={transactionData.typeId}
-                    onChange={(e) => setTransactionData({...transactionData, typeId: parseInt(e.target.value)})}
+                    onChange={(e) =>
+                      setTransactionData({
+                        ...transactionData,
+                        typeId: parseInt(e.target.value),
+                      })
+                    }
                     required
                   >
                     {typesTransactions.map((type) => (
@@ -431,7 +532,7 @@ function Home() {
                     ))}
                   </select>
                 </div>
-                
+
                 <div className="form-group">
                   <label>Status</label>
                   <div className="radio-group">
@@ -441,7 +542,12 @@ function Home() {
                         name="status"
                         value="true"
                         checked={transactionData.status === true}
-                        onChange={(e) => setTransactionData({...transactionData, status: e.target.value === 'true'})}
+                        onChange={(e) =>
+                          setTransactionData({
+                            ...transactionData,
+                            status: e.target.value === "true",
+                          })
+                        }
                       />
                       <span className="radio-label">Confirmado</span>
                     </label>
@@ -451,40 +557,52 @@ function Home() {
                         name="status"
                         value="false"
                         checked={transactionData.status === false}
-                        onChange={(e) => setTransactionData({...transactionData, status: e.target.value === 'true'})}
+                        onChange={(e) =>
+                          setTransactionData({
+                            ...transactionData,
+                            status: e.target.value === "true",
+                          })
+                        }
                       />
                       <span className="radio-label">Pendente</span>
                     </label>
                   </div>
                 </div>
               </div>
-              
+
               <div className="form-group">
                 <label>Descrição</label>
                 <textarea
                   placeholder="Descreva esta transação..."
                   value={transactionData.description}
-                  onChange={(e) => setTransactionData({...transactionData, description: e.target.value})}
+                  onChange={(e) =>
+                    setTransactionData({
+                      ...transactionData,
+                      description: e.target.value,
+                    })
+                  }
                   rows="3"
                   required
                 />
               </div>
-              
+
               <div className="modal-actions">
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className="btn-secondary"
                   onClick={() => setModalActive(false)}
                 >
                   Cancelar
                 </button>
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   className="btn-primary"
-                  disabled={!transactionData.value || !transactionData.description}
-                  onClick={() => saveTransaction()}
+                  disabled={
+                    !transactionData.value || !transactionData.description
+                  }
+                  onClick={(e) => saveTransaction(e)}
                 >
-                  {loading ? 'Salvando...' : 'Salvar Transação'}
+                  {loading ? "Salvando..." : "Salvar Transação"}
                 </button>
               </div>
             </form>

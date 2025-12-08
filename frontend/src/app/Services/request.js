@@ -5,7 +5,6 @@ const api = axios.create({
 });
 
 export const requestPost = async (endpoint, body) => {
-  console.log(endpoint, body);
   const { data } = await api.post(endpoint, body);
   return data;
 };

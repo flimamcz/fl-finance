@@ -14,7 +14,7 @@ function Provider({ children }) {
       let recipes = 0;
       let expenses = 0;
       let investiments = 0;
-      const req = await fetch(`http://localhost:${port_backend}/transactions`);
+      const req = await fetch(`http://192.168.0.10:${port_backend}/transactions`);
       const data = await req.json();
       const dataSort = () => {
         const sorted = data.sort((a, b) => {
@@ -57,7 +57,7 @@ function Provider({ children }) {
 
   const getAllTypes = useCallback(async () => {
     try {
-      const req = await fetch(`http://localhost:${port_backend}/types`);
+      const req = await fetch(`http://192.168.0.10:${port_backend}/types`);
       const data = await req.json();
       setTypesTransactions(data);
     } catch (error) {
