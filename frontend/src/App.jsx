@@ -1,17 +1,16 @@
-import { Route, Switch, Redirect } from "react-router-dom";
-
+import { Routes, Route, Navigate } from "react-router-dom";
+import Login from "./app/Pages/Login";
 import Home from "./app/Pages/Home";
 import Profile from "./app/Pages/Profile";
 
 function App() {
   return (
-    <Switch>
-      <Route exact path="/">
-        <Redirect to="/home" />
-      </Route>
-      <Route exact path="/home" component={Home} />
-      <Route exact path="/profile" component={Profile} />
-    </Switch>
+    <Routes>
+      <Route path="/" element={<Navigate to="/home" replace />} />
+      <Route path="/home" element={<Home />} />
+      <Route path="/profile" element={<Profile />} />
+      <Route path="/login" element={<Login />} />
+    </Routes>
   );
 }
 

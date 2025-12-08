@@ -13,9 +13,9 @@ const validateTransaction = require("../middlewares/Transaction.middleware");
 
 const router = express.Router();
 
-router.get("/", authenticate, searchTrasctions);
-router.post("/", authenticate, createTrasaction);
-router.patch("/", authenticate, updateTransaction);
-router.delete("/:id", authenticate, deleteTransaction);
+router.get("/",  searchTrasctions);
+router.post("/",  createTrasaction);
+router.patch("/", updateTransaction);
+router.delete("/:id", deleteTransaction);
 
 module.exports = router;

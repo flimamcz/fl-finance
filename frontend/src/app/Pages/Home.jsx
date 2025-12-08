@@ -13,9 +13,10 @@ import Moment from "moment";
 import Header from "../Components/Header";
 import MyContext from "../Context/Context";
 import "../Styles/Home.css";
+import { requestDelete, requestPost } from "../Services/request";
 
 function Home() {
-  const { transactions, typesTransactions, amounts } = useContext(MyContext);
+  const { transactions, typesTransactions, amounts, getAllTransactions } = useContext(MyContext);
   
   // Estados
   const [loading, setLoading] = useState(false);
@@ -81,6 +82,27 @@ function Home() {
     if (activeFilter === "investment") return t.typeId === 3;
     return true;
   });
+
+  const deleteItem = async (endpoint, id) => {
+    try {
+      await requestDelete(`${endpoint}/${id}`);
+      await getAllTransactions()
+    } catch (error) {
+      alert(error.message);
+    }
+  }
+
+  const saveTransaction = async () => {
+    try {
+      console.log(transactionData);
+      await requestPost('transactions', transactionData);
+      alert('Transação criada com sucesso!');
+      setModalActive(false);
+      await getAllTransactions();
+    } catch (error) {
+      alert(error.message);
+    }
+  }
 
   return (
     <div className="dashboard-container">
@@ -326,7 +348,7 @@ function Home() {
                             className="btn-icon btn-danger"
                             onClick={() => {
                               if(window.confirm('Deseja realmente excluir esta transação?')) {
-                                // Chamar função de delete
+                               deleteItem('transactions', transaction.id);
                               }
                             }}
                           >
@@ -460,6 +482,7 @@ function Home() {
                   type="submit" 
                   className="btn-primary"
                   disabled={!transactionData.value || !transactionData.description}
+                  onClick={() => saveTransaction()}
                 >
                   {loading ? 'Salvando...' : 'Salvar Transação'}
                 </button>

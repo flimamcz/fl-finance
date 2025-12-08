@@ -6,6 +6,6 @@ const { authenticate } = require('../middlewares/auth.middleware');
 
 const router = express.Router();
 
-router.get("/", authenticate, searchTypesTransaction);
+router.get("/", searchTypesTransaction);
 
 module.exports = router;

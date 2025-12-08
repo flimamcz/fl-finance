@@ -73,11 +73,12 @@ function Provider({ children }) {
   const contextValue = useMemo(
     () => ({
       transactions,
+      setTransactions,
       getAllTransactions,
       typesTransactions,
       amounts,
     }),
-    [transactions, getAllTransactions, typesTransactions, amounts]
+    [transactions, getAllTransactions, typesTransactions, amounts, setTransactions]
   );
 
   return (

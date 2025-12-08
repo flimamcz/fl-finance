@@ -1,132 +1,240 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { FiUser, FiHome, FiTrendingUp, FiBell, FiMenu, FiX, FiMoon, FiSun } from "react-icons/fi";
 import "../Styles/Header.css";
 
 function Header() {
-  const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [user, setUser] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
-  // Efeito scroll para header fixo
+  // Detectar se é mobile
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024);
     };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    
+    return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  // Fechar menu ao trocar de página
+  // Carregar usuário
+  useEffect(() => {
+    const userData = localStorage.getItem("user");
+    if (userData) {
+      setUser(JSON.parse(userData));
+    }
+  }, []);
+
+  // Fechar menus ao trocar de página
   useEffect(() => {
     setMenuOpen(false);
+    setProfileMenuOpen(false);
   }, [location]);
 
+  // Impede scroll quando menu está aberto
+  useEffect(() => {
+    if (menuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "auto";
+    }
+    return () => {
+      document.body.style.overflow = "auto";
+    };
+  }, [menuOpen]);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    setUser(null);
+    setProfileMenuOpen(false);
+    setMenuOpen(false);
+    navigate("/login");
+  };
+
   const navItems = [
-    { path: "/home", label: "Dashboard", icon: <FiHome /> },
-    { path: "/transactions", label: "Transações", icon: <FiTrendingUp /> },
-    { path: "/reports", label: "Relatórios", icon: <FiTrendingUp /> },
-    { path: "/goals", label: "Metas", icon: <FiTrendingUp /> },
+    // { path: "/home", label: "Dashboard", icon: "📊" },
+    // { path: "/transactions", label: "Transações", icon: "💰" },
+    // { path: "/reports", label: "Relatórios", icon: "📈" },
+    // { path: "/goals", label: "Metas", icon: "🎯" },
   ];
 
   return (
     <>
-      {/* Header Principal */}
-      <header className={`header ${scrolled ? "header-scrolled" : ""} ${darkMode ? "dark-mode" : ""}`}>
-        {/* Logo e Menu Hamburger (Mobile) */}
-        <div className="header-left">
-          <button 
-            className="menu-toggle" 
+      <header className="header">
+        {/* Menu Hamburger (SÓ NO MOBILE) */}
+        {isMobile && (
+          <button
+            className="menu-toggle"
             onClick={() => setMenuOpen(!menuOpen)}
             aria-label="Abrir menu"
           >
-            {menuOpen ? <FiX size={24} /> : <FiMenu size={24} />}
+            <span className={`hamburger ${menuOpen ? "open" : ""}`}>
+              <span className="line"></span>
+              <span className="line"></span>
+              <span className="line"></span>
+            </span>
           </button>
-          
-          <Link to="/home" className="logo-link">
-            <div className="logo-container">
-              <div className="logo-icon">
-                <div className="pig-ear"></div>
-                <div className="pig-body"></div>
-                <div className="pig-nose"></div>
-                <div className="coin-slot">$</div>
+        )}
+
+        {/* Logo */}
+        <Link to="/home" className="logo">
+          <div className="logo-icon">
+            <div className="pig-icon">
+              <div className="ear"></div>
+              <div className="face"></div>
+              <div className="nose"></div>
+            </div>
+            <span className="logo-text">FinFlow</span>
+          </div>
+        </Link>
+
+        {/* Navegação Desktop (SÓ NO DESKTOP) */}
+        {!isMobile && (
+          <nav className="desktop-nav">
+            {navItems.map((item) => (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`nav-link-desktop ${
+                  location.pathname === item.path ? "active" : ""
+                }`}
+              >
+                <span className="nav-icon">{item.icon}</span>
+                <span className="nav-label">{item.label}</span>
+              </Link>
+            ))}
+          </nav>
+        )}
+
+        {/* Perfil Desktop (SÓ NO DESKTOP) */}
+        {!isMobile && (
+          <div className="profile-section">
+            <div
+              className="profile-avatar"
+              onClick={() => setProfileMenuOpen(!profileMenuOpen)}
+            >
+              {user?.name ? user.name.charAt(0).toUpperCase() : "👤"}
+            </div>
+
+            {/* Dropdown do Perfil (Desktop) */}
+            {profileMenuOpen && (
+              <div className="profile-dropdown">
+                <div className="dropdown-header">
+                  <div className="user-info">
+                    <div className="avatar-large">
+                      {user?.name ? user.name.charAt(0).toUpperCase() : "👤"}
+                    </div>
+                    <div>
+                      <p className="user-name">{user?.name || "Usuário"}</p>
+                      <p className="user-email">{user?.email || "user@email.com"}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="dropdown-menu">
+                  <Link
+                    to="/profile"
+                    className="dropdown-item"
+                    onClick={() => setProfileMenuOpen(false)}
+                  >
+                    <span className="item-icon">👤</span>
+                    <span className="item-label">Meu Perfil</span>
+                  </Link>
+
+                  <Link
+                    to="/settings"
+                    className="dropdown-item"
+                    onClick={() => setProfileMenuOpen(false)}
+                  >
+                    <span className="item-icon">⚙️</span>
+                    <span className="item-label">Configurações</span>
+                  </Link>
+
+                  <div className="dropdown-divider"></div>
+
+                  <button className="dropdown-item logout" onClick={handleLogout}>
+                    <span className="item-icon">🚪</span>
+                    <span className="item-label">Sair</span>
+                  </button>
+                </div>
               </div>
-              <span className="logo-text">FinFlow</span>
-            </div>
-          </Link>
-        </div>
+            )}
+          </div>
+        )}
 
-        {/* Título Central (apenas mobile) */}
-        <div className="header-center">
-          <h1 className="app-title">Controle Financeiro</h1>
-        </div>
-
-        {/* Ações Direitas */}
-        <div className="header-right">
-          {/* Botão Dark/Light Mode */}
-          <button 
-            className="theme-toggle"
-            onClick={() => setDarkMode(!darkMode)}
-            aria-label={darkMode ? "Modo claro" : "Modo escuro"}
-          >
-            {darkMode ? <FiSun size={20} /> : <FiMoon size={20} />}
-          </button>
-          
-          {/* Notificações */}
-          <button className="notification-btn" aria-label="Notificações">
-            <FiBell size={20} />
-            <span className="notification-badge">3</span>
-          </button>
-          
-          {/* Perfil */}
-          <Link to="/profile" className="profile-link">
-            <div className="profile-avatar">
-              <FiUser size={20} />
+        {/* Ícone do Perfil no Mobile (SÓ NO MOBILE - dentro do menu) */}
+        {isMobile && (
+          <div className="mobile-profile-icon" onClick={() => setMenuOpen(true)}>
+            <div className="profile-avatar small">
+              {user?.name ? user.name.charAt(0).toUpperCase() : "👤"}
             </div>
-          </Link>
-        </div>
+          </div>
+        )}
       </header>
 
-      {/* Menu Mobile Overlay */}
-      {menuOpen && (
+      {/* Menu Mobile Overlay (SÓ NO MOBILE) */}
+      {isMobile && menuOpen && (
         <div className="mobile-menu-overlay" onClick={() => setMenuOpen(false)}>
-          <div className="mobile-menu-content" onClick={(e) => e.stopPropagation()}>
-            <div className="mobile-menu-header">
+          <div className="mobile-menu" onClick={(e) => e.stopPropagation()}>
+            <div className="menu-header">
               <div className="user-info">
-                <div className="profile-avatar large">
-                  <FiUser size={24} />
+                <div className="avatar large">
+                  {user?.name ? user.name.charAt(0).toUpperCase() : "👤"}
                 </div>
                 <div>
-                  <p className="user-name">Olá, Usuário</p>
-                  <p className="user-balance">Saldo: R$ 2.500,00</p>
+                  <p className="user-name">{user?.name || "Usuário"}</p>
+                  <p className="user-email">{user?.email || "user@email.com"}</p>
                 </div>
               </div>
+              <button
+                className="close-menu"
+                onClick={() => setMenuOpen(false)}
+                aria-label="Fechar menu"
+              >
+                ✕
+              </button>
             </div>
-            
-            <nav className="mobile-nav">
+
+            <nav className="menu-nav">
               {navItems.map((item) => (
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`nav-item ${location.pathname === item.path ? "active" : ""}`}
+                  className={`nav-link ${
+                    location.pathname === item.path ? "active" : ""
+                  }`}
+                  onClick={() => setMenuOpen(false)}
                 >
                   <span className="nav-icon">{item.icon}</span>
                   <span className="nav-label">{item.label}</span>
+                  <span className="nav-arrow">›</span>
                 </Link>
               ))}
             </nav>
-            
-            <div className="mobile-menu-footer">
-              <button className="logout-btn">
-                <span>Sair</span>
+
+            <div className="menu-footer">
+              <div className="menu-links">
+                <Link to="/profile" onClick={() => setMenuOpen(false)}>
+                  👤 Meu Perfil
+                </Link>
+                <Link to="/settings" onClick={() => setMenuOpen(false)}>
+                  ⚙️ Configurações
+                </Link>
+              </div>
+              <button className="logout-btn" onClick={handleLogout}>
+                🚪 Sair da Conta
               </button>
             </div>
           </div>
         </div>
       )}
-      
-      {/* Spacer para header fixo */}
+
       <div className="header-spacer"></div>
     </>
   );
