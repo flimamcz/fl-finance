@@ -1,562 +1,473 @@
-import Header from "../Components/Header";
-import IconBank from "../../assets/BANK-ICON.png";
-import IconInvestiment from "../../assets/INVESTIMENT.png";
-import IconRecipes from "../../assets/RECIPES.png";
-import IconExpenses from "../../assets/EXPENSE.png";
-import Checked from "../../assets/checked.png";
-import Pending from "../../assets/pending.png";
-import { Fragment, useContext, useEffect, useState } from "react";
+import { useState, useContext } from "react";
+import { 
+  FiPlus, FiDownload, FiTrendingUp, 
+  FiTrendingDown, FiDollarSign, FiPieChart,
+  FiCheckCircle, FiClock, FiEdit2, FiTrash2,
+  FiArrowUp, FiArrowDown, FiTarget
+} from "react-icons/fi";
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, 
+  Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend
+} from 'recharts';
 import Moment from "moment";
+import Header from "../Components/Header";
 import MyContext from "../Context/Context";
 import "../Styles/Home.css";
-import { requestPost, requestUpdate } from "../Services/request";
 
 function Home() {
-  const { transactions, typesTransactions, getAllTransactions, amounts } =
-    useContext(MyContext);
-  // const [currentMonth, setCurrentMonth] = useState("");
-  const [deletingById, setDeletingById] = useState(null);
-  const [activeButtonQuestingDelete, setActiveButtonQuestingDelete] =
-    useState(false);
-  const [typeTransaction, setTypeTransaction] = useState(1);
-  const [activeModalEditTransaction, setActiveModalEditTransaction] =
-    useState(false);
-  const [transactionCurrentEdit, setTransactionCurrentEdit] = useState({});
-
+  const { transactions, typesTransactions, amounts } = useContext(MyContext);
+  
+  // Estados
   const [loading, setLoading] = useState(false);
+  const [activeFilter, setActiveFilter] = useState("all");
   const [modalActive, setModalActive] = useState(false);
-  const [modalRegister, setModalRegister] = useState(false);
-  const [buttonCreateTransaction, setButtonCreateTransaction] = useState(true);
+  const [activeModalEdit, setActiveModalEdit] = useState(false);
+  const [viewMode, setViewMode] = useState("grid"); // grid ou list
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const [timeRange, setTimeRange] = useState("month");
+  
+  const [transactionData, setTransactionData] = useState({
+    value: "",
+    description: "",
+    date: new Date().toISOString().split('T')[0],
+    status: true,
+    typeId: 1
+  });
 
-  const dataObjectModelTransaction = {
-    value: String,
-    description: String,
-    date: Date,
-    status: Boolean,
-    typeId: 1,
-  };
-  const port_backend = 3001;
+  // Dados para gráficos
+  const chartData = transactions.map(t => ({
+    name: Moment(t.date).format('DD/MM'),
+    value: t.value,
+    type: t.typeId === 1 ? 'Receita' : t.typeId === 2 ? 'Despesa' : 'Investimento'
+  }));
 
-  const [transactionData, setTransactionData] = useState(
-    dataObjectModelTransaction
-  );
+  const categoryData = [
+    { name: 'Receitas', value: amounts[0]?.amount || 0, color: '#10b981' },
+    { name: 'Despesas', value: amounts[1]?.amount || 0, color: '#ef4444' },
+    { name: 'Investimentos', value: amounts[2]?.amount || 0, color: '#8b5cf6' }
+  ];
 
-  const formatDate = (date) => Moment(date).format("DD/MM/YYYY");
-
-  const verifyInputs = () => {
-    const existDescription = transactionData.description.length >= 5;
-    const existValue = Number(transactionData.value) > 0;
-    setButtonCreateTransaction(!(existDescription && existValue));
-  };
-
-  const formatCurrencyMoney = (money) =>
-    money.toLocaleString("pt-br", {
-      style: "currency",
-      currency: "BRL",
-    });
-
-  const findTypeTransaction = (idTransaction) => {
-    const type = typesTransactions.length
-      ? typesTransactions.find(({ id }) => id === idTransaction).type
-      : 0;
-    return type;
+  // Funções auxiliares
+  const formatCurrency = (value) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value);
   };
 
-  const deleteTransaction = async ({ id }) => {
-    await fetch(`http://localhost:${port_backend}/transactions/${id}`, {
-      method: "DELETE",
-    });
-    setActiveButtonQuestingDelete(false);
-    setDeletingById(null);
-  };
-
-  const confirmedDelete = (transaction) => {
-    setActiveButtonQuestingDelete(true);
-    setDeletingById(transaction);
-  };
-
-  const toggleModal = () => setModalActive(!modalActive);
-
-  const handleChange = ({ target }) => {
-    const { name, value, type } = target;
-
-    if (type === "radio") {
-      setTransactionData((prevData) => ({
-        ...prevData,
-        [name]: JSON.parse(value),
-      }));
-    } else if (name === "type-transaction") {
-      setTypeTransaction(value);
-    } else {
-      setTransactionData((prevData) => ({
-        ...prevData,
-        [name]: value,
-      }));
-    }
-
-    verifyInputs();
-  };
-
-  const amountTotal = amounts.length
-    ? Number(amounts[0].amount) - Number(amounts[1].amount)
-    : 0;
-
-  const createTransaction = async (e) => {
-    setLoading(true);
-    e.preventDefault();
-    await requestPost("/transactions", transactionData);
-    closeModalRegister();
-
-    setTimeout(() => {
-      setTransactionData(dataObjectModelTransaction);
-      getAllTransactions();
-      setLoading(false);
-    }, 1200);
-  };
-
-  const closeModalRegister = () => {
-    setModalActive(false);
-    setTransactionData(dataObjectModelTransaction);
-  };
-
-  document.onkeydown = (e) => {
-    if (e.key === "Escape") {
-      setModalActive(false);
+  const getTypeIcon = (typeId) => {
+    switch(typeId) {
+      case 1: return <FiTrendingUp className="icon-income" />;
+      case 2: return <FiTrendingDown className="icon-expense" />;
+      case 3: return <FiTarget className="icon-investment" />;
+      default: return <FiDollarSign />;
     }
   };
 
-  const modalEditTransaction = (transactionEdit) => {
-    setActiveModalEditTransaction(true);
-    setTransactionCurrentEdit(transactionEdit);
+  const getStatusIcon = (status) => {
+    return status ? 
+      <FiCheckCircle className="status-confirmed" /> : 
+      <FiClock className="status-pending" />;
   };
 
-  const saveTransactionEdit = () => {
-    try {
-      setLoading(true);
-      requestUpdate("/transactions", transactionCurrentEdit);
-      setActiveModalEditTransaction(false);
-      setLoading(false);
-      setTransactionCurrentEdit({});
-    } catch (error) {
-      setActiveModalEditTransaction(false);
-      setLoading(false);
-      setTransactionCurrentEdit(false);
-      alert("Erro ao atualizar transação!");
-      console.log(error);
-    }
-  };
+  const amountTotal = amounts.length ? 
+    Number(amounts[0].amount) - Number(amounts[1].amount) : 0;
 
-  useEffect(() => {
-    getAllTransactions();
-  }, [activeButtonQuestingDelete, saveTransactionEdit]);
+  // Filtros
+  const filteredTransactions = transactions.filter(t => {
+    if (activeFilter === "all") return true;
+    if (activeFilter === "income") return t.typeId === 1;
+    if (activeFilter === "expense") return t.typeId === 2;
+    if (activeFilter === "investment") return t.typeId === 3;
+    return true;
+  });
 
   return (
-    <div>
+    <div className="dashboard-container">
       <Header />
-      <div className="body">
-        <section className="cards-balance">
-          <div className="card-demonstrative balance">
-            <span>
-              <h2>Saldo atual</h2>
-              <p>
-                R$ <span>{amountTotal.toFixed(2)}</span>
-              </p>
-            </span>
-            <abbr title="Ícone de Banco">
-              <img src={IconBank} alt="Ícone de banco" />
-            </abbr>
+      
+      <div className="dashboard-content">
+        {/* Banner Welcome */}
+        <div className="welcome-banner">
+          <div className="welcome-text">
+            <h1>Bem-vindo de volta! 👋</h1>
+            <p>Gerencie suas finanças de forma inteligente</p>
+          </div>
+          <div className="date-info">
+            <span>{Moment().format('DD [de] MMMM [de] YYYY')}</span>
+          </div>
+        </div>
+
+        {/* Cards Resumo */}
+        <div className="summary-cards">
+          <div className="summary-card total-balance">
+            <div className="card-header">
+              <FiDollarSign className="card-icon" />
+              <h3>Saldo Total</h3>
+            </div>
+            <div className="card-value">
+              {formatCurrency(amountTotal)}
+            </div>
+            <div className="card-trend">
+              <span className="trend-positive">
+                <FiArrowUp /> 12% vs mês passado
+              </span>
+            </div>
           </div>
 
-          <div className="card-demonstrative recipes">
-            <span>
-              <h2>Entradas</h2>
-              <p>
-                R${" "}
-                <span>
-                  {amounts.length
-                    ? amounts[0].amount.toLocaleString("pt-BR", {
-                        style: "currency",
-                        currency: "BRL",
-                      })
-                    : 0}
-                </span>
-              </p>
-            </span>
-            <abbr title="Ícone de Receitas">
-              <img src={IconRecipes} alt="Ícone de entradas" />
-            </abbr>
+          <div className="summary-card income-card">
+            <div className="card-header">
+              <FiTrendingUp className="card-icon" />
+              <h3>Receitas</h3>
+            </div>
+            <div className="card-value">
+              {formatCurrency(amounts[0]?.amount || 0)}
+            </div>
+            <div className="card-trend">
+              <span className="trend-positive">
+                <FiArrowUp /> 8% este mês
+              </span>
+            </div>
           </div>
 
-          <div className="card-demonstrative expenses">
-            <span>
-              <h2>Despesas</h2>
-              <p>
-                R${" "}
-                <span>
-                  {amounts.length
-                    ? amounts[1].amount.toLocaleString("pt-BR", {
-                        style: "currency",
-                        currency: "BRL",
-                      })
-                    : 0}
-                </span>
-              </p>
-            </span>
-            <abbr title="Ícone de Despesa">
-              <img src={IconExpenses} alt="Ícone de despesas" />
-            </abbr>
+          <div className="summary-card expense-card">
+            <div className="card-header">
+              <FiTrendingDown className="card-icon" />
+              <h3>Despesas</h3>
+            </div>
+            <div className="card-value">
+              {formatCurrency(amounts[1]?.amount || 0)}
+            </div>
+            <div className="card-trend">
+              <span className="trend-negative">
+                <FiArrowDown /> 5% vs mês passado
+              </span>
+            </div>
           </div>
 
-          <div className="card-demonstrative investiment">
-            <span>
-              <h2>Investido</h2>
-              <p>
-                R${" "}
-                <span>
-                  {amounts.length
-                    ? amounts[2].amount.toLocaleString("pt-BR", {
-                        style: "currency",
-                        currency: "BRL",
-                      })
-                    : 0}
-                </span>
-              </p>
-            </span>
-            <abbr title="Ícone de Investmentos">
-              <img src={IconInvestiment} alt="Ícone de investimentos" />
-            </abbr>
+          <div className="summary-card investment-card">
+            <div className="card-header">
+              <FiPieChart className="card-icon" />
+              <h3>Investimentos</h3>
+            </div>
+            <div className="card-value">
+              {formatCurrency(amounts[2]?.amount || 0)}
+            </div>
+            <div className="card-trend">
+              <span className="trend-positive">
+                <FiArrowUp /> 15% este ano
+              </span>
+            </div>
           </div>
-        </section>
+        </div>
 
-        <section>
-          <form>
-            <button
-              className="button-new-transaction"
-              type="button"
-              onClick={toggleModal}
-            >
-              + NOVA TRANSAÇÃO
-            </button>
-          </form>
+        {/* Gráficos */}
+        <div className="charts-section">
+          <div className="chart-card">
+            <div className="chart-header">
+              <h3>Fluxo Financeiro</h3>
+              <select 
+                value={timeRange} 
+                onChange={(e) => setTimeRange(e.target.value)}
+                className="chart-filter"
+              >
+                <option value="week">Esta semana</option>
+                <option value="month">Este mês</option>
+                <option value="year">Este ano</option>
+              </select>
+            </div>
+            <div className="chart-container">
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis dataKey="name" stroke="#64748b" />
+                  <YAxis stroke="#64748b" />
+                  <Tooltip 
+                    formatter={(value) => [formatCurrency(value), 'Valor']}
+                    contentStyle={{ 
+                      backgroundColor: 'white', 
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '8px'
+                    }}
+                  />
+                  <Bar dataKey="value" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
 
-          <table>
-            <thead>
-              <tr>
-                <td>Situação</td>
-                <td>Data</td>
-                <td>Descrição</td>
-                <td>Tipo</td>
-                <td>Valor</td>
-                <td>Ações</td>
-                <td>Categoria</td>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <div className="loader"></div>
+          <div className="chart-card">
+            <div className="chart-header">
+              <h3>Distribuição por Categoria</h3>
+            </div>
+            <div className="chart-container">
+              <ResponsiveContainer width="100%" height={250}>
+                <PieChart>
+                  <Pie
+                    data={categoryData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={(entry) => `${entry.name}: ${formatCurrency(entry.value)}`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {categoryData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value) => formatCurrency(value)} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+
+        {/* Seção de Transações */}
+        <div className="transactions-section">
+          <div className="section-header">
+            <h2>Transações Recentes</h2>
+            <div className="section-actions">
+              <div className="filter-buttons">
+                <button 
+                  className={`filter-btn ${activeFilter === 'all' ? 'active' : ''}`}
+                  onClick={() => setActiveFilter('all')}
+                >
+                  Todas
+                </button>
+                <button 
+                  className={`filter-btn ${activeFilter === 'income' ? 'active' : ''}`}
+                  onClick={() => setActiveFilter('income')}
+                >
+                  Receitas
+                </button>
+                <button 
+                  className={`filter-btn ${activeFilter === 'expense' ? 'active' : ''}`}
+                  onClick={() => setActiveFilter('expense')}
+                >
+                  Despesas
+                </button>
+                <button 
+                  className={`filter-btn ${activeFilter === 'investment' ? 'active' : ''}`}
+                  onClick={() => setActiveFilter('investment')}
+                >
+                  Investimentos
+                </button>
+              </div>
+              
+              <button 
+                className="btn-primary"
+                onClick={() => setModalActive(true)}
+              >
+                <FiPlus /> Nova Transação
+              </button>
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="loading-container">
+              <div className="loader"></div>
+              <p>Carregando transações...</p>
+            </div>
+          ) : (
+            <div className="transactions-container">
+              {filteredTransactions.length === 0 ? (
+                <div className="empty-state">
+                  <FiDollarSign size={48} />
+                  <h3>Nenhuma transação encontrada</h3>
+                  <p>Comece adicionando sua primeira transação</p>
+                  <button 
+                    className="btn-primary"
+                    onClick={() => setModalActive(true)}
+                  >
+                    <FiPlus /> Criar Transação
+                  </button>
+                </div>
               ) : (
-                <Fragment>
-                  {transactions.length ? (
-                    transactions.map((transaction) => (
-                      <tr key={transaction.id}>
-                        <td>
-                          {transaction.status && (
-                            <img
-                              width={24}
-                              src={transaction.status && Checked}
-                              alt="Status"
-                              title="Transação confirmada!"
-                            />
-                          )}
-                          {!transaction.status && (
-                            <img
-                              width={24}
-                              src={!transaction.status && Pending}
-                              alt="Status"
-                              title="Transação pendente!"
-                            />
-                          )}
-                        </td>
-                        <td>{formatDate(transaction.date)}</td>
-                        <td>{transaction.description}</td>
-                        <td>{findTypeTransaction(transaction.typeId)}</td>
-                        <td>R$ {formatCurrencyMoney(transaction.value)}</td>
-                        <td>
-                          <div className="action-buttons">
-                            <button
-                              className="edit-button"
-                              onClick={() => modalEditTransaction(transaction)}
-                            >
-                              Editar
-                            </button>
-                            <button
-                              className="remove-button"
-                              onClick={() => confirmedDelete(transaction)}
-                            >
-                              Remover
-                            </button>
-                          </div>
-                        </td>
-                        <td>
-                          <img
-                            width={24}
-                            src={
-                              findTypeTransaction(transaction.typeId) ===
-                              "RECEITA"
-                                ? IconRecipes
-                                : findTypeTransaction(transaction.typeId) ===
-                                  "DESPESA"
-                                ? IconExpenses
-                                : IconInvestiment
-                            }
-                            alt="Categoria"
-                          />
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td className="not-transaction-paragraph" colSpan="7">
-                        Nenhuma transação encontrada!
-                      </td>
-                    </tr>
-                  )}
-                </Fragment>
-              )}
-
-              {activeButtonQuestingDelete && (
-                <div className="center-content">
-                  <label>
-                    <p>
-                      Deseja realmente deletar a transação de ID{" "}
-                      {`${deletingById.id}`}?
-                    </p>
-                    <button
-                      className="confirm-delete"
-                      onClick={() => deleteTransaction(deletingById)}
-                    >
-                      Sim
-                    </button>
-                    <button
-                      className="confirm-delete"
-                      onClick={() => setActiveButtonQuestingDelete(false)}
-                    >
-                      Não
-                    </button>
-                  </label>
+                <div className={viewMode === 'grid' ? 'transactions-grid' : 'transactions-list'}>
+                  {filteredTransactions.map((transaction) => (
+                    <div key={transaction.id} className="transaction-card">
+                      <div className="transaction-header">
+                        <div className="transaction-icon">
+                          {getTypeIcon(transaction.typeId)}
+                        </div>
+                        <div className="transaction-info">
+                          <h4>{transaction.description}</h4>
+                          <span className="transaction-date">
+                            {Moment(transaction.date).format('DD/MM/YYYY')}
+                          </span>
+                        </div>
+                        <div className="transaction-amount">
+                          <span className={`amount ${transaction.typeId === 1 ? 'positive' : 'negative'}`}>
+                            {transaction.typeId === 1 ? '+ ' : '- '}
+                            {formatCurrency(transaction.value)}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="transaction-footer">
+                        <div className="transaction-status">
+                          {getStatusIcon(transaction.status)}
+                          <span>{transaction.status ? 'Confirmado' : 'Pendente'}</span>
+                        </div>
+                        <div className="transaction-actions">
+                          <button 
+                            className="btn-icon"
+                            onClick={() => {
+                              setSelectedTransaction(transaction);
+                              setActiveModalEdit(true);
+                            }}
+                          >
+                            <FiEdit2 />
+                          </button>
+                          <button 
+                            className="btn-icon btn-danger"
+                            onClick={() => {
+                              if(window.confirm('Deseja realmente excluir esta transação?')) {
+                                // Chamar função de delete
+                              }
+                            }}
+                          >
+                            <FiTrash2 />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
-            </tbody>
-          </table>
-        </section>
-
-        {modalActive && (
-          <form className="modal-register-transaction">
-            <h2>Nova transação</h2>
-            <input
-              type="text"
-              placeholder="R$ 0.00 (USE PONTO (.) R$ 2.23)"
-              name="value"
-              onChange={handleChange}
-              value={transactionData.value}
-            />
-            <div className="radio-group">
-              <label className="radio-option">
-                <input
-                  type="radio"
-                  name="status"
-                  value={true}
-                  onChange={handleChange}
-                  checked={transactionData.status === true}
-                />
-                Efetivado
-              </label>
-              <label className="radio-option">
-                <input
-                  type="radio"
-                  name="status"
-                  value={false}
-                  onChange={handleChange}
-                  checked={transactionData.status === false}
-                />
-                À compensar
-              </label>
             </div>
+          )}
 
-            <select name="typeId" id="typeId" onChange={handleChange}>
-              <option value="" disabled>
-                Escolha um tipo
-              </option>
-              {typesTransactions.map((type) => (
-                <option key={type.id} value={type.id}>
-                  {type.type}
-                </option>
-              ))}
-            </select>
-            <textarea
-              name="description"
-              placeholder="Descrição"
-              value={transactionData.description}
-              onChange={handleChange}
-            />
-            <input
-              type="date"
-              name="date"
-              value={Moment(transactionData.date).format("YYYY-MM-DD")}
-              onChange={handleChange}
-            />
-            <div className="button-modal-register">
-              <button
-                type="button"
-                disabled={buttonCreateTransaction}
-                onClick={createTransaction}
+          {filteredTransactions.length > 0 && (
+            <div className="transactions-footer">
+              <button className="btn-secondary">
+                <FiDownload /> Exportar Extrato
+              </button>
+              <div className="pagination">
+                <span>Mostrando {filteredTransactions.length} de {transactions.length} transações</span>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Modal Nova Transação */}
+      {modalActive && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h2>Nova Transação</h2>
+              <button 
+                className="btn-close"
+                onClick={() => setModalActive(false)}
               >
-                Criar
-              </button>
-              <button onClick={closeModalRegister} type="button">
-                Fechar
+                ×
               </button>
             </div>
-          </form>
-        )}
-
-        {activeModalEditTransaction && (
-          <div className="modal-edit-transaction">
-            <div>
-              {activeModalEditTransaction && (
-                <div className="modal">
-                  <div className="modal-content">
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        console.log("Salvar:", transactionCurrentEdit);
-                        // Chama requestUpdate aqui se quiser
-                        setTransactionCurrentEdit({});
-                      }}
-                    >
-                      <p className="title-edit-transaction">Editar transação</p>
-
-                      <label>
-                        Valor:
-                        <input
-                          type="number"
-                          value={transactionCurrentEdit.value}
-                          onChange={(e) =>
-                            setTransactionCurrentEdit((prev) => ({
-                              ...prev,
-                              value: e.target.value,
-                            }))
-                          }
-                          required
-                        />
-                      </label>
-
-                      <label>
-                        Descrição:
-                        <input
-                          type="text"
-                          value={transactionCurrentEdit.description}
-                          onChange={(e) =>
-                            setTransactionCurrentEdit((prev) => ({
-                              ...prev,
-                              description: e.target.value,
-                            }))
-                          }
-                          required
-                        />
-                      </label>
-
-                      <label>
-                        Data:
-                        <input
-                          type="date"
-                          value={
-                            transactionCurrentEdit.date
-                              ? Moment(transactionCurrentEdit.date).format(
-                                  "YYYY-MM-DD"
-                                )
-                              : ""
-                          }
-                          onChange={(e) =>
-                            setTransactionCurrentEdit((prev) => ({
-                              ...prev,
-                              date: e.target.value,
-                            }))
-                          }
-                          required
-                        />
-                      </label>
-
-                      {/* Exemplo mostrando a data formatada para o usuário */}
-                      <p>
-                        Data formatada:{" "}
-                        {transactionCurrentEdit.date
-                          ? formatDate(transactionCurrentEdit.date)
-                          : "-"}
-                      </p>
-
-                      <label>
-                        Tipo de transação:
-                        <select
-                          value={transactionCurrentEdit.typeId}
-                          onChange={(e) =>
-                            setTransactionCurrentEdit((prev) => ({
-                              ...prev,
-                              typeId: e.target.value,
-                            }))
-                          }
-                          required
-                        >
-                          <option value="">Selecione</option>
-                          <option value="1">Entrada</option>
-                          <option value="2">Saída</option>
-                          <option value="3">Investimento</option>
-                        </select>
-                      </label>
-
-                      <label>
-                        Status:
-                        <input
-                          type="checkbox"
-                          checked={transactionCurrentEdit.status}
-                          onChange={(e) =>
-                            setTransactionCurrentEdit((prev) => ({
-                              ...prev,
-                              status: e.target.checked,
-                            }))
-                          }
-                        />
-                        Ativo
-                      </label>
-
-                      <div className="modal-actions">
-                        <button
-                          type="button"
-                          onClick={() => (
-                            setTransactionCurrentEdit({}),
-                            setActiveModalEditTransaction(false)
-                          )}
-                        >
-                          Cancelar
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            saveTransactionEdit();
-                            // activeModalEditTransaction(false)
-                          }}
-                        >
-                          Salvar
-                        </button>
-                      </div>
-                    </form>
+            
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              // createTransaction();
+            }}>
+              <div className="form-grid">
+                <div className="form-group">
+                  <label>Valor (R$)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={transactionData.value}
+                    onChange={(e) => setTransactionData({...transactionData, value: e.target.value})}
+                    required
+                  />
+                </div>
+                
+                <div className="form-group">
+                  <label>Data</label>
+                  <input
+                    type="date"
+                    value={transactionData.date}
+                    onChange={(e) => setTransactionData({...transactionData, date: e.target.value})}
+                    required
+                  />
+                </div>
+                
+                <div className="form-group">
+                  <label>Tipo</label>
+                  <select
+                    value={transactionData.typeId}
+                    onChange={(e) => setTransactionData({...transactionData, typeId: parseInt(e.target.value)})}
+                    required
+                  >
+                    {typesTransactions.map((type) => (
+                      <option key={type.id} value={type.id}>
+                        {type.type}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="form-group">
+                  <label>Status</label>
+                  <div className="radio-group">
+                    <label className="radio-option">
+                      <input
+                        type="radio"
+                        name="status"
+                        value="true"
+                        checked={transactionData.status === true}
+                        onChange={(e) => setTransactionData({...transactionData, status: e.target.value === 'true'})}
+                      />
+                      <span className="radio-label">Confirmado</span>
+                    </label>
+                    <label className="radio-option">
+                      <input
+                        type="radio"
+                        name="status"
+                        value="false"
+                        checked={transactionData.status === false}
+                        onChange={(e) => setTransactionData({...transactionData, status: e.target.value === 'true'})}
+                      />
+                      <span className="radio-label">Pendente</span>
+                    </label>
                   </div>
                 </div>
-              )}
-            </div>
+              </div>
+              
+              <div className="form-group">
+                <label>Descrição</label>
+                <textarea
+                  placeholder="Descreva esta transação..."
+                  value={transactionData.description}
+                  onChange={(e) => setTransactionData({...transactionData, description: e.target.value})}
+                  rows="3"
+                  required
+                />
+              </div>
+              
+              <div className="modal-actions">
+                <button 
+                  type="button" 
+                  className="btn-secondary"
+                  onClick={() => setModalActive(false)}
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit" 
+                  className="btn-primary"
+                  disabled={!transactionData.value || !transactionData.description}
+                >
+                  {loading ? 'Salvando...' : 'Salvar Transação'}
+                </button>
+              </div>
+            </form>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

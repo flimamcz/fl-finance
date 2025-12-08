@@ -19,7 +19,7 @@ module.exports = {
         {
           fullName: "Eduardo",
           email: "edu@test.com",
-          password: "test121323",
+          password: "flp5660",
           position_work: "APF",
           user_pf: "filipe.fla",
           created_at: new Date(),

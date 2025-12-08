@@ -1,0 +1,41 @@
+# ====================================
+# VERSÃO SIMPLIFICADA
+# ====================================
+
+# Dependências
+node_modules/
+
+# Ambiente
+.env
+.env.local
+*.env.*
+
+# Builds
+dist/
+build/
+.out/
+.next/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Banco de dados local
+*.db
+*.sqlite
+
+# Cache
+.cache/
+.tmp/
+temp/
