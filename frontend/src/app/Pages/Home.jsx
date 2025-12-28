@@ -13,6 +13,9 @@ import {
   FiArrowUp,
   FiArrowDown,
   FiTarget,
+  FiAlertTriangle,
+  FiAlertCircle,
+  FiX,
 } from "react-icons/fi";
 import {
   BarChart,
@@ -31,7 +34,6 @@ import Moment from "moment";
 import Header from "../Components/Header";
 import MyContext from "../Context/Context";
 import "../Styles/Home.css";
-import { requestDelete, requestPost } from "../Services/request";
 
 function Home() {
   const { transactions, typesTransactions, amounts, getAllTransactions } =
@@ -42,9 +44,16 @@ function Home() {
   const [activeFilter, setActiveFilter] = useState("all");
   const [modalActive, setModalActive] = useState(false);
   const [activeModalEdit, setActiveModalEdit] = useState(false);
-  const [viewMode, setViewMode] = useState("grid"); // grid ou list
+  const [viewMode, setViewMode] = useState("grid");
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [timeRange, setTimeRange] = useState("month");
+  
+  // Estados para modais
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [modalMessage, setModalMessage] = useState("");
+  const [modalTitle, setModalTitle] = useState("");
 
   const [transactionData, setTransactionData] = useState({
     value: "",
@@ -57,23 +66,79 @@ function Home() {
   // Dados para gráficos
   const chartData = transactions.map((t) => ({
     name: Moment(t.date).format("DD/MM"),
-    value: t.value,
+    value: parseFloat(t.value) || 0,
     type:
       t.typeId === 1 ? "Receita" : t.typeId === 2 ? "Despesa" : "Investimento",
   }));
 
-  const categoryData = [
-    { name: "Receitas", value: amounts[0]?.amount || 0, color: "#10b981" },
-    { name: "Despesas", value: amounts[1]?.amount || 0, color: "#ef4444" },
-    { name: "Investimentos", value: amounts[2]?.amount || 0, color: "#8b5cf6" },
-  ];
+  // Transformar transações para o gráfico de pizza
+  const categoryData = (() => {
+    if (!transactions || !Array.isArray(transactions)) return [];
+
+    const totals = {};
+
+    transactions.forEach((transaction) => {
+      const typeId = transaction.typeId;
+      const value = parseFloat(transaction.value) || 0;
+
+      if (!totals[typeId]) {
+        totals[typeId] = 0;
+      }
+
+      totals[typeId] += value;
+    });
+
+    const result = [];
+
+    if (totals[1]) {
+      result.push({
+        name: "Receitas",
+        value: totals[1],
+        color: "#10b981"
+      });
+    }
+
+    if (totals[2]) {
+      result.push({
+        name: "Despesas",
+        value: totals[2],
+        color: "#ef4444"
+      });
+    }
+
+    if (totals[3]) {
+      result.push({
+        name: "Investimentos",
+        value: totals[3],
+        color: "#8b5cf6"
+      });
+    }
+
+    if (result.length === 0) {
+      return [{ name: "Sem dados", value: 1, color: "#e2e8f0" }];
+    }
+
+    return result;
+  })();
+
+  // Função para formatar data em português
+  const getFormattedDate = () => {
+    const formatter = new Intl.DateTimeFormat('pt-BR', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+    
+    const formatted = formatter.format(new Date());
+    return formatted.replace(/\b\w/g, char => char.toUpperCase());
+  };
 
   // Funções auxiliares
   const formatCurrency = (value) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
       currency: "BRL",
-    }).format(value);
+    }).format(value || 0);
   };
 
   const getTypeIcon = (typeId) => {
@@ -98,7 +163,7 @@ function Home() {
   };
 
   const amountTotal = amounts.length
-    ? Number(amounts[0].amount) - Number(amounts[1].amount)
+    ? Number(amounts[0]?.amount || 0) - Number(amounts[1]?.amount || 0)
     : 0;
 
   // Filtros
@@ -110,13 +175,50 @@ function Home() {
     return true;
   });
 
+  // Função de exclusão com modais
   const deleteItem = async (endpoint, id) => {
     try {
-      await requestDelete(`${endpoint}/${id}`);
+      console.log("Deletando:", endpoint, id);
+
+      const url = `http://192.168.0.10:3001/${endpoint}/${id}`;
+      console.log("URL:", url);
+
+      const response = await fetch(url, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Erro ${response.status}: ${errorText}`);
+      }
+
       await getAllTransactions();
+      
+      // Modal de sucesso
+      setModalTitle("Sucesso!");
+      setModalMessage("Transação excluída com sucesso!");
+      setShowSuccessModal(true);
+      
     } catch (error) {
-      alert(error.message);
+      console.error("Erro ao excluir:", error);
+      
+      // Modal de erro
+      setModalTitle("Erro");
+      setModalMessage(`${error.message || "Falha ao excluir transação"}`);
+      setShowErrorModal(true);
     }
+  };
+
+  // Função para iniciar exclusão
+  const startDelete = (transaction) => {
+    setSelectedTransaction(transaction);
+    setModalTitle("Confirmar Exclusão");
+    setModalMessage(`Deseja realmente excluir "${transaction.description}"?`);
+    setShowConfirmModal(true);
   };
 
   const saveTransaction = async (e) => {
@@ -126,11 +228,9 @@ function Home() {
     try {
       const dataToSend = {
         ...transactionData,
-        value: parseFloat(transactionData.value), // CONVERTE PARA NÚMERO
+        value: parseFloat(transactionData.value),
         typeId: parseInt(transactionData.typeId),
       };
-
-      console.log("Enviando:", dataToSend);
 
       const response = await fetch("http://192.168.0.10:3001/transactions", {
         method: "POST",
@@ -143,7 +243,6 @@ function Home() {
 
       if (!response.ok) throw new Error(`Erro ${response.status}`);
 
-      // Fecha modal e limpa
       setModalActive(false);
       setTransactionData({
         value: "",
@@ -153,9 +252,19 @@ function Home() {
         typeId: 1,
       });
 
-      alert("✅ Transação criada!");
+      // Modal de sucesso para criação
+      setModalTitle("Sucesso!");
+      setModalMessage("Transação criada com sucesso!");
+      setShowSuccessModal(true);
+      
+      // Atualiza a lista
+      await getAllTransactions();
+      
     } catch (error) {
-      alert(`❌ Erro: ${error.message}`);
+      // Modal de erro para criação
+      setModalTitle("Erro");
+      setModalMessage(`${error.message || "Falha ao criar transação"}`);
+      setShowErrorModal(true);
     } finally {
       setLoading(false);
     }
@@ -173,7 +282,7 @@ function Home() {
             <p>Gerencie suas finanças de forma inteligente</p>
           </div>
           <div className="date-info">
-            <span>{Moment().format("DD [de] MMMM [de] YYYY")}</span>
+            <span>{getFormattedDate()}</span>
           </div>
         </div>
 
@@ -278,28 +387,39 @@ function Home() {
               <h3>Distribuição por Categoria</h3>
             </div>
             <div className="chart-container">
-              <ResponsiveContainer width="100%" height={250}>
-                <PieChart>
-                  <Pie
-                    data={categoryData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={(entry) =>
-                      `${entry.name}: ${formatCurrency(entry.value)}`
-                    }
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {categoryData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => formatCurrency(value)} />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
+              {categoryData.length > 0 && categoryData[0].name !== "Sem dados" ? (
+                <ResponsiveContainer width="100%" height={250}>
+                  <PieChart>
+                    <Pie
+                      data={categoryData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={(entry) =>
+                        `${entry.name}: ${formatCurrency(entry.value)}`
+                      }
+                      outerRadius={70}
+                      innerRadius={30}
+                      paddingAngle={3}
+                      dataKey="value"
+                      nameKey="name"
+                    >
+                      {categoryData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      formatter={(value) => formatCurrency(value)}
+                      labelFormatter={(name) => `Categoria: ${name}`}
+                    />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="no-chart-data">
+                  <p>Adicione transações para ver a distribuição</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -311,33 +431,25 @@ function Home() {
             <div className="section-actions">
               <div className="filter-buttons">
                 <button
-                  className={`filter-btn ${
-                    activeFilter === "all" ? "active" : ""
-                  }`}
+                  className={`filter-btn ${activeFilter === "all" ? "active" : ""}`}
                   onClick={() => setActiveFilter("all")}
                 >
                   Todas
                 </button>
                 <button
-                  className={`filter-btn ${
-                    activeFilter === "income" ? "active" : ""
-                  }`}
+                  className={`filter-btn ${activeFilter === "income" ? "active" : ""}`}
                   onClick={() => setActiveFilter("income")}
                 >
                   Receitas
                 </button>
                 <button
-                  className={`filter-btn ${
-                    activeFilter === "expense" ? "active" : ""
-                  }`}
+                  className={`filter-btn ${activeFilter === "expense" ? "active" : ""}`}
                   onClick={() => setActiveFilter("expense")}
                 >
                   Despesas
                 </button>
                 <button
-                  className={`filter-btn ${
-                    activeFilter === "investment" ? "active" : ""
-                  }`}
+                  className={`filter-btn ${activeFilter === "investment" ? "active" : ""}`}
                   onClick={() => setActiveFilter("investment")}
                 >
                   Investimentos
@@ -373,13 +485,7 @@ function Home() {
                   </button>
                 </div>
               ) : (
-                <div
-                  className={
-                    viewMode === "grid"
-                      ? "transactions-grid"
-                      : "transactions-list"
-                  }
-                >
+                <div className={viewMode === "grid" ? "transactions-grid" : "transactions-list"}>
                   {filteredTransactions.map((transaction) => (
                     <div key={transaction.id} className="transaction-card">
                       <div className="transaction-header">
@@ -394,9 +500,7 @@ function Home() {
                         </div>
                         <div className="transaction-amount">
                           <span
-                            className={`amount ${
-                              transaction.typeId === 1 ? "positive" : "negative"
-                            }`}
+                            className={`amount ${transaction.typeId === 1 ? "positive" : "negative"}`}
                           >
                             {transaction.typeId === 1 ? "+ " : "- "}
                             {formatCurrency(transaction.value)}
@@ -423,15 +527,7 @@ function Home() {
                           </button>
                           <button
                             className="btn-icon btn-danger"
-                            onClick={() => {
-                              if (
-                                window.confirm(
-                                  "Deseja realmente excluir esta transação?"
-                                )
-                              ) {
-                                deleteItem("transactions", transaction.id);
-                              }
-                            }}
+                            onClick={() => startDelete(transaction)}
                           >
                             <FiTrash2 />
                           </button>
@@ -451,8 +547,7 @@ function Home() {
               </button>
               <div className="pagination">
                 <span>
-                  Mostrando {filteredTransactions.length} de{" "}
-                  {transactions.length} transações
+                  Mostrando {filteredTransactions.length} de {transactions.length} transações
                 </span>
               </div>
             </div>
@@ -470,16 +565,11 @@ function Home() {
                 className="btn-close"
                 onClick={() => setModalActive(false)}
               >
-                ×
+                <FiX />
               </button>
             </div>
 
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                // createTransaction();
-              }}
-            >
+            <form onSubmit={saveTransaction}>
               <div className="form-grid">
                 <div className="form-group">
                   <label>Valor (R$)</label>
@@ -597,15 +687,128 @@ function Home() {
                 <button
                   type="submit"
                   className="btn-primary"
-                  disabled={
-                    !transactionData.value || !transactionData.description
-                  }
-                  onClick={(e) => saveTransaction(e)}
+                  disabled={!transactionData.value || !transactionData.description}
                 >
                   {loading ? "Salvando..." : "Salvar Transação"}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Confirmação de Exclusão */}
+      {showConfirmModal && (
+        <div className="modal-overlay">
+          <div className="modal-content modal-sm confirm-modal">
+            <div className="modal-header">
+              <h2>{modalTitle}</h2>
+              <button
+                className="btn-close"
+                onClick={() => {
+                  setShowConfirmModal(false);
+                  setSelectedTransaction(null);
+                }}
+              >
+                <FiX />
+              </button>
+            </div>
+            
+            <div className="modal-body">
+              <div className="confirm-icon">
+                <FiAlertTriangle size={48} color="#f59e0b" />
+              </div>
+              <p className="confirm-message">{modalMessage}</p>
+              
+              {selectedTransaction && (
+                <div className="confirm-details">
+                  <div className="transaction-preview">
+                    <span className="preview-label">Valor:</span>
+                    <span className={`preview-value ${selectedTransaction.typeId === 1 ? 'positive' : 'negative'}`}>
+                      {formatCurrency(selectedTransaction.value)}
+                    </span>
+                  </div>
+                  <div className="transaction-preview">
+                    <span className="preview-label">Data:</span>
+                    <span className="preview-value">
+                      {Moment(selectedTransaction.date).format("DD/MM/YYYY")}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <div className="modal-actions">
+              <button
+                className="btn-secondary"
+                onClick={() => {
+                  setShowConfirmModal(false);
+                  setSelectedTransaction(null);
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                className="btn-danger"
+                onClick={() => {
+                  if (selectedTransaction) {
+                    deleteItem("transactions", selectedTransaction.id);
+                  }
+                  setShowConfirmModal(false);
+                  setSelectedTransaction(null);
+                }}
+              >
+                <FiTrash2 /> Excluir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Sucesso */}
+      {showSuccessModal && (
+        <div className="modal-overlay">
+          <div className="modal-content modal-sm success-modal">
+            <div className="modal-body">
+              <div className="success-icon">
+                <FiCheckCircle size={60} color="#10b981" />
+              </div>
+              <h3 className="success-title">{modalTitle}</h3>
+              <p className="success-message">{modalMessage}</p>
+            </div>
+            
+            <div className="modal-actions modal-actions-center">
+              <button
+                className="btn-primary"
+                onClick={() => setShowSuccessModal(false)}
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Erro */}
+      {showErrorModal && (
+        <div className="modal-overlay">
+          <div className="modal-content modal-sm error-modal">
+            <div className="modal-body">
+              <div className="error-icon">
+                <FiAlertCircle size={60} color="#ef4444" />
+              </div>
+              <h3 className="error-title">{modalTitle}</h3>
+              <p className="error-message">{modalMessage}</p>
+            </div>
+            
+            <div className="modal-actions modal-actions-center">
+              <button
+                className="btn-danger"
+                onClick={() => setShowErrorModal(false)}
+              >
+                Fechar
+              </button>
+            </div>
           </div>
         </div>
       )}
