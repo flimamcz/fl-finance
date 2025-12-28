@@ -20,65 +20,71 @@ body {
 .dashboard-content {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 20px;
-  padding-top: 80px; /* Espaço para header fixo */
+  padding: 16px;
+  padding-top: 70px;
 }
 
 /* ===== BANNER WELCOME ===== */
 .welcome-banner {
   background: linear-gradient(135deg, #6366f1, #8b5cf6);
   color: white;
-  padding: 30px;
+  padding: 20px;
   border-radius: 16px;
-  margin-bottom: 30px;
+  margin-bottom: 24px;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 20px;
+  flex-direction: column;
+  gap: 16px;
+  text-align: center;
+  animation: slideIn 0.5s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .welcome-text h1 {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 700;
   margin-bottom: 8px;
 }
 
 .welcome-text p {
-  font-size: 16px;
+  font-size: 14px;
   opacity: 0.9;
 }
 
 .date-info {
   background: rgba(255, 255, 255, 0.15);
-  padding: 10px 20px;
+  padding: 8px 16px;
   border-radius: 50px;
   font-weight: 500;
   backdrop-filter: blur(10px);
+  font-size: 14px;
 }
 
 /* ===== CARDS DE RESUMO ===== */
 .summary-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 20px;
-  margin-bottom: 40px;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  margin-bottom: 30px;
 }
 
 .summary-card {
   background: white;
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   border: 1px solid #e2e8f0;
-  transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
-}
-
-.summary-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
 }
 
 .summary-card::before {
@@ -110,13 +116,13 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .card-icon {
-  font-size: 24px;
-  padding: 10px;
-  border-radius: 12px;
+  font-size: 20px;
+  padding: 8px;
+  border-radius: 10px;
   background: rgba(99, 102, 241, 0.1);
   color: #6366f1;
 }
@@ -137,7 +143,7 @@ body {
 }
 
 .card-header h3 {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: #64748b;
   text-transform: uppercase;
@@ -145,14 +151,14 @@ body {
 }
 
 .card-value {
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 700;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   color: #1e293b;
 }
 
 .card-trend {
-  font-size: 14px;
+  font-size: 13px;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -170,135 +176,180 @@ body {
 
 /* ===== SEÇÃO DE GRÁFICOS ===== */
 .charts-section {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-  gap: 24px;
-  margin-bottom: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-bottom: 30px;
 }
 
 .chart-card {
   background: white;
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   border: 1px solid #e2e8f0;
 }
 
 .chart-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
 .chart-header h3 {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   color: #1e293b;
 }
 
 .chart-filter {
-  padding: 8px 16px;
+  padding: 8px 12px;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   background: white;
   color: #1e293b;
   font-size: 14px;
-  cursor: pointer;
-}
-
-.chart-filter:focus {
-  outline: none;
-  border-color: #6366f1;
+  width: 100%;
 }
 
 .chart-container {
-  height: 250px;
+  height: 220px;
+  position: relative;
+}
+
+/* ===== AJUSTES PARA GRÁFICOS NO MOBILE ===== */
+.recharts-wrapper {
+  font-family: 'Inter', -apple-system, sans-serif;
+}
+
+.recharts-pie {
+  transform: scale(0.85) !important;
+  transform-origin: center !important;
+}
+
+.recharts-pie-label-text {
+  font-size: 9px !important;
+  font-weight: 600 !important;
+  fill: #1e293b !important;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+.recharts-default-tooltip {
+  background: white !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 8px !important;
+  padding: 8px !important;
+  font-size: 12px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+}
+
+.recharts-default-legend {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  justify-content: center !important;
+  gap: 12px !important;
+  font-size: 11px !important;
+  margin-top: 10px !important;
+}
+
+.no-chart-data {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 180px;
+  color: #94a3b8;
+  text-align: center;
+  padding: 20px;
+}
+
+.no-chart-data p {
+  margin-top: 8px;
+  font-size: 13px;
+  max-width: 160px;
 }
 
 /* ===== SEÇÃO DE TRANSAÇÕES ===== */
 .transactions-section {
   background: white;
-  border-radius: 16px;
-  padding: 32px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   border: 1px solid #e2e8f0;
+  margin-bottom: 20px;
 }
 
 .section-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 30px;
-  flex-wrap: wrap;
-  gap: 20px;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
 }
 
 .section-header h2 {
-  font-size: 24px;
+  font-size: 18px;
   font-weight: 600;
   color: #1e293b;
 }
 
 .section-actions {
   display: flex;
-  align-items: center;
-  gap: 20px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .filter-buttons {
   display: flex;
-  gap: 8px;
+  gap: 4px;
   background: #f1f5f9;
-  padding: 6px;
-  border-radius: 12px;
+  padding: 4px;
+  border-radius: 8px;
+  overflow-x: auto;
+  justify-content: center;
+}
+
+.filter-buttons::-webkit-scrollbar {
+  height: 2px;
 }
 
 .filter-btn {
-  padding: 8px 16px;
+  padding: 6px 12px;
   border: none;
   background: transparent;
   color: #64748b;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.filter-btn:hover {
-  background: white;
+  white-space: nowrap;
 }
 
 .filter-btn.active {
   background: white;
   color: #6366f1;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 /* ===== BOTÕES ===== */
-.btn-primary, .btn-secondary {
+.btn-primary, .btn-secondary, .btn-danger {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 24px;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 16px;
   border: none;
-  border-radius: 12px;
+  border-radius: 8px;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 13px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
+  width: 100%;
 }
 
 .btn-primary {
   background: linear-gradient(135deg, #6366f1, #8b5cf6);
   color: white;
-}
-
-.btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.3);
 }
 
 .btn-secondary {
@@ -307,151 +358,109 @@ body {
   border: 1px solid #e2e8f0;
 }
 
-.btn-secondary:hover {
-  background: #e2e8f0;
+.btn-danger {
+  background: linear-gradient(135deg, #ef4444, #f87171);
+  color: white;
+  border: none;
 }
 
 .btn-icon {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: #f1f5f9;
   border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  border-radius: 6px;
   color: #475569;
   cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn-icon:hover {
-  background: #e2e8f0;
+  font-size: 14px;
 }
 
 .btn-icon.btn-danger {
   color: #ef4444;
-}
-
-.btn-icon.btn-danger:hover {
   background: #fee2e2;
 }
 
-/* ===== CONTEÚDO DAS TRANSAÇÕES ===== */
-.loading-container {
-  text-align: center;
-  padding: 60px 20px;
+/* ===== LISTA DE TRANSAÇÕES ===== */
+.transactions-container {
+  width: 100%;
 }
 
-.loader {
-  border: 4px solid #f1f5f9;
-  border-top: 4px solid #6366f1;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  animation: spin 1s linear infinite;
-  margin: 0 auto 20px;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.empty-state {
-  text-align: center;
-  padding: 60px 20px;
-  color: #64748b;
-}
-
-.empty-state h3 {
-  margin: 20px 0 8px;
-  color: #1e293b;
-  font-size: 20px;
-}
-
-.empty-state p {
-  margin-bottom: 24px;
-  font-size: 16px;
-}
-
-/* ===== LISTA/GRID DE TRANSAÇÕES ===== */
 .transactions-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 16px;
-}
-
-.transactions-list {
-  display: flex;
-  flex-direction: column;
+  grid-template-columns: 1fr;
   gap: 12px;
 }
 
 .transaction-card {
   background: #f8fafc;
   border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 20px;
-  transition: all 0.3s ease;
-}
-
-.transaction-card:hover {
-  border-color: #c7d2fe;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  padding: 12px;
+  transition: all 0.2s ease;
 }
 
 .transaction-header {
   display: flex;
   align-items: center;
-  gap: 16px;
-  margin-bottom: 16px;
+  gap: 12px;
+  margin-bottom: 10px;
 }
 
 .transaction-icon {
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .icon-income {
   color: #10b981;
-  font-size: 24px;
+  font-size: 18px;
 }
 
 .icon-expense {
   color: #ef4444;
-  font-size: 24px;
+  font-size: 18px;
 }
 
 .icon-investment {
   color: #f59e0b;
-  font-size: 24px;
+  font-size: 18px;
 }
 
 .transaction-info {
   flex: 1;
+  min-width: 0;
 }
 
 .transaction-info h4 {
   font-weight: 600;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
   color: #1e293b;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
 }
 
 .transaction-date {
-  font-size: 14px;
+  font-size: 11px;
   color: #64748b;
 }
 
 .transaction-amount .amount {
   font-weight: 700;
-  font-size: 18px;
+  font-size: 14px;
+  white-space: nowrap;
 }
 
 .amount.positive {
@@ -466,81 +475,137 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-top: 16px;
+  padding-top: 10px;
   border-top: 1px solid #e2e8f0;
 }
 
 .transaction-status {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 14px;
+  gap: 4px;
+  font-size: 11px;
 }
 
 .status-confirmed {
   color: #10b981;
+  font-size: 14px;
 }
 
 .status-pending {
   color: #f59e0b;
+  font-size: 14px;
 }
 
 .transaction-actions {
   display: flex;
-  gap: 8px;
+  gap: 6px;
+}
+
+/* ===== ESTADOS VAZIO E CARREGAMENTO ===== */
+.loading-container, .empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #64748b;
+}
+
+.loader {
+  border: 3px solid #f1f5f9;
+  border-top: 3px solid #6366f1;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.empty-state h3 {
+  margin: 20px 0 8px;
+  color: #1e293b;
+  font-size: 18px;
+}
+
+.empty-state p {
+  margin-bottom: 20px;
+  font-size: 14px;
 }
 
 /* ===== RODAPÉ DAS TRANSAÇÕES ===== */
 .transactions-footer {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 30px;
-  padding-top: 24px;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 20px;
+  padding-top: 16px;
   border-top: 1px solid #e2e8f0;
-}
-
-.pagination {
-  font-size: 14px;
+  font-size: 12px;
   color: #64748b;
+  text-align: center;
 }
 
-/* ===== MODAL ===== */
+/* ===== MODAIS ===== */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(5px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
-  padding: 20px;
+  z-index: 2000;
+  padding: 16px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .modal-content {
   background: white;
-  border-radius: 20px;
+  border-radius: 16px;
   width: 100%;
   max-width: 500px;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  animation: modalIn 0.3s ease-out;
+}
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Modal pequeno para alerts */
+.modal-sm {
+  max-width: 400px;
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 24px;
+  padding: 20px;
   border-bottom: 1px solid #e2e8f0;
 }
 
 .modal-header h2 {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 600;
   color: #1e293b;
 }
@@ -554,28 +619,116 @@ body {
   background: #f1f5f9;
   border: none;
   border-radius: 8px;
-  font-size: 20px;
+  color: #64748b;
   cursor: pointer;
+  font-size: 20px;
+}
+
+/* Corpo dos modais */
+.modal-body {
+  padding: 24px;
+  text-align: center;
+}
+
+.confirm-icon, .success-icon, .error-icon {
+  margin-bottom: 20px;
+}
+
+.confirm-icon svg {
+  color: #f59e0b;
+}
+
+.success-icon svg {
+  color: #10b981;
+}
+
+.error-icon svg {
+  color: #ef4444;
+}
+
+.confirm-message, .success-message, .error-message {
+  font-size: 16px;
+  line-height: 1.5;
+  color: #475569;
+  margin-bottom: 20px;
+}
+
+.success-title {
+  color: #10b981;
+  margin-bottom: 12px;
+  font-size: 20px;
+}
+
+.error-title {
+  color: #ef4444;
+  margin-bottom: 12px;
+  font-size: 20px;
+}
+
+/* Detalhes da transação no modal de confirmação */
+.confirm-details {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 16px;
+  text-align: left;
+}
+
+.transaction-preview {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.transaction-preview:last-child {
+  margin-bottom: 0;
+}
+
+.preview-label {
+  font-size: 14px;
   color: #64748b;
 }
 
-.btn-close:hover {
-  background: #e2e8f0;
+.preview-value {
+  font-weight: 600;
+  font-size: 15px;
 }
 
+.preview-value.positive {
+  color: #10b981;
+}
+
+.preview-value.negative {
+  color: #ef4444;
+}
+
+/* Ações dos modais */
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  padding: 20px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.modal-actions-center {
+  justify-content: center;
+}
+
+/* Formulário no modal */
 .modal-content form {
-  padding: 24px;
+  padding: 20px;
 }
 
 .form-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 16px;
   margin-bottom: 20px;
 }
 
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .form-group label {
@@ -613,7 +766,7 @@ body {
 
 .radio-group {
   display: flex;
-  gap: 24px;
+  gap: 20px;
 }
 
 .radio-option {
@@ -628,1067 +781,229 @@ body {
   color: #475569;
 }
 
-.modal-actions {
-  display: flex;
-  gap: 16px;
-  justify-content: flex-end;
-  margin-top: 32px;
-}
+/* ===== RESPONSIVIDADE PROGRESSIVA ===== */
 
-/* ===== RESPONSIVIDADE ===== */
-
-/* Tablet */
-@media (max-width: 1024px) {
-  .charts-section {
-    grid-template-columns: 1fr;
-  }
-  
-  .transactions-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* Mobile */
-@media (max-width: 768px) {
+/* Tablet (acima de 640px) */
+@media (min-width: 640px) {
   .dashboard-content {
-    padding: 16px;
-    padding-top: 70px;
-  }
-  
-  .welcome-banner {
-    flex-direction: column;
-    text-align: center;
-    padding: 24px;
+    padding: 20px;
+    padding-top: 80px;
   }
   
   .summary-cards {
-    grid-template-columns: 1fr;
-  }
-  
-  .section-header {
-    flex-direction: column;
-    align-items: stretch;
+    grid-template-columns: repeat(2, 1fr);
   }
   
   .section-actions {
-    flex-direction: column;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
   }
   
   .filter-buttons {
-    justify-content: center;
+    justify-content: flex-start;
   }
   
-  .form-grid {
-    grid-template-columns: 1fr;
+  .btn-primary, .btn-secondary, .btn-danger {
+    width: auto;
+  }
+  
+  .transactions-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
   
   .modal-actions {
-    flex-direction: column;
+    flex-direction: row;
   }
   
-  .modal-actions button {
-    width: 100%;
+  .form-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Desktop (acima de 1024px) */
+@media (min-width: 1024px) {
+  .charts-section {
+    grid-template-columns: repeat(2, 1fr);
+    display: grid;
   }
   
-  .transactions-footer {
-    flex-direction: column;
-    gap: 16px;
-    align-items: stretch;
-  }
-  
-  .transactions-footer button {
-    width: 100%;
-  }
-}
-
-/* Small Mobile */
-@media (max-width: 480px) {
-  .welcome-text h1 {
-    font-size: 24px;
-  }
-  
-  .card-value {
-    font-size: 28px;
-  }
-  
-  .transaction-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 6px;
-  }
-  
-  .transaction-amount {
-    align-self: flex-start;
-  }
-}
-
-
-
-/* ===== VERSÃO COMPACTA DAS TRANSAÇÕES ===== */
-
-/* Container principal - SUPER COMPACTO */
-.transactions-container {
-  width: 100%;
-  max-width: 100%;
-  overflow-x: hidden;
-}
-
-/* Grid mais compacto */
-.transactions-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 12px; /* REDUZIDO */
-  width: 100%;
-}
-
-/* Card super compacto */
-.transaction-card {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px; /* REDUZIDO */
-  padding: 12px; /* REDUZIDO */
-  transition: all 0.2s ease;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-/* Header compacto */
-.transaction-header {
-  display: flex;
-  align-items: center;
-  gap: 10px; /* REDUZIDO */
-  margin-bottom: 8px; /* REDUZIDO */
-  width: 100%;
-}
-
-/* Ícone menor */
-.transaction-icon {
-  width: 36px; /* REDUZIDO */
-  height: 36px; /* REDUZIDO */
-  min-width: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: white;
-  border-radius: 8px; /* REDUZIDO */
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  flex-shrink: 0;
-}
-
-.icon-income,
-.icon-expense,
-.icon-investment {
-  font-size: 18px !important; /* REDUZIDO */
-}
-
-/* Informações compactas */
-.transaction-info h4 {
-  font-weight: 600;
-  margin-bottom: 2px; /* REDUZIDO */
-  color: #1e293b;
-  font-size: 13px !important; /* REDUZIDO */
-  line-height: 1.3;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 180px; /* LIMITADO */
-}
-
-.transaction-date {
-  font-size: 11px !important; /* REDUZIDO */
-  color: #64748b;
-  display: block;
-}
-
-/* Valor menor */
-.transaction-amount .amount {
-  font-weight: 700;
-  font-size: 14px !important; /* REDUZIDO */
-  white-space: nowrap;
-}
-
-/* Footer compacto */
-.transaction-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-top: 8px; /* REDUZIDO */
-  border-top: 1px solid #e2e8f0;
-  width: 100%;
-}
-
-.transaction-status {
-  display: flex;
-  align-items: center;
-  gap: 4px; /* REDUZIDO */
-  font-size: 11px !important; /* REDUZIDO */
-  flex-shrink: 0;
-}
-
-.status-confirmed,
-.status-pending {
-  font-size: 14px !important; /* REDUZIDO */
-}
-
-/* Botões de ação menores */
-.transaction-actions {
-  display: flex;
-  gap: 6px; /* REDUZIDO */
-  flex-shrink: 0;
-}
-
-.btn-icon {
-  width: 30px !important; /* REDUZIDO */
-  height: 30px !important; /* REDUZIDO */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px; /* REDUZIDO */
-  font-size: 13px !important; /* REDUZIDO */
-}
-
-/* ===== CORREÇÃO DA SEÇÃO INTEIRA ===== */
-.transactions-section {
-  background: white;
-  border-radius: 12px; /* REDUZIDO */
-  padding: 20px !important; /* REDUZIDO */
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); /* REDUZIDO */
-  border: 1px solid #e2e8f0;
-  width: 100%;
-  max-width: 100%;
-}
-
-/* Header da seção mais compacto */
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px !important; /* REDUZIDO */
-  flex-wrap: wrap;
-  gap: 12px; /* REDUZIDO */
-}
-
-.section-header h2 {
-  font-size: 18px !important; /* REDUZIDO */
-  font-weight: 600;
-  color: #1e293b;
-  margin: 0;
-}
-
-/* Botões de filtro compactos */
-.filter-buttons {
-  display: flex;
-  gap: 4px; /* REDUZIDO */
-  background: #f1f5f9;
-  padding: 4px; /* REDUZIDO */
-  border-radius: 8px; /* REDUZIDO */
-}
-
-.filter-btn {
-  padding: 6px 12px !important; /* REDUZIDO */
-  border: none;
-  background: transparent;
-  color: #64748b;
-  border-radius: 6px; /* REDUZIDO */
-  cursor: pointer;
-  font-size: 12px !important; /* REDUZIDO */
-  font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-/* Botão nova transação menor */
-.btn-primary {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px; /* REDUZIDO */
-  padding: 8px 16px !important; /* REDUZIDO */
-  border: none;
-  border-radius: 8px; /* REDUZIDO */
-  font-weight: 600;
-  font-size: 13px !important; /* REDUZIDO */
-  cursor: pointer;
-}
-
-/* Footer das transações compacto */
-.transactions-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 20px !important; /* REDUZIDO */
-  padding-top: 16px !important; /* REDUZIDO */
-  border-top: 1px solid #e2e8f0;
-  font-size: 12px !important; /* REDUZIDO */
-}
-
-/* ===== VERSÃO ULTRA COMPACTA PARA MOBILE ===== */
-@media (max-width: 768px) {
-  .transactions-section {
-    padding: 16px !important; /* AINDA MENOR */
-    margin: 0;
-    border-radius: 0;
-    border-left: none;
-    border-right: none;
-  }
-  
-  .transaction-card {
-    padding: 10px !important; /* AINDA MENOR */
-  }
-  
-  .transaction-info h4 {
-    font-size: 12px !important; /* AINDA MENOR */
-    max-width: 150px;
-  }
-  
-  .transaction-amount .amount {
-    font-size: 13px !important; /* AINDA MENOR */
-  }
-  
-  .btn-icon {
-    width: 28px !important; /* AINDA MENOR */
-    height: 28px !important; /* AINDA MENOR */
+  .summary-cards {
+    grid-template-columns: repeat(4, 1fr);
   }
   
   .section-header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
   }
   
-  .section-actions {
-    flex-direction: column;
-    gap: 12px;
-  }
-  
-  .filter-buttons {
-    justify-content: center;
-    overflow-x: auto;
-    padding-bottom: 2px;
-  }
-  
-  .filter-buttons::-webkit-scrollbar {
-    height: 2px;
-  }
-}
-
-/* ===== PARA TELAS MUITO PEQUENAS (iPhone SE) ===== */
-@media (max-width: 375px) {
   .transactions-grid {
-    grid-template-columns: 1fr; /* Uma coluna só */
-    gap: 8px;
+    grid-template-columns: repeat(3, 1fr);
   }
   
-  .transaction-info h4 {
-    max-width: 120px;
+  .chart-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+  
+  .chart-filter {
+    width: auto;
+    max-width: 200px;
+  }
+  
+  .chart-container {
+    height: 250px;
+  }
+  
+  .recharts-pie {
+    transform: scale(1) !important;
+  }
+  
+  .recharts-pie-label-text {
     font-size: 11px !important;
   }
-  
-  .transaction-icon {
-    width: 32px;
-    height: 32px;
+}
+
+/* Telas grandes (acima de 1280px) */
+@media (min-width: 1280px) {
+  .dashboard-content {
+    max-width: 1400px;
   }
   
-  .icon-income,
-  .icon-expense,
-  .icon-investment {
-    font-size: 16px !important;
-  }
-  
-  .transaction-amount .amount {
-    font-size: 12px !important;
-  }
-  
-  .btn-primary {
-    padding: 6px 12px !important;
-    font-size: 12px !important;
+  .transactions-grid {
+    grid-template-columns: repeat(4, 1fr);
   }
 }
 
-/* ===== FORÇA TUDO A CABER ===== */
-/* Adicione esta regra para elementos específicos que ainda fugirem */
-.transaction-header > * {
-  flex-shrink: 1;
-  min-width: 0;
-}
-
-/* Limita o texto em 2 linhas se necessário */
-.transaction-info h4.multi-line {
-  white-space: normal;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  line-height: 1.3;
-  max-height: 2.6em;
-  overflow: hidden;
-}
-
-/* Se ainda estiver fugindo, força width */
-.transaction-card * {
-  max-width: 100%;
-}
-
-/* ===== BANNER COM BOTÃO DE FECHAR ===== */
-
-.welcome-banner {
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  color: white;
-  padding: 24px 32px;
-  border-radius: 16px;
-  margin-bottom: 30px;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  position: relative;
-  overflow: hidden;
-  animation: slideIn 0.5s ease-out;
-}
-
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.welcome-content {
-  flex: 1;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 20px;
-}
-
-.welcome-text h1 {
-  font-size: 28px;
-  font-weight: 700;
-  margin-bottom: 8px;
-  position: relative;
-  display: inline-block;
-}
-
-.welcome-text h1::after {
-  content: '';
-  position: absolute;
-  bottom: -4px;
-  left: 0;
-  width: 60px;
-  height: 3px;
-  background: rgba(255, 255, 255, 0.5);
-  border-radius: 2px;
-}
-
-.welcome-text p {
-  font-size: 16px;
-  opacity: 0.9;
-}
-
-.date-info {
-  background: rgba(255, 255, 255, 0.15);
-  padding: 10px 20px;
-  border-radius: 50px;
-  font-weight: 500;
-  backdrop-filter: blur(10px);
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-/* Botão de fechar */
-.close-banner-btn {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
-  border: none;
-  color: white;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
-  z-index: 10;
-  backdrop-filter: blur(4px);
-}
-
-.close-banner-btn:hover {
-  background: rgba(255, 255, 255, 0.3);
-  transform: rotate(90deg) scale(1.1);
-}
-
-.close-banner-btn:active {
-  transform: rotate(90deg) scale(0.95);
-}
-
-/* Ícone de fechar */
-.close-banner-btn svg {
-  stroke-width: 3px;
-}
-
-/* Efeito de onda no fundo */
-.welcome-banner::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  right: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
-  background-size: 20px 20px;
-  opacity: 0.3;
-  animation: floatBackground 20s linear infinite;
-}
-
-@keyframes floatBackground {
-  0% {
-    transform: translate(0, 0);
-  }
-  100% {
-    transform: translate(-20px, -20px);
-  }
-}
-
-/* ===== VERSÃO ALTERNATIVA - Banner com progresso ===== */
-/* Se quiser que reapareça depois de X dias */
-
-.welcome-banner.with-progress {
-  padding-right: 60px; /* Espaço para o botão */
-}
-
-/* Barra de progresso (opcional) */
-.banner-progress {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 0 0 16px 16px;
-  overflow: hidden;
-}
-
-.banner-progress::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  width: 100%;
-  background: white;
-  animation: progressBar 5s linear forwards;
-}
-
-@keyframes progressBar {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(0); }
-}
-
-/* ===== RESPONSIVIDADE ===== */
-
-@media (max-width: 768px) {
-  .welcome-banner {
-    flex-direction: column;
-    padding: 20px;
-    padding-top: 40px; /* Espaço extra para o botão */
-  }
-  
-  .welcome-content {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
-  }
-  
-  .welcome-text h1 {
-    font-size: 24px;
-  }
-  
-  .date-info {
-    align-self: stretch;
-    text-align: center;
-  }
-  
-  .close-banner-btn {
-    top: 12px;
-    right: 12px;
-  }
-}
-
-@media (max-width: 480px) {
-  .welcome-banner {
-    padding: 16px;
-    padding-top: 36px;
-    margin-bottom: 24px;
-  }
-  
+/* ===== AJUSTES PARA TELAS MUITO PEQUENAS ===== */
+@media (max-width: 375px) {
   .welcome-text h1 {
     font-size: 22px;
   }
   
-  .welcome-text p {
-    font-size: 14px;
+  .card-value {
+    font-size: 24px;
   }
   
-  .date-info {
-    padding: 8px 16px;
-    font-size: 14px;
+  .transaction-info h4 {
+    max-width: 150px;
   }
   
-  .close-banner-btn {
-    width: 32px;
-    height: 32px;
+  .btn-icon {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+  
+  .modal-sm {
+    max-width: 95vw;
+  }
+  
+  .modal-body {
+    padding: 20px;
+  }
+  
+  .confirm-message, .success-message, .error-message {
+    font-size: 14px;
   }
 }
 
-/* ===== ANIMAÇÃO DE SAÍDA (opcional) ===== */
-.welcome-banner.exiting {
-  animation: slideOut 0.3s ease-in forwards;
+/* ===== CORREÇÕES FINAIS PARA MOBILE ===== */
+/* Previne scroll horizontal */
+.dashboard-content,
+.transactions-section,
+.modal-content {
+  overflow-x: hidden;
 }
 
-@keyframes slideOut {
-  from {
-    opacity: 1;
-    transform: translateY(0);
-    max-height: 200px;
-    margin-bottom: 30px;
+/* Melhora toque em mobile */
+button, .btn-icon, .filter-btn {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* Ajusta altura máxima para conteúdo */
+.modal-content {
+  max-height: 85vh;
+}
+
+/* Remove animações em mobile se preferir performance */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
-  to {
-    opacity: 0;
-    transform: translateY(-20px);
-    max-height: 0;
-    margin-bottom: 0;
-    padding-top: 0;
-    padding-bottom: 0;
-  }
-}
-/* ===== ESTILOS PARA O GRÁFICO DE CATEGORIAS ===== */
-
-/* Container do gráfico de pizza */
-.chart-card .chart-container {
-  position: relative;
-  min-height: 250px;
 }
 
-/* Estilos específicos para o gráfico de pizza */
-.recharts-wrapper {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+/* ===== CORREÇÕES ESPECÍFICAS PARA PROBLEMAS MOBILE ===== */
+
+/* 1. CORREÇÃO DOS BOTÕES QUE DESAPARECEM */
+.transaction-actions {
+  display: flex !important;
+  gap: 8px !important;
+  flex-shrink: 0 !important;
+  min-width: fit-content !important;
 }
 
-/* Labels do gráfico de pizza */
-.recharts-pie-label-text {
-  font-size: 12px !important;
-  font-weight: 600 !important;
-  fill: #1e293b !important;
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+.btn-icon {
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  min-height: 36px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  position: relative !important;
+  z-index: 10 !important;
 }
 
-/* Linhas dos labels */
-.recharts-pie-label-line {
-  stroke: #94a3b8 !important;
-  stroke-width: 1 !important;
-}
-
-/* Células do gráfico - hover effect */
-.recharts-pie-sector:hover {
-  filter: brightness(1.1);
-  cursor: pointer;
-}
-
-/* Tooltip do gráfico de pizza */
-.recharts-tooltip-wrapper {
-  background: white !important;
-  border: 1px solid #e2e8f0 !important;
-  border-radius: 8px !important;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+/* 2. CORREÇÃO DO TEXTO QUE PULA FORA */
+.transaction-info {
+  flex: 1 !important;
+  min-width: 0 !important;
   overflow: hidden !important;
 }
 
-.recharts-tooltip-label {
-  color: #1e293b !important;
-  font-weight: 600 !important;
-  font-size: 14px !important;
-  margin-bottom: 4px !important;
-  padding: 8px 12px !important;
-  background: #f8fafc !important;
-  border-bottom: 1px solid #e2e8f0 !important;
+.transaction-info h4 {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  max-width: 100% !important;
+  display: block !important;
 }
 
-.recharts-tooltip-item {
-  color: #475569 !important;
-  font-size: 13px !important;
-  padding: 6px 12px !important;
+.transaction-date {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
 }
 
-.recharts-tooltip-item-name {
-  display: flex !important;
-  align-items: center !important;
-  gap: 8px !important;
-}
-
-.recharts-tooltip-item-name::before {
-  content: '';
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 2px;
-  background: currentColor;
-  opacity: 0.8;
-}
-
-/* Legend do gráfico */
-.recharts-legend-wrapper {
-  padding-top: 10px !important;
-}
-
-.recharts-default-legend {
-  display: flex !important;
-  justify-content: center !important;
-  flex-wrap: wrap !important;
-  gap: 16px !important;
-  margin-top: 10px !important;
-}
-
-.recharts-legend-item {
-  cursor: pointer !important;
-  display: flex !important;
-  align-items: center !important;
-  gap: 6px !important;
-  font-size: 12px !important;
-  color: #64748b !important;
-  transition: all 0.2s ease !important;
-}
-
-.recharts-legend-item:hover {
-  color: #1e293b !important;
-  transform: translateY(-1px);
-}
-
-.recharts-legend-item-text {
-  margin-left: 0 !important;
-}
-
-/* Ícone da legenda */
-.recharts-legend-item .recharts-surface {
-  display: none !important;
-}
-
-.recharts-legend-item::before {
-  content: '';
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  border-radius: 3px;
-  background: var(--legend-color);
-}
-
-/* Estado para quando não há dados */
-.no-chart-data {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 250px;
-  color: #94a3b8;
-  text-align: center;
-  padding: 20px;
-}
-
-.no-chart-data p {
-  margin-top: 12px;
-  font-size: 14px;
-  max-width: 200px;
-}
-
-.no-chart-data::before {
-  content: '';
-  width: 60px;
-  height: 60px;
-  background: #f1f5f9;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-  color: #cbd5e1;
-  margin-bottom: 12px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23cbd5e1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21.21 15.89A10 10 0 1 1 8 2.83'%3E%3C/path%3E%3Cpath d='M22 12A10 10 0 0 0 12 2v10z'%3E%3C/path%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: center;
-}
-
-/* ===== CORES ESPECÍFICAS PARA AS CATEGORIAS ===== */
-/* Você pode adicionar variáveis CSS para as cores */
-:root {
-  --color-income: #10b981;
-  --color-expense: #ef4444;
-  --color-investment: #8b5cf6;
-}
-
-/* Aplica cores específicas para cada categoria no gráfico */
-.cell-income {
-  fill: var(--color-income) !important;
-}
-
-.cell-expense {
-  fill: var(--color-expense) !important;
-}
-
-.cell-investment {
-  fill: var(--color-investment) !important;
-}
-
-/* ===== ANIMAÇÃO DO GRÁFICO ===== */
-@keyframes pieSliceAppear {
-  from {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.recharts-pie-sector {
-  animation: pieSliceAppear 0.6s ease-out;
-  animation-fill-mode: both;
-}
-
-/* Animações em sequência para cada fatia */
-.recharts-pie-sector:nth-child(1) { animation-delay: 0.1s; }
-.recharts-pie-sector:nth-child(2) { animation-delay: 0.2s; }
-.recharts-pie-sector:nth-child(3) { animation-delay: 0.3s; }
-.recharts-pie-sector:nth-child(4) { animation-delay: 0.4s; }
-
-/* ===== TOOLTIP PERSONALIZADO ===== */
-/* Se quiser um tooltip mais customizado, você pode sobrescrever */
-.custom-tooltip {
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 12px;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-}
-
-.custom-tooltip-label {
-  font-weight: 600;
-  font-size: 14px;
-  color: #1e293b;
-  margin-bottom: 8px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #f1f5f9;
-}
-
-.custom-tooltip-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-}
-
-.custom-tooltip-color {
-  width: 12px;
-  height: 12px;
-  border-radius: 3px;
-  flex-shrink: 0;
-}
-
-.custom-tooltip-value {
-  font-weight: 600;
-  color: #1e293b;
-  margin-left: auto;
-}
-
-/* ===== RESPONSIVIDADE PARA O GRÁFICO ===== */
-@media (max-width: 768px) {
-  .chart-container {
-    height: 200px !important;
-  }
-  
-  .recharts-pie-label-text {
-    font-size: 10px !important;
-  }
-  
-  .recharts-legend-item {
-    font-size: 11px !important;
-  }
-  
-  .no-chart-data p {
-    font-size: 13px;
-  }
-}
-
-@media (max-width: 480px) {
-  .chart-card {
-    padding: 16px !important;
-  }
-  
-  .chart-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-  
-  .chart-filter {
-    width: 100%;
-  }
-}
-
-/* ===== MELHORIAS PARA O BANNER COM TOOLTIP TEMPORÁRIO ===== */
-/* Se quiser fazer o banner sumir após 5s, adicione: */
-.welcome-banner.temporary {
-  position: relative;
-  overflow: hidden;
-}
-
-.welcome-banner.temporary::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  height: 3px;
-  background: rgba(255, 255, 255, 0.5);
-  animation: countdown 5s linear forwards;
-}
-
-@keyframes countdown {
-  from { width: 100%; }
-  to { width: 0%; }
-}
-
-/* Para esconder após a animação */
-.welcome-banner.temporary.hidden {
-  display: none;
-}
-
-/* Botão para reabrir o banner */
-.show-banner-btn {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  color: white;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-  z-index: 100;
-  transition: all 0.3s ease;
-}
-
-.show-banner-btn:hover {
-  transform: scale(1.1);
-  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
-}
-
-/* ===== INDICADOR DE CARREGAMENTO PARA O GRÁFICO ===== */
-.chart-loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 250px;
-}
-
-.chart-loading::after {
-  content: '';
-  width: 40px;
-  height: 40px;
-  border: 3px solid #f1f5f9;
-  border-top: 3px solid #6366f1;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-/* ===== CORREÇÕES PARA O GRÁFICO DE PIZZA ===== */
-/* Garante que o gráfico fique centralizado */
-.recharts-responsive-container {
-  margin: 0 auto;
-}
-
-/* Remove margens extras do container do Recharts */
-.recharts-wrapper,
-.recharts-surface {
-  overflow: visible !important;
-}
-
-/* Ajusta o posicionamento dos labels em telas pequenas */
-@media (max-width: 768px) {
-  .recharts-pie-label {
-    transform: scale(0.9);
-  }
-  
-  .recharts-legend-wrapper {
-    position: static !important;
-    margin-top: 20px !important;
-  }
-}
-
-
-/* ===== CORREÇÕES ESPECÍFICAS DO GRÁFICO PARA MOBILE ===== */
-
-/* Container do gráfico - ajuste emergencial */
-.chart-container {
-  position: relative;
-  width: 100% !important;
-  overflow: visible !important;
-}
-
-/* Gráfico de pizza - correção dos textos */
-.recharts-pie {
-  transform: scale(0.85) !important;
-  transform-origin: center !important;
-}
-
+/* 3. CORREÇÃO DO GRÁFICO (TEXTO SOBREPOSTO) */
 .recharts-pie-label {
-  font-size: 10px !important;
-  font-weight: 600 !important;
+  transform: none !important;
 }
 
 .recharts-pie-label-text {
-  font-size: 10px !important;
-  dominant-baseline: middle !important;
+  font-size: 9px !important;
+  font-weight: 600 !important;
+  fill: #1e293b !important;
   text-anchor: middle !important;
+  dominant-baseline: middle !important;
   white-space: normal !important;
-  max-width: 60px !important;
+  max-width: 50px !important;
   word-wrap: break-word !important;
 }
 
-/* Tooltip ajustado para mobile */
-.recharts-tooltip-wrapper {
-  font-size: 12px !important;
-}
-
-.recharts-default-tooltip {
-  padding: 8px !important;
-  font-size: 12px !important;
-}
-
-/* Legenda ajustada */
-.recharts-default-legend {
-  font-size: 11px !important;
-  gap: 10px !important;
-}
-
-.recharts-legend-item {
-  font-size: 11px !important;
-}
-
-/* Ajuste para telas muito pequenas */
-@media (max-width: 380px) {
-  .recharts-pie-label-text {
-    font-size: 9px !important;
-    max-width: 50px !important;
+/* No mobile, esconde labels muito longos */
+@media (max-width: 768px) {
+  .recharts-pie-label {
+    display: none !important;
   }
   
   .recharts-default-legend {
@@ -1697,58 +1012,187 @@ body {
   }
 }
 
-/* Para telas maiores (acima de 768px) - mantém padrão */
-@media (min-width: 768px) {
-  .recharts-pie {
-    transform: scale(1) !important;
+/* 4. CORREÇÃO DO LAYOUT DO FORM NO MOBILE */
+@media (max-width: 768px) {
+  .modal-content {
+    border-radius: 16px 16px 0 0 !important;
+    margin-top: auto !important;
   }
   
-  .recharts-pie-label-text {
-    font-size: 11px !important;
-    max-width: 80px !important;
+  .modal-overlay {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+  
+  .form-grid {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .modal-actions {
+    flex-direction: column !important;
+  }
+  
+  .modal-actions button {
+    width: 100% !important;
   }
 }
 
-/* ===== CORREÇÃO TEXTO SOBREPOSTO NO GRÁFICO ===== */
-
-/* Move os labels para fora do gráfico */
-.recharts-pie-label {
-  transform: translate(20px, 0) !important; /* Empurra texto para fora */
+/* 5. CORREÇÃO DOS CARDS NO MOBILE */
+@media (max-width: 768px) {
+  .summary-cards {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+  }
+  
+  .summary-card {
+    padding: 16px !important;
+    min-height: auto !important;
+  }
+  
+  .card-value {
+    font-size: 20px !important;
+  }
 }
 
-/* Ou reduz drasticamente o texto dentro do gráfico */
-.recharts-pie-label-text {
-  font-size: 8px !important; /* Texto MUITO pequeno dentro */
-  opacity: 0.7 !important; /* Mais transparente */
+/* 6. CORREÇÃO DA SEÇÃO DE TRANSAÇÕES */
+.transactions-section {
+  overflow: visible !important;
 }
 
-/* MELHOR SOLUÇÃO: Mostra apenas o valor, não o nome completo */
-.recharts-pie-label-text tspan:first-child {
-  display: none !important; /* Esconde o nome */
+.transaction-card {
+  overflow: visible !important;
+  min-height: 120px !important;
 }
 
-.recharts-pie-label-text tspan:last-child {
-  font-size: 9px !important;
-  font-weight: bold !important;
+.transaction-footer {
+  flex-wrap: nowrap !important;
+  gap: 8px !important;
 }
 
-/* SOLUÇÃO ALTERNATIVA: Labels apenas fora do gráfico */
-.recharts-pie-label[innerRadius] {
-  display: none !important; /* Esconde labels internos */
+/* 7. GARANTIR QUE NADA TENHA OVERFLOW ESCONDIDO */
+.dashboard-content,
+.transactions-container,
+.modal-content {
+  overflow-x: visible !important;
+  overflow-y: auto !important;
 }
 
-/* Configura labels externos */
-.recharts-pie-label[outerRadius] {
-  font-size: 10px !important;
-  font-weight: 600 !important;
+/* 8. CORREÇÃO DOS FILTROS MOBILE */
+.filter-buttons {
+  -webkit-overflow-scrolling: touch !important;
+  scrollbar-width: none !important;
 }
 
-/* AUMENTA o raio externo para dar mais espaço */
-.recharts-pie-sector {
-  /* O raio é controlado pelo seu componente, mas podemos ajustar via CSS */
+.filter-buttons::-webkit-scrollbar {
+  display: none !important;
 }
 
-/* SOLUÇÃO RÁPIDA: Reduz margem do container */
+.filter-btn {
+  flex-shrink: 0 !important;
+}
+
+/* 9. BOTÃO "NOVA TRANSAÇÃO" NO MOBILE */
+@media (max-width: 768px) {
+  .section-actions {
+    flex-direction: column !important;
+  }
+  
+  .btn-primary {
+    width: 100% !important;
+  }
+}
+
+/* 10. REMOVER QUALQUER WHITE-SPACE QUE QUEBRA */
+* {
+  white-space: normal !important;
+}
+
+.transaction-header > * {
+  white-space: nowrap !important;
+}
+
+/* 11. CORREÇÃO DE ALTURA DOS CONTAINERS */
 .chart-container {
-  padding: 5px !important;
+  min-height: 200px !important;
+  height: 200px !important;
+}
+
+/* 12. GARANTIR QUE BOTÕES SEJAM CLICÁVEIS */
+button, .btn-icon, .filter-btn {
+  cursor: pointer !important;
+  touch-action: manipulation !important;
+}
+
+/* 13. REMOVER EFEITOS QUE PODEM CAUSAR PROBLEMAS */
+@media (max-width: 768px) {
+  .summary-card:hover,
+  .transaction-card:hover {
+    transform: none !important;
+  }
+}
+
+/* 14. CORREÇÃO DE ESPAÇAMENTO NO MOBILE */
+@media (max-width: 768px) {
+  .dashboard-content {
+    padding: 16px !important;
+    padding-top: 70px !important;
+  }
+  
+  .welcome-banner {
+    margin: 0 0 20px 0 !important;
+    border-radius: 0 !important;
+  }
+  
+  .transactions-section {
+    margin: 0 -16px !important;
+    border-radius: 0 !important;
+    padding: 20px 16px !important;
+  }
+}
+
+/* Adicione isso ao seu CSS */
+.btn-icon {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  padding: 0 12px !important; /* Adiciona padding lateral */
+  width: auto !important; /* Remove largura fixa */
+  min-width: 80px !important; /* Largura mínima para caber texto */
+}
+
+/* Esconde texto em telas muito pequenas */
+@media (max-width: 380px) {
+  .btn-icon span {
+    display: none !important;
+  }
+  
+  .btn-icon {
+    min-width: 36px !important;
+    padding: 0 !important;
+  }
+}
+
+/* Mostra apenas ícone nos botões de ação das transações */
+.transaction-actions .btn-icon {
+  width: 36px !important;
+  min-width: 36px !important;
+  padding: 0 !important;
+}
+
+.transaction-actions .btn-icon span {
+  display: none !important;
+}
+
+/* Mas mostra texto completo nos modais */
+.modal-actions .btn-icon {
+  width: auto !important;
+  min-width: 100px !important;
+  padding: 0 16px !important;
+}
+
+.modal-actions .btn-icon span {
+  display: inline !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
 }

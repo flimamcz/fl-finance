@@ -47,7 +47,7 @@ function Home() {
   const [viewMode, setViewMode] = useState("grid");
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [timeRange, setTimeRange] = useState("month");
-  
+
   // Estados para modais
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
@@ -94,7 +94,7 @@ function Home() {
       result.push({
         name: "Receitas",
         value: totals[1],
-        color: "#10b981"
+        color: "#10b981",
       });
     }
 
@@ -102,7 +102,7 @@ function Home() {
       result.push({
         name: "Despesas",
         value: totals[2],
-        color: "#ef4444"
+        color: "#ef4444",
       });
     }
 
@@ -110,7 +110,7 @@ function Home() {
       result.push({
         name: "Investimentos",
         value: totals[3],
-        color: "#8b5cf6"
+        color: "#8b5cf6",
       });
     }
 
@@ -123,14 +123,14 @@ function Home() {
 
   // Função para formatar data em português
   const getFormattedDate = () => {
-    const formatter = new Intl.DateTimeFormat('pt-BR', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
+    const formatter = new Intl.DateTimeFormat("pt-BR", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
     });
-    
+
     const formatted = formatter.format(new Date());
-    return formatted.replace(/\b\w/g, char => char.toUpperCase());
+    return formatted.replace(/\b\w/g, (char) => char.toUpperCase());
   };
 
   // Funções auxiliares
@@ -197,15 +197,14 @@ function Home() {
       }
 
       await getAllTransactions();
-      
+
       // Modal de sucesso
       setModalTitle("Sucesso!");
       setModalMessage("Transação excluída com sucesso!");
       setShowSuccessModal(true);
-      
     } catch (error) {
       console.error("Erro ao excluir:", error);
-      
+
       // Modal de erro
       setModalTitle("Erro");
       setModalMessage(`${error.message || "Falha ao excluir transação"}`);
@@ -256,10 +255,9 @@ function Home() {
       setModalTitle("Sucesso!");
       setModalMessage("Transação criada com sucesso!");
       setShowSuccessModal(true);
-      
+
       // Atualiza a lista
       await getAllTransactions();
-      
     } catch (error) {
       // Modal de erro para criação
       setModalTitle("Erro");
@@ -387,7 +385,8 @@ function Home() {
               <h3>Distribuição por Categoria</h3>
             </div>
             <div className="chart-container">
-              {categoryData.length > 0 && categoryData[0].name !== "Sem dados" ? (
+              {categoryData.length > 0 &&
+              categoryData[0].name !== "Sem dados" ? (
                 <ResponsiveContainer width="100%" height={250}>
                   <PieChart>
                     <Pie
@@ -408,7 +407,7 @@ function Home() {
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip 
+                    <Tooltip
                       formatter={(value) => formatCurrency(value)}
                       labelFormatter={(name) => `Categoria: ${name}`}
                     />
@@ -431,25 +430,33 @@ function Home() {
             <div className="section-actions">
               <div className="filter-buttons">
                 <button
-                  className={`filter-btn ${activeFilter === "all" ? "active" : ""}`}
+                  className={`filter-btn ${
+                    activeFilter === "all" ? "active" : ""
+                  }`}
                   onClick={() => setActiveFilter("all")}
                 >
                   Todas
                 </button>
                 <button
-                  className={`filter-btn ${activeFilter === "income" ? "active" : ""}`}
+                  className={`filter-btn ${
+                    activeFilter === "income" ? "active" : ""
+                  }`}
                   onClick={() => setActiveFilter("income")}
                 >
                   Receitas
                 </button>
                 <button
-                  className={`filter-btn ${activeFilter === "expense" ? "active" : ""}`}
+                  className={`filter-btn ${
+                    activeFilter === "expense" ? "active" : ""
+                  }`}
                   onClick={() => setActiveFilter("expense")}
                 >
                   Despesas
                 </button>
                 <button
-                  className={`filter-btn ${activeFilter === "investment" ? "active" : ""}`}
+                  className={`filter-btn ${
+                    activeFilter === "investment" ? "active" : ""
+                  }`}
                   onClick={() => setActiveFilter("investment")}
                 >
                   Investimentos
@@ -485,7 +492,13 @@ function Home() {
                   </button>
                 </div>
               ) : (
-                <div className={viewMode === "grid" ? "transactions-grid" : "transactions-list"}>
+                <div
+                  className={
+                    viewMode === "grid"
+                      ? "transactions-grid"
+                      : "transactions-list"
+                  }
+                >
                   {filteredTransactions.map((transaction) => (
                     <div key={transaction.id} className="transaction-card">
                       <div className="transaction-header">
@@ -500,7 +513,9 @@ function Home() {
                         </div>
                         <div className="transaction-amount">
                           <span
-                            className={`amount ${transaction.typeId === 1 ? "positive" : "negative"}`}
+                            className={`amount ${
+                              transaction.typeId === 1 ? "positive" : "negative"
+                            }`}
                           >
                             {transaction.typeId === 1 ? "+ " : "- "}
                             {formatCurrency(transaction.value)}
@@ -547,7 +562,8 @@ function Home() {
               </button>
               <div className="pagination">
                 <span>
-                  Mostrando {filteredTransactions.length} de {transactions.length} transações
+                  Mostrando {filteredTransactions.length} de{" "}
+                  {transactions.length} transações
                 </span>
               </div>
             </div>
@@ -687,7 +703,9 @@ function Home() {
                 <button
                   type="submit"
                   className="btn-primary"
-                  disabled={!transactionData.value || !transactionData.description}
+                  disabled={
+                    !transactionData.value || !transactionData.description
+                  }
                 >
                   {loading ? "Salvando..." : "Salvar Transação"}
                 </button>
@@ -713,18 +731,24 @@ function Home() {
                 <FiX />
               </button>
             </div>
-            
+
             <div className="modal-body">
               <div className="confirm-icon">
                 <FiAlertTriangle size={48} color="#f59e0b" />
               </div>
               <p className="confirm-message">{modalMessage}</p>
-              
+
               {selectedTransaction && (
                 <div className="confirm-details">
                   <div className="transaction-preview">
                     <span className="preview-label">Valor:</span>
-                    <span className={`preview-value ${selectedTransaction.typeId === 1 ? 'positive' : 'negative'}`}>
+                    <span
+                      className={`preview-value ${
+                        selectedTransaction.typeId === 1
+                          ? "positive"
+                          : "negative"
+                      }`}
+                    >
                       {formatCurrency(selectedTransaction.value)}
                     </span>
                   </div>
@@ -737,7 +761,7 @@ function Home() {
                 </div>
               )}
             </div>
-            
+
             <div className="modal-actions">
               <button
                 className="btn-secondary"
@@ -749,7 +773,7 @@ function Home() {
                 Cancelar
               </button>
               <button
-                className="btn-danger"
+                className="btn-icon btn-danger"
                 onClick={() => {
                   if (selectedTransaction) {
                     deleteItem("transactions", selectedTransaction.id);
@@ -757,8 +781,10 @@ function Home() {
                   setShowConfirmModal(false);
                   setSelectedTransaction(null);
                 }}
+                title="Excluir" // Tooltip para mobile
+                aria-label="Excluir" // Acessibilidade
               >
-                <FiTrash2 /> Excluir
+                <FiTrash2 />
               </button>
             </div>
           </div>
@@ -776,7 +802,7 @@ function Home() {
               <h3 className="success-title">{modalTitle}</h3>
               <p className="success-message">{modalMessage}</p>
             </div>
-            
+
             <div className="modal-actions modal-actions-center">
               <button
                 className="btn-primary"
@@ -800,7 +826,7 @@ function Home() {
               <h3 className="error-title">{modalTitle}</h3>
               <p className="error-message">{modalMessage}</p>
             </div>
-            
+
             <div className="modal-actions modal-actions-center">
               <button
                 className="btn-danger"
