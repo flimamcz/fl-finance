@@ -1,4 +1,4 @@
-import { useState, useContext } from "react";
+import { useState, useContext, useEffect } from "react";
 import {
   FiPlus,
   FiDownload,
@@ -49,11 +49,15 @@ function Home() {
   const [timeRange, setTimeRange] = useState("month");
 
   // Estados para modais
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [showErrorModal, setShowErrorModal] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showSuccessTooltip, setShowSuccessTooltip] = useState(false);
+  const [showErrorTooltip, setShowErrorTooltip] = useState(false);
   const [modalMessage, setModalMessage] = useState("");
   const [modalTitle, setModalTitle] = useState("");
+
+  // Estados para countdown dos tooltips
+  const [countdown, setCountdown] = useState(3);
+  const [isTooltipClosing, setIsTooltipClosing] = useState(false);
 
   const [transactionData, setTransactionData] = useState({
     value: "",
@@ -175,13 +179,10 @@ function Home() {
     return true;
   });
 
-  // Função de exclusão com modais
+  // Função de exclusão
   const deleteItem = async (endpoint, id) => {
     try {
-      console.log("Deletando:", endpoint, id);
-
       const url = `http://192.168.0.10:3001/${endpoint}/${id}`;
-      console.log("URL:", url);
 
       const response = await fetch(url, {
         method: "DELETE",
@@ -198,17 +199,21 @@ function Home() {
 
       await getAllTransactions();
 
-      // Modal de sucesso
+      // Tooltip de sucesso com countdown
       setModalTitle("Sucesso!");
       setModalMessage("Transação excluída com sucesso!");
-      setShowSuccessModal(true);
+      setShowSuccessTooltip(true);
+      setCountdown(3);
+      setIsTooltipClosing(false);
     } catch (error) {
       console.error("Erro ao excluir:", error);
 
-      // Modal de erro
+      // Tooltip de erro com countdown
       setModalTitle("Erro");
       setModalMessage(`${error.message || "Falha ao excluir transação"}`);
-      setShowErrorModal(true);
+      setShowErrorTooltip(true);
+      setCountdown(3);
+      setIsTooltipClosing(false);
     }
   };
 
@@ -219,6 +224,31 @@ function Home() {
     setModalMessage(`Deseja realmente excluir "${transaction.description}"?`);
     setShowConfirmModal(true);
   };
+
+  // Função para fechar tooltip com animação
+  const closeTooltipWithAnimation = () => {
+    setIsTooltipClosing(true);
+    setTimeout(() => {
+      setShowSuccessTooltip(false);
+      setShowErrorTooltip(false);
+      setIsTooltipClosing(false);
+      setCountdown(3);
+    }, 300);
+  };
+
+  // Efeito para o countdown dos tooltips
+  useEffect(() => {
+    if ((showSuccessTooltip || showErrorTooltip) && countdown > 0 && !isTooltipClosing) {
+      const timer = setTimeout(() => {
+        setCountdown(prev => prev - 1);
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    } else if ((showSuccessTooltip || showErrorTooltip) && countdown === 0 && !isTooltipClosing) {
+      // Fecha com animação quando o contador chega a 0
+      closeTooltipWithAnimation();
+    }
+  }, [showSuccessTooltip, showErrorTooltip, countdown, isTooltipClosing]);
 
   const saveTransaction = async (e) => {
     e.preventDefault();
@@ -251,18 +281,22 @@ function Home() {
         typeId: 1,
       });
 
-      // Modal de sucesso para criação
+      // Tooltip de sucesso para criação
       setModalTitle("Sucesso!");
       setModalMessage("Transação criada com sucesso!");
-      setShowSuccessModal(true);
+      setShowSuccessTooltip(true);
+      setCountdown(3);
+      setIsTooltipClosing(false);
 
       // Atualiza a lista
       await getAllTransactions();
     } catch (error) {
-      // Modal de erro para criação
+      // Tooltip de erro para criação
       setModalTitle("Erro");
       setModalMessage(`${error.message || "Falha ao criar transação"}`);
-      setShowErrorModal(true);
+      setShowErrorTooltip(true);
+      setCountdown(3);
+      setIsTooltipClosing(false);
     } finally {
       setLoading(false);
     }
@@ -571,6 +605,150 @@ function Home() {
         </div>
       </div>
 
+      {/* Modal de Confirmação de Exclusão */}
+      {showConfirmModal && (
+        <div className="modal-overlay">
+          <div className="modal-content modal-sm confirm-modal">
+            <div className="modal-header">
+              <h2>{modalTitle}</h2>
+              <button
+                className="btn-close"
+                onClick={() => {
+                  setShowConfirmModal(false);
+                  setSelectedTransaction(null);
+                }}
+              >
+                <FiX />
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <div className="confirm-icon">
+                <FiAlertTriangle size={48} color="#f59e0b" />
+              </div>
+              <p className="confirm-message">{modalMessage}</p>
+
+              {selectedTransaction && (
+                <div className="confirm-details">
+                  <div className="transaction-preview">
+                    <span className="preview-label">Valor:</span>
+                    <span
+                      className={`preview-value ${
+                        selectedTransaction.typeId === 1
+                          ? "positive"
+                          : "negative"
+                      }`}
+                    >
+                      {formatCurrency(selectedTransaction.value)}
+                    </span>
+                  </div>
+                  <div className="transaction-preview">
+                    <span className="preview-label">Data:</span>
+                    <span className="preview-value">
+                      {Moment(selectedTransaction.date).format("DD/MM/YYYY")}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="modal-actions">
+              <button
+                className="btn-secondary"
+                onClick={() => {
+                  setShowConfirmModal(false);
+                  setSelectedTransaction(null);
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                className="btn-icon btn-danger"
+                onClick={() => {
+                  if (selectedTransaction) {
+                    deleteItem("transactions", selectedTransaction.id);
+                  }
+                  setShowConfirmModal(false);
+                  setSelectedTransaction(null);
+                }}
+                title="Excluir"
+                aria-label="Excluir"
+              >
+                <FiTrash2 />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tooltip de Sucesso com Countdown */}
+      {showSuccessTooltip && (
+        <div className={`notification-tooltip success-tooltip ${isTooltipClosing ? 'fade-out' : ''}`}>
+          <div className="tooltip-content">
+            <div className="tooltip-header">
+              <FiCheckCircle size={20} color="#10b981" />
+              <span>{modalTitle}</span>
+              <button
+                className="tooltip-close"
+                onClick={closeTooltipWithAnimation}
+              >
+                <FiX size={16} />
+              </button>
+            </div>
+            
+            <div className="tooltip-body">
+              <p className="tooltip-message">{modalMessage}</p>
+              
+              <div className="countdown-container">
+                <div className="countdown-bar">
+                  <div 
+                    className="countdown-progress" 
+                    style={{ width: `${(countdown / 3) * 100}%` }}
+                  ></div>
+                </div>
+                <div className="countdown-text">
+                  Fecha em: <span className="countdown-number">{countdown}s</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tooltip de Erro com Countdown */}
+      {showErrorTooltip && (
+        <div className={`notification-tooltip error-tooltip ${isTooltipClosing ? 'fade-out' : ''}`}>
+          <div className="tooltip-content">
+            <div className="tooltip-header">
+              <FiAlertCircle size={20} color="#ef4444" />
+              <span>{modalTitle}</span>
+              <button
+                className="tooltip-close"
+                onClick={closeTooltipWithAnimation}
+              >
+                <FiX size={16} />
+              </button>
+            </div>
+            
+            <div className="tooltip-body">
+              <p className="tooltip-message">{modalMessage}</p>
+              
+              <div className="countdown-container">
+                <div className="countdown-bar">
+                  <div 
+                    className="countdown-progress" 
+                    style={{ width: `${(countdown / 3) * 100}%` }}
+                  ></div>
+                </div>
+                <div className="countdown-text">
+                  Fecha em: <span className="countdown-number">{countdown}s</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal Nova Transação */}
       {modalActive && (
         <div className="modal-overlay">
@@ -711,130 +889,6 @@ function Home() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* Modal de Confirmação de Exclusão */}
-      {showConfirmModal && (
-        <div className="modal-overlay">
-          <div className="modal-content modal-sm confirm-modal">
-            <div className="modal-header">
-              <h2>{modalTitle}</h2>
-              <button
-                className="btn-close"
-                onClick={() => {
-                  setShowConfirmModal(false);
-                  setSelectedTransaction(null);
-                }}
-              >
-                <FiX />
-              </button>
-            </div>
-
-            <div className="modal-body">
-              <div className="confirm-icon">
-                <FiAlertTriangle size={48} color="#f59e0b" />
-              </div>
-              <p className="confirm-message">{modalMessage}</p>
-
-              {selectedTransaction && (
-                <div className="confirm-details">
-                  <div className="transaction-preview">
-                    <span className="preview-label">Valor:</span>
-                    <span
-                      className={`preview-value ${
-                        selectedTransaction.typeId === 1
-                          ? "positive"
-                          : "negative"
-                      }`}
-                    >
-                      {formatCurrency(selectedTransaction.value)}
-                    </span>
-                  </div>
-                  <div className="transaction-preview">
-                    <span className="preview-label">Data:</span>
-                    <span className="preview-value">
-                      {Moment(selectedTransaction.date).format("DD/MM/YYYY")}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="modal-actions">
-              <button
-                className="btn-secondary"
-                onClick={() => {
-                  setShowConfirmModal(false);
-                  setSelectedTransaction(null);
-                }}
-              >
-                Cancelar
-              </button>
-              <button
-                className="btn-icon btn-danger"
-                onClick={() => {
-                  if (selectedTransaction) {
-                    deleteItem("transactions", selectedTransaction.id);
-                  }
-                  setShowConfirmModal(false);
-                  setSelectedTransaction(null);
-                }}
-                title="Excluir" // Tooltip para mobile
-                aria-label="Excluir" // Acessibilidade
-              >
-                <FiTrash2 />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal de Sucesso */}
-      {showSuccessModal && (
-        <div className="modal-overlay">
-          <div className="modal-content modal-sm success-modal">
-            <div className="modal-body">
-              <div className="success-icon">
-                <FiCheckCircle size={60} color="#10b981" />
-              </div>
-              <h3 className="success-title">{modalTitle}</h3>
-              <p className="success-message">{modalMessage}</p>
-            </div>
-
-            <div className="modal-actions modal-actions-center">
-              <button
-                className="btn-primary"
-                onClick={() => setShowSuccessModal(false)}
-              >
-                OK
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal de Erro */}
-      {showErrorModal && (
-        <div className="modal-overlay">
-          <div className="modal-content modal-sm error-modal">
-            <div className="modal-body">
-              <div className="error-icon">
-                <FiAlertCircle size={60} color="#ef4444" />
-              </div>
-              <h3 className="error-title">{modalTitle}</h3>
-              <p className="error-message">{modalMessage}</p>
-            </div>
-
-            <div className="modal-actions modal-actions-center">
-              <button
-                className="btn-danger"
-                onClick={() => setShowErrorModal(false)}
-              >
-                Fechar
-              </button>
-            </div>
           </div>
         </div>
       )}

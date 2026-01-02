@@ -1196,3 +1196,389 @@ button, .btn-icon, .filter-btn {
   font-size: 14px !important;
   font-weight: 600 !important;
 }
+
+/* ===== TOOLTIPS DE NOTIFICAÇÃO (SUCESSO/ERRO) COM COUNTDOWN ===== */
+.notification-tooltip {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 2000;
+  animation: slideInSmooth 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  width: 320px;
+  max-width: 90vw;
+  opacity: 0;
+  animation-fill-mode: forwards;
+}
+
+@keyframes slideInSmooth {
+  0% {
+    opacity: 0;
+    transform: translateX(100px) scale(0.95);
+  }
+  50% {
+    opacity: 0.5;
+    transform: translateX(-10px) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+/* Animação de saída suave */
+@keyframes slideOutSmooth {
+  0% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: translateX(-10px) scale(0.98);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(100px) scale(0.95);
+  }
+}
+
+.notification-tooltip.fade-out {
+  animation: slideOutSmooth 0.3s ease-out forwards;
+}
+
+.notification-tooltip .tooltip-content {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 
+    0 4px 20px rgba(0, 0, 0, 0.08),
+    0 1px 3px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  transform-origin: top right;
+  transition: all 0.2s ease;
+}
+
+.notification-tooltip .tooltip-content:hover {
+  box-shadow: 
+    0 8px 30px rgba(0, 0, 0, 0.12),
+    0 2px 5px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
+}
+
+/* Cabeçalho do tooltip */
+.notification-tooltip .tooltip-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  font-weight: 600;
+  font-size: 15px;
+  transition: background-color 0.2s ease;
+}
+
+/* Tooltip de sucesso */
+.success-tooltip .tooltip-header {
+  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+  border-bottom: 1px solid #bbf7d0;
+  color: #166534;
+}
+
+.success-tooltip .tooltip-header:hover {
+  background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+}
+
+.success-tooltip .tooltip-header svg {
+  color: #16a34a;
+  animation: iconPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes iconPop {
+  0% {
+    transform: scale(0);
+  }
+  70% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Tooltip de erro */
+.error-tooltip .tooltip-header {
+  background: linear-gradient(135deg, #fef2f2, #fee2e2);
+  border-bottom: 1px solid #fecaca;
+  color: #991b1b;
+}
+
+.error-tooltip .tooltip-header:hover {
+  background: linear-gradient(135deg, #fee2e2, #fecaca);
+}
+
+.error-tooltip .tooltip-header svg {
+  color: #dc2626;
+  animation: iconShake 0.5s ease;
+}
+
+@keyframes iconShake {
+  0%, 100% { transform: rotate(0); }
+  25% { transform: rotate(-5deg); }
+  75% { transform: rotate(5deg); }
+}
+
+/* Botão de fechar */
+.notification-tooltip .tooltip-close {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.3);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 14px;
+  margin-left: auto;
+  color: inherit;
+  opacity: 0.7;
+  transition: all 0.2s ease;
+}
+
+.notification-tooltip .tooltip-close:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.5);
+  transform: rotate(90deg);
+}
+
+/* Corpo do tooltip */
+.notification-tooltip .tooltip-body {
+  padding: 16px;
+  animation: fadeInUp 0.5s ease 0.1s both;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.notification-tooltip .tooltip-message {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #475569;
+  margin-bottom: 16px;
+  animation: textReveal 0.6s ease 0.2s both;
+}
+
+@keyframes textReveal {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Container do countdown */
+.countdown-container {
+  margin-top: 12px;
+  animation: fadeInUp 0.5s ease 0.3s both;
+}
+
+.countdown-bar {
+  width: 100%;
+  height: 4px;
+  background: #e2e8f0;
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 8px;
+  position: relative;
+}
+
+.countdown-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.countdown-progress {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  z-index: 1;
+}
+
+.success-tooltip .countdown-progress {
+  background: linear-gradient(90deg, #22c55e, #4ade80, #22c55e);
+  background-size: 200% 100%;
+  animation: gradientFlow 3s linear infinite;
+}
+
+.error-tooltip .countdown-progress {
+  background: linear-gradient(90deg, #ef4444, #f87171, #ef4444);
+  background-size: 200% 100%;
+  animation: gradientFlow 3s linear infinite;
+}
+
+@keyframes gradientFlow {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.countdown-text {
+  font-size: 12px;
+  color: #64748b;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.countdown-number {
+  font-weight: 700;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  animation: countdownPulse 1s infinite;
+}
+
+@keyframes countdownPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.success-tooltip .countdown-number {
+  color: #16a34a;
+}
+
+.error-tooltip .countdown-number {
+  color: #dc2626;
+}
+
+/* Efeito sutil de flutuação */
+@keyframes gentleFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+.notification-tooltip .tooltip-content {
+  animation: gentleFloat 6s ease-in-out infinite;
+}
+
+/* Efeito de brilho suave para destaque */
+.success-tooltip {
+  filter: drop-shadow(0 4px 12px rgba(22, 163, 74, 0.1));
+}
+
+.error-tooltip {
+  filter: drop-shadow(0 4px 12px rgba(239, 68, 68, 0.1));
+}
+
+/* Responsividade */
+@media (max-width: 640px) {
+  .notification-tooltip {
+    top: 15px;
+    right: 15px;
+    left: 15px;
+    width: auto;
+    max-width: calc(100vw - 30px);
+    animation: slideInBottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  
+  @keyframes slideInBottom {
+    0% {
+      opacity: 0;
+      transform: translateY(50px) scale(0.95);
+    }
+    50% {
+      opacity: 0.5;
+      transform: translateY(-5px) scale(1.02);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+  
+  @keyframes slideOutBottom {
+    0% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    50% {
+      opacity: 0.5;
+      transform: translateY(-5px) scale(0.98);
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(50px) scale(0.95);
+    }
+  }
+  
+  .notification-tooltip.fade-out {
+    animation: slideOutBottom 0.3s ease-out forwards;
+  }
+  
+  .notification-tooltip .tooltip-content {
+    border-radius: 16px;
+  }
+  
+  .notification-tooltip .tooltip-header {
+    padding: 18px;
+    font-size: 16px;
+  }
+  
+  .notification-tooltip .tooltip-body {
+    padding: 18px;
+  }
+  
+  .notification-tooltip .tooltip-message {
+    font-size: 15px;
+  }
+}
+
+/* Animações de contador com números */
+.countdown-number {
+  display: inline-block;
+  min-width: 24px;
+  text-align: center;
+}
+
+/* Efeito de fade suave quando fecha */
+.notification-tooltip {
+  transition: opacity 0.1s ease;
+}
+
+/* Adicionando um pouco de delay para os elementos internos */
+.notification-tooltip .tooltip-header {
+  animation-delay: 0.1s;
+}
+
+.notification-tooltip .tooltip-message {
+  animation-delay: 0.2s;
+}
+
+.notification-tooltip .countdown-container {
+  animation-delay: 0.3s;
+}
