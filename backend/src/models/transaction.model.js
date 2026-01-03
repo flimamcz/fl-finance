@@ -22,7 +22,7 @@ const transactionModel = (sequelize, DataTypes) => {
       },
 
       // ✅ Campo userId (sem referência por enquanto)
-      userId: {
+      user_id: {
         type: DataTypes.INTEGER,
         allowNull: true, // ✅ NULLABLE por enquanto
         field: "user_id"

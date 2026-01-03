@@ -1,118 +1,128 @@
-// src/app/Context/AuthContext.jsx - ATUALIZADO
-import { createContext, useState, useContext, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+// AuthContext.jsx - VERSÃO SIMPLIFICADA
+import { createContext, useState, useContext, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 const AuthContext = createContext({});
+import MyContext from "../Context/Context";
+
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  
-  // ✅ FUNÇÃO PARA VERIFICAR TOKEN NO BACKEND
+
+    const { setTransactions, setAmounts, getAllTransactions } =
+      useContext(MyContext);
+
+  // ✅ Função para verificar token
   const verifyToken = async (token) => {
     try {
-      console.log('🔐 AuthContext: Verificando token no backend...');
-      
-      const response = await fetch('http://192.168.0.10:3001/auth/verify', {
-        method: 'GET',
+      const response = await fetch("http://192.168.0.10:3001/auth/verify", {
+        method: "GET",
         headers: {
-          'Authorization': `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       const data = await response.json();
-      
+
       if (data.error) {
-        console.log('❌ Token inválido:', data.message);
         return { valid: false, user: null };
       }
-      
-      console.log('✅ Token válido! Usuário:', data.user?.email);
+
       return { valid: true, user: data.user };
-      
     } catch (error) {
-      console.error('❌ Erro na verificação do token:', error.message);
       return { valid: false, user: null };
     }
   };
 
-  // ✅ ATUALIZADO: Carregar e VERIFICAR usuário ao iniciar
+  // ✅ Carregar usuário ao iniciar
   useEffect(() => {
-    const loadAndVerifyUser = async () => {
+    const loadUser = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const storedUser = localStorage.getItem('user');
-        
-        console.log('🔍 AuthContext: Iniciando verificação...');
-        
+        const token = localStorage.getItem("token");
+        const storedUser = localStorage.getItem("user");
+
+        console.log('🔍 AuthContext: Verificando localStorage...');
+        console.log('   Token encontrado:', token ? 'SIM' : 'NÃO');
+        console.log('   User encontrado:', storedUser ? 'SIM' : 'NÃO');
+
         if (!token || !storedUser) {
-          console.log('ℹ️ Nenhum token ou usuário encontrado no storage');
+          console.log('ℹ️ Nenhum usuário autenticado');
           setLoading(false);
           return;
         }
-        
-        // ✅ VERIFICA TOKEN REAL NO BACKEND
+
+        // Verifica se token ainda é válido
         const verification = await verifyToken(token);
-        
+
         if (verification.valid) {
-          // ✅ Token válido - usa dados do backend (mais atualizados)
-          setUser(verification.user);
-          // Atualiza localStorage com dados frescos
-          localStorage.setItem('user', JSON.stringify(verification.user));
-          console.log('✅ Usuário autenticado e verificado:', verification.user.email);
+          const userData = JSON.parse(storedUser);
+          setUser(userData);
+          console.log('✅ Usuário carregado:', userData.email);
         } else {
-          // ❌ Token inválido - limpa tudo
-          console.log('⚠️ Token inválido ou expirado, fazendo logout...');
+          console.log('⚠️ Token expirado, limpando...');
           logout();
         }
-        
       } catch (error) {
-        console.error('❌ Erro ao carregar/verificar usuário:', error);
-        // Em caso de erro, faz logout para segurança
+        console.error('❌ Erro ao carregar usuário:', error);
         logout();
       } finally {
         setLoading(false);
       }
     };
-    
-    loadAndVerifyUser();
+
+    loadUser();
   }, []);
-  
+
+  // ✅ Função de login SIMPLIFICADA
   const login = async (userData, token) => {
-    console.log('🔑 AuthContext: Login realizado para:', userData?.email);
+    console.log('🔑 AuthContext.login() chamado');
+    console.log('   User ID:', userData.id);
+    console.log('   Email:', userData.email);
     
     try {
-      // ✅ VERIFICA O TOKEN RECÉM RECEBIDO
+      setTransactions([]); // Limpa transações antes de carregar novas
+      // Verifica token (opcional, já foi verificado no Login.jsx)
       const verification = await verifyToken(token);
       
       if (!verification.valid) {
-        throw new Error('Token inválido após login');
+        throw new Error("Token inválido");
       }
-      
-      // Salva no localStorage
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(userData));
-      
-      // Atualiza estado
+
+      // ✅ Atualiza estado local (Login.jsx já salvou no localStorage)
       setUser(userData);
       
+      console.log('✅ Estado atualizado, navegando para /home');
+      getAllTransactions(); // Chama a função para obter todas as transações
+      
       // Navega para home
-      navigate('/home');
+      navigate("/home");
       
     } catch (error) {
-      console.error('❌ Erro no login:', error);
-      logout();
-      throw error; // Propaga o erro para o Login.jsx mostrar
+      console.error('❌ Erro no authContext.login():', error);
+      
+      // Em caso de erro, limpa tudo
+      localStorage.clear();
+      sessionStorage.clear();
+      setUser(null);
+      
+      throw error;
     }
   };
-  
+
+  // ✅ Função de logout
   const logout = () => {
     console.log('🚪 AuthContext: Logout');
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    
+    // Limpa TUDO
+    localStorage.clear();
+    sessionStorage.clear();
     setUser(null);
-    navigate('/login');
+    setTransactions([]) // Limpa transações ao deslogar
+    setAmounts([]) // Reseta valores ao deslogar
+    // Navega para login
+    navigate("/login");
   };
 
   const value = {
@@ -120,15 +130,11 @@ export const AuthProvider = ({ children }) => {
     loading,
     login,
     logout,
-    verifyToken, // ✅ Exporta para usar em outros lugares
-    isAuthenticated: !!user
+    verifyToken,
+    isAuthenticated: !!user,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {

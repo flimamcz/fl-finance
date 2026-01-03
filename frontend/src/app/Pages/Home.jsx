@@ -36,8 +36,13 @@ import MyContext from "../Context/Context";
 import "../Styles/Home.css";
 
 function Home() {
-  const { transactions, typesTransactions, amounts, getAllTransactions } =
+  const { transactions, typesTransactions, amounts, getAllTransactions, recalculateAmounts  } =
     useContext(MyContext);
+
+    useEffect(() => {
+  console.log('📊 Transações mudaram, recalculando amounts...');
+  recalculateAmounts();
+}, [transactions, recalculateAmounts]);
 
   // Estados
   const [loading, setLoading] = useState(false);

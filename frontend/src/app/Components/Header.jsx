@@ -47,6 +47,8 @@ function Header() {
     logout(); // ✅ Usa a função do AuthContext
     setProfileMenuOpen(false);
     setMenuOpen(false);
+  localStorage.clear();
+  sessionStorage.clear(); // Limpa sessionStorage também
   };
 
   const navItems = [

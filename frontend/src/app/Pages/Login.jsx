@@ -1,4 +1,4 @@
-// Login.jsx - Versão Aprimorada COM AuthContext (SEM validação de força no login)
+// Login.jsx - VERSÃO CORRIGIDA (SALVA NO LOCALSTORAGE AQUI)
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { 
@@ -49,7 +49,7 @@ function Login() {
     setEmailValid(emailRegex.test(email));
   }, [email]);
 
-  // Calcular força da senha (mantém para mostrar visualmente, mas não bloqueia)
+  // Calcular força da senha
   useEffect(() => {
     if (!password) {
       setPasswordStrength(0);
@@ -85,47 +85,75 @@ function Login() {
     }
   };
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  setError("");
-  
-  if (!emailValid) {
-    setError("Por favor, insira um email válido");
-    return;
-  }
-
-  setLoading(true);
-
-  try {
-    const response = await fetch('http://192.168.0.10:3001/auth/login', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email, password }),
-    });
-
-    const data = await response.json();
-
-    if (data.error) {
-      throw new Error(data.message);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    
+    if (!emailValid) {
+      setError("Por favor, insira um email válido");
+      return;
     }
 
-    // ✅ Tenta fazer login com o AuthContext
-    // Ele agora vai verificar o token automaticamente
-    await login(data.user, data.token);
-    
-  } catch (err) {
-    setError(err.message || "Erro ao fazer login");
-    setLoading(false);
-    
-    // ✅ Limpa localStorage se houver erro de token
-    if (err.message.includes('Token') || err.message.includes('token')) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+    setLoading(true);
+
+    try {
+      console.log('🔐 Tentando login para:', email);
+      
+      const response = await fetch('http://192.168.0.10:3001/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        throw new Error(data.message);
+      }
+
+      console.log('✅ Login bem-sucedido!');
+      console.log('🔑 Token recebido:', data.token.substring(0, 20) + '...');
+      console.log('👤 User ID recebido:', data.user.id);
+      console.log('📧 Email recebido:', data.user.email);
+
+      // ✅ ✅ ✅ **AQUI: PRIMEIRO SALVA NO LOCALSTORAGE**
+      // getAllTransactions(); // Chama a função para obter todas as transações
+      console.log('💾 Salvando no localStorage...');
+      
+      // 1. Limpa qualquer coisa anterior
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      // 2. Espera um ciclo
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
+      // 3. Salva os NOVOS dados
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      
+      console.log('💾 Token salvo no localStorage:', localStorage.getItem('token') ? 'SIM' : 'NÃO');
+      console.log('💾 User salvo no localStorage:', localStorage.getItem('user') ? 'SIM' : 'NÃO');
+      
+      // 4. Espera mais um pouco
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
+      // 5. DEPOIS chama a função de login do context
+      console.log('🚀 Chamando authContext.login()...');
+      await login(data.user, data.token);
+      
+    } catch (err) {
+      console.error('❌ Erro no login:', err);
+      setError(err.message || "Erro ao fazer login");
+      
+      // Limpa se houver erro
+      localStorage.clear();
+      sessionStorage.clear();
+    } finally {
+      setLoading(false);
     }
-  }
-};
+  };
 
   return (
     <div className="login-container">
@@ -244,7 +272,7 @@ const handleSubmit = async (e) => {
               </button>
             </div>
             
-            {/* Indicador de força da senha (APENAS VISUAL, não bloqueia) */}
+            {/* Indicador de força da senha */}
             {password && (
               <div className="password-strength">
                 <div className="strength-bar">
@@ -303,7 +331,7 @@ const handleSubmit = async (e) => {
             <span>ou</span>
           </div>
 
-          {/* Login Social (opcional) */}
+          {/* Login Social */}
           <div className="social-login">
             <button type="button" className="social-btn google">
               <svg className="social-icon" viewBox="0 0 24 24">
@@ -318,7 +346,7 @@ const handleSubmit = async (e) => {
         </form>
       </div>
 
-      {/* Toast de sucesso (aparece após login bem-sucedido) */}
+      {/* Toast de sucesso */}
       {loading && (
         <div className="success-toast">
           <div className="toast-content">
