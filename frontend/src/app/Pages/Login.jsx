@@ -1,6 +1,6 @@
-// Login.jsx - Versão Aprimorada
+// Login.jsx - Versão Aprimorada COM AuthContext (SEM validação de força no login)
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { 
   FiMail, 
   FiLock, 
@@ -11,9 +11,12 @@ import {
   FiShield,
   FiLoader 
 } from "react-icons/fi";
+import { useAuth } from '../Context/AuthContext';
 import "../Styles/Login.css";
 
 function Login() {
+  const { login } = useAuth();
+  
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -22,7 +25,6 @@ function Login() {
   const [emailValid, setEmailValid] = useState(null);
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [particles, setParticles] = useState([]);
-  const navigate = useNavigate();
 
   // Gerar partículas para background
   useEffect(() => {
@@ -47,7 +49,7 @@ function Login() {
     setEmailValid(emailRegex.test(email));
   }, [email]);
 
-  // Calcular força da senha
+  // Calcular força da senha (mantém para mostrar visualmente, mas não bloqueia)
   useEffect(() => {
     if (!password) {
       setPasswordStrength(0);
@@ -65,10 +67,10 @@ function Login() {
 
   const getPasswordStrengthColor = () => {
     switch(passwordStrength) {
-      case 1: return '#ef4444'; // Fraco
-      case 2: return '#f59e0b'; // Médio
-      case 3: return '#3b82f6'; // Bom
-      case 4: return '#10b981'; // Forte
+      case 1: return '#ef4444';
+      case 2: return '#f59e0b';
+      case 3: return '#3b82f6';
+      case 4: return '#10b981';
       default: return '#e5e7eb';
     }
   };
@@ -87,13 +89,9 @@ function Login() {
     e.preventDefault();
     setError("");
     
+    // ✅ APENAS validação de email - SEM validação de força da senha
     if (!emailValid) {
       setError("Por favor, insira um email válido");
-      return;
-    }
-
-    if (passwordStrength < 2) {
-      setError("Senha muito fraca. Use pelo menos 8 caracteres com letras e números");
       return;
     }
 
@@ -114,13 +112,8 @@ function Login() {
         throw new Error(data.message);
       }
 
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      
-      // Feedback visual de sucesso antes de navegar
-      setTimeout(() => {
-        navigate('/home');
-      }, 800);
+      // ✅ Usa o AuthContext para login
+      login(data.user, data.token);
       
     } catch (err) {
       setError(err.message || "Erro ao fazer login");
@@ -245,7 +238,7 @@ function Login() {
               </button>
             </div>
             
-            {/* Indicador de força da senha */}
+            {/* Indicador de força da senha (APENAS VISUAL, não bloqueia) */}
             {password && (
               <div className="password-strength">
                 <div className="strength-bar">

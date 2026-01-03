@@ -1,85 +1,80 @@
-// src/context/AuthContext.jsx
-import { createContext, useState, useContext, useEffect } from 'react';
+// src/app/Context/AuthContext.jsx
+import { createContext, useState, useContext, useEffect } from 'react'; // ✅ Adicione useEffect
 import { useNavigate } from 'react-router-dom';
 
 const AuthContext = createContext({});
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true); // ✅ Novo state para loading
   const navigate = useNavigate();
-
-  // Verificar token ao iniciar
+  
+  // ✅ NOVO: Carregar usuário do localStorage ao iniciar
   useEffect(() => {
-    checkAuth();
-  }, []);
-
-  const checkAuth = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      
-      if (!token) {
-        setLoading(false);
-        return;
-      }
-
-      // Verificar token no backend
-      const response = await fetch('http://192.168.0.10:3001/auth/verify', {
-        headers: {
-          'Authorization': `Bearer ${token}`
+    const loadUserFromStorage = () => {
+      try {
+        const token = localStorage.getItem('token');
+        const userData = localStorage.getItem('user');
+        
+        console.log('🔍 AuthContext: Carregando dados do localStorage...');
+        console.log('   Token:', token ? '✔️ Existe' : '❌ Não encontrado');
+        console.log('   User:', userData ? '✔️ Existe' : '❌ Não encontrado');
+        
+        if (token && userData) {
+          setUser(JSON.parse(userData));
+          console.log('✅ AuthContext: Usuário carregado:', JSON.parse(userData).email);
+        } else {
+          console.log('ℹ️ AuthContext: Nenhum usuário autenticado no storage');
         }
-      });
-
-      if (!response.ok) {
-        throw new Error('Token inválido');
+      } catch (error) {
+        console.error('❌ AuthContext: Erro ao carregar usuário:', error);
+      } finally {
+        setLoading(false);
+        console.log('✅ AuthContext: Carregamento concluído');
       }
-
-      const data = await response.json();
-      
-      if (data.error) {
-        throw new Error(data.message);
-      }
-
-      setUser(data.user);
-      setIsAuthenticated(true);
-      
-    } catch (error) {
-      console.log('❌ Auth check failed:', error.message);
-      logout();
-    } finally {
-      setLoading(false);
-    }
-  };
-
+    };
+    
+    loadUserFromStorage();
+  }, []);
+  
   const login = (userData, token) => {
+    console.log('🔑 AuthContext: Login realizado para:', userData?.email);
+    
+    // Salva no localStorage
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(userData));
+    
+    // Atualiza estado
     setUser(userData);
-    setIsAuthenticated(true);
+    
+    // Navega para home
     navigate('/home');
   };
-
+  
   const logout = () => {
+    console.log('🚪 AuthContext: Logout');
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
-    setIsAuthenticated(false);
     navigate('/login');
   };
 
+  const value = {
+    user,
+    loading, // ✅ Exporta loading
+    login,
+    logout,
+    isAuthenticated: !!user
+  };
+
   return (
-    <AuthContext.Provider value={{
-      user,
-      loading,
-      isAuthenticated,
-      login,
-      logout,
-      checkAuth
-    }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  return context;
+};
