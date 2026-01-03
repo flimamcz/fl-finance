@@ -6,18 +6,11 @@ const UserModel = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: false,
       },
-
-      user_pf: {
-        type: DataTypes.STRING,
-        allowNull: false,
-      },
-
       email: {
         type: DataTypes.STRING,
         allowNull: false,
         
       },
-
       createdAt: {
         field: "created_at",
         type: DataTypes.DATE,

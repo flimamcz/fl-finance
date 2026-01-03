@@ -25,13 +25,7 @@ module.exports = {
           field: "updated_at",
           type: Sequelize.DATE,
         },
-
-        user_pf: {
-          type: Sequelize.STRING,
-          allowNull: false,
-          field: "user_pf",
-        },
-
+        
         email: {
           type: Sequelize.STRING,
           unique: {

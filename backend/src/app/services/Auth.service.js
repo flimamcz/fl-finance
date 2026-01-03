@@ -1,11 +1,9 @@
 // src/app/services/Auth.service.js
 const jwt = require('jsonwebtoken');
-// const bcrypt = require('bcrypt');
 const bcrypt = require('bcryptjs');
 const UserService = require('./User.service');
 
 class AuthService {
-  // CORRETO: recebe email e password como parâmetros
   async login(email, password) {
     try {
       console.log(`🔐 Tentando login: ${email}`);
@@ -34,18 +32,21 @@ class AuthService {
         return { error: true, message: "Usuário não encontrado" };
       }
 
-      // 3. Verificar senha
-      console.log(`🔑 Senha no DB: ${user.password}, Senha fornecida: ${password}`);
+      // 3. ✅ CORREÇÃO: Use bcrypt para comparar senhas
+      console.log(`🔑 Verificando senha para usuário: ${user.email}`);
       
-      // Se senha estiver criptografada com bcrypt:
-      // const isValid = await bcrypt.compare(password, user.password);
+      // ⚠️ REMOVA a comparação direta:
+      // const isValidPassword = (user.password === password);
       
-      // Temporário: comparação direta (substitua depois)
-      const isValidPassword = (user.password === password);
+      // ✅ USE bcrypt.compare:
+      const isValidPassword = await bcrypt.compare(password, user.password);
       
       if (!isValidPassword) {
+        console.log('❌ Senha incorreta');
         return { error: true, message: "Senha incorreta" };
       }
+
+      console.log('✅ Senha válida!');
 
       // 4. Gerar JWT Token
       const token = jwt.sign(
@@ -97,11 +98,10 @@ class AuthService {
         }
       }
 
-      // 2. Criptografar senha
+      // 2. ✅ JÁ ESTÁ CERTO: Criptografar senha
       const hashedPassword = await bcrypt.hash(userData.password, 10);
       
       // 3. Chamar UserService para criar usuário
-      // Você precisa adaptar conforme seu UserService.createUser()
       const { error, message } = await UserService.createUser({
         ...userData,
         password: hashedPassword
