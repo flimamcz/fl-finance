@@ -85,41 +85,47 @@ function Login() {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setError("");
+  
+  if (!emailValid) {
+    setError("Por favor, insira um email válido");
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    const response = await fetch('http://192.168.0.10:3001/auth/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const data = await response.json();
+
+    if (data.error) {
+      throw new Error(data.message);
+    }
+
+    // ✅ Tenta fazer login com o AuthContext
+    // Ele agora vai verificar o token automaticamente
+    await login(data.user, data.token);
     
-    // ✅ APENAS validação de email - SEM validação de força da senha
-    if (!emailValid) {
-      setError("Por favor, insira um email válido");
-      return;
+  } catch (err) {
+    setError(err.message || "Erro ao fazer login");
+    setLoading(false);
+    
+    // ✅ Limpa localStorage se houver erro de token
+    if (err.message.includes('Token') || err.message.includes('token')) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
     }
-
-    setLoading(true);
-
-    try {
-      const response = await fetch('http://192.168.0.10:3001/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await response.json();
-
-      if (data.error) {
-        throw new Error(data.message);
-      }
-
-      // ✅ Usa o AuthContext para login
-      login(data.user, data.token);
-      
-    } catch (err) {
-      setError(err.message || "Erro ao fazer login");
-      setLoading(false);
-    }
-  };
+  }
+};
 
   return (
     <div className="login-container">

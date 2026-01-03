@@ -1,54 +1,110 @@
-// src/app/Context/AuthContext.jsx
-import { createContext, useState, useContext, useEffect } from 'react'; // ✅ Adicione useEffect
+// src/app/Context/AuthContext.jsx - ATUALIZADO
+import { createContext, useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const AuthContext = createContext({});
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true); // ✅ Novo state para loading
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   
-  // ✅ NOVO: Carregar usuário do localStorage ao iniciar
+  // ✅ FUNÇÃO PARA VERIFICAR TOKEN NO BACKEND
+  const verifyToken = async (token) => {
+    try {
+      console.log('🔐 AuthContext: Verificando token no backend...');
+      
+      const response = await fetch('http://192.168.0.10:3001/auth/verify', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const data = await response.json();
+      
+      if (data.error) {
+        console.log('❌ Token inválido:', data.message);
+        return { valid: false, user: null };
+      }
+      
+      console.log('✅ Token válido! Usuário:', data.user?.email);
+      return { valid: true, user: data.user };
+      
+    } catch (error) {
+      console.error('❌ Erro na verificação do token:', error.message);
+      return { valid: false, user: null };
+    }
+  };
+
+  // ✅ ATUALIZADO: Carregar e VERIFICAR usuário ao iniciar
   useEffect(() => {
-    const loadUserFromStorage = () => {
+    const loadAndVerifyUser = async () => {
       try {
         const token = localStorage.getItem('token');
-        const userData = localStorage.getItem('user');
+        const storedUser = localStorage.getItem('user');
         
-        console.log('🔍 AuthContext: Carregando dados do localStorage...');
-        console.log('   Token:', token ? '✔️ Existe' : '❌ Não encontrado');
-        console.log('   User:', userData ? '✔️ Existe' : '❌ Não encontrado');
+        console.log('🔍 AuthContext: Iniciando verificação...');
         
-        if (token && userData) {
-          setUser(JSON.parse(userData));
-          console.log('✅ AuthContext: Usuário carregado:', JSON.parse(userData).email);
-        } else {
-          console.log('ℹ️ AuthContext: Nenhum usuário autenticado no storage');
+        if (!token || !storedUser) {
+          console.log('ℹ️ Nenhum token ou usuário encontrado no storage');
+          setLoading(false);
+          return;
         }
+        
+        // ✅ VERIFICA TOKEN REAL NO BACKEND
+        const verification = await verifyToken(token);
+        
+        if (verification.valid) {
+          // ✅ Token válido - usa dados do backend (mais atualizados)
+          setUser(verification.user);
+          // Atualiza localStorage com dados frescos
+          localStorage.setItem('user', JSON.stringify(verification.user));
+          console.log('✅ Usuário autenticado e verificado:', verification.user.email);
+        } else {
+          // ❌ Token inválido - limpa tudo
+          console.log('⚠️ Token inválido ou expirado, fazendo logout...');
+          logout();
+        }
+        
       } catch (error) {
-        console.error('❌ AuthContext: Erro ao carregar usuário:', error);
+        console.error('❌ Erro ao carregar/verificar usuário:', error);
+        // Em caso de erro, faz logout para segurança
+        logout();
       } finally {
         setLoading(false);
-        console.log('✅ AuthContext: Carregamento concluído');
       }
     };
     
-    loadUserFromStorage();
+    loadAndVerifyUser();
   }, []);
   
-  const login = (userData, token) => {
+  const login = async (userData, token) => {
     console.log('🔑 AuthContext: Login realizado para:', userData?.email);
     
-    // Salva no localStorage
-    localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(userData));
-    
-    // Atualiza estado
-    setUser(userData);
-    
-    // Navega para home
-    navigate('/home');
+    try {
+      // ✅ VERIFICA O TOKEN RECÉM RECEBIDO
+      const verification = await verifyToken(token);
+      
+      if (!verification.valid) {
+        throw new Error('Token inválido após login');
+      }
+      
+      // Salva no localStorage
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(userData));
+      
+      // Atualiza estado
+      setUser(userData);
+      
+      // Navega para home
+      navigate('/home');
+      
+    } catch (error) {
+      console.error('❌ Erro no login:', error);
+      logout();
+      throw error; // Propaga o erro para o Login.jsx mostrar
+    }
   };
   
   const logout = () => {
@@ -61,9 +117,10 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     user,
-    loading, // ✅ Exporta loading
+    loading,
     login,
     logout,
+    verifyToken, // ✅ Exporta para usar em outros lugares
     isAuthenticated: !!user
   };
 
