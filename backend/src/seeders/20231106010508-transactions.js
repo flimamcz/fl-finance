@@ -1,65 +1,91 @@
+// seeders/...-transactions.js - VERSÃO CORRIGIDA
 "use strict";
 
 module.exports = {
-  up: async (queryInterface, Sequelize) =>
-    queryInterface.bulkInsert(
+  up: async (queryInterface, Sequelize) => {
+    // Busca os IDs dos usuários de forma mais segura
+    const [users] = await queryInterface.sequelize.query(
+      `SELECT id FROM users WHERE email IN ('flp@test.com', 'edu@test.com') ORDER BY id;`
+    );
+
+    console.log('🔍 Usuários encontrados para seed:', users);
+    
+    if (!users || users.length < 2) {
+      console.error('❌ ERRO: Não encontrou os 2 usuários necessários');
+      throw new Error('Usuários não encontrados para seed');
+    }
+
+    const user1 = users.find(u => u.id === 1) || users[0];
+    const user2 = users.find(u => u.id === 2) || users[1];
+    
+    console.log(`✅ User 1 ID: ${user1.id}, User 2 ID: ${user2.id}`);
+
+    return queryInterface.bulkInsert(
       "transactions",
       [
+        // Transações do PRIMEIRO usuário encontrado
         {
           type_id: 1,
-          value: 4124.45,
+          user_id: user1.id,
+          value: "4124.45",
           description: "SALÁRIO",
-          date: new Date(),
+          date: new Date().toISOString().split('T')[0], // Formato YYYY-MM-DD
           status: true,
         },
-
         {
           type_id: 2,
-          value: 1164.45,
+          user_id: user1.id,
+          value: "1164.45",
           description: "GASTEI COM CARRO",
-          date: new Date(),
+          date: new Date().toISOString().split('T')[0],
           status: true,
         },
-
         {
           type_id: 3,
-          value: 14124.45,
+          user_id: user1.id,
+          value: "14124.45",
           description: "INVESTIDO",
-          date: new Date(),
+          date: new Date().toISOString().split('T')[0],
           status: false,
         },
 
+        // Transações do SEGUNDO usuário encontrado
         {
           type_id: 3,
-          value: 6124.45,
+          user_id: user2.id,
+          value: "6124.45",
           description: "INVESTIDO",
-          date: new Date(),
+          date: new Date().toISOString().split('T')[0],
           status: false,
         },
         {
           type_id: 3,
-          value: 24124.45,
+          user_id: user2.id,
+          value: "24124.45",
           description: "INVESTIDO",
-          date: new Date(),
+          date: new Date().toISOString().split('T')[0],
           status: false,
         },
         {
           type_id: 2,
-          value: 7654.78,
+          user_id: user2.id,
+          value: "7654.78",
           description: "EXPENSES",
-          date: new Date(),
+          date: new Date().toISOString().split('T')[0],
           status: false,
         },
         {
           type_id: 1,
-          value: 9124.45,
+          user_id: user2.id,
+          value: "9124.45",
           description: "RECIPES",
-          date: new Date(),
+          date: new Date().toISOString().split('T')[0],
           status: false,
         },
       ],
       {}
-    ),
+    );
+  },
 
   down: async (queryInterface) =>
     queryInterface.bulkDelete("transactions", null, {}),

@@ -1,3 +1,4 @@
+// Encontre seu arquivo: migrations/20231106010508-transactions.js
 "use strict";
 
 module.exports = {
@@ -10,10 +11,21 @@ module.exports = {
         primaryKey: true,
       },
 
-      typeId: {
+      type_id: {
         allowNull: false,
         type: Sequelize.INTEGER,
-        field: "type_id",
+      },
+
+      // ✅ ALTERE PARA allowNull: true (pelo menos inicialmente)
+      user_id: {
+        type: Sequelize.INTEGER,
+        allowNull: true, // ✅ MUDOU DE false PARA true
+        references: {
+          model: 'users',
+          key: 'id'
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL'
       },
 
       value: {
@@ -36,6 +48,9 @@ module.exports = {
         allowNull: false,
       },
     });
+
+    // Opcional: índice para melhor performance
+    await queryInterface.addIndex('transactions', ['user_id']);
   },
 
   async down(queryInterface, Sequelize) {

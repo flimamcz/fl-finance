@@ -1,3 +1,4 @@
+// src/models/transaction.model.js - VERSÃO SIMPLIFICADA
 const transactionModel = (sequelize, DataTypes) => {
   const Transaction = sequelize.define(
     "Transaction",
@@ -20,6 +21,18 @@ const transactionModel = (sequelize, DataTypes) => {
         field: "type_id",
       },
 
+      // ✅ Campo userId (sem referência por enquanto)
+      userId: {
+        type: DataTypes.INTEGER,
+        allowNull: true, // ✅ NULLABLE por enquanto
+        field: "user_id"
+        // ❌ Remova a referência por enquanto:
+        // references: {
+        //   model: 'users',
+        //   key: 'id'
+        // }
+      },
+
       description: {
         allowNull: false,
         type: DataTypes.STRING,
@@ -40,6 +53,19 @@ const transactionModel = (sequelize, DataTypes) => {
       timestamps: false,
     }
   );
+
+  // ❌ REMOVA TODO O BLOCO associate POR ENQUANTO
+  // Transaction.associate = (models) => {
+  //   Transaction.belongsTo(models.User, {
+  //     foreignKey: 'user_id',
+  //     as: 'user'
+  //   });
+  //   
+  //   Transaction.belongsTo(models.TypeTransaction, {
+  //     foreignKey: 'type_id',
+  //     as: 'type'
+  //   });
+  // };
 
   return Transaction;
 };

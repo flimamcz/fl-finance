@@ -1,23 +1,22 @@
-// src/seeders/[timestamp]-users.js
-
+// seeders/...-users.js - CORRIGIDO
 "use strict";
 
 module.exports = {
-  up: async (queryInterface, Sequelize) =>
-    queryInterface.bulkInsert(
+  up: async (queryInterface, Sequelize) => {
+    return queryInterface.bulkInsert(
       "users",
       [
         {
-          fullName: "Leonardo",
-          email: "leo@test.com",
-          password: "test1213",
+          fullname: "Filipe", // ✅ fullname (não fullName)
+          email: "flp@test.com",
+          password: "flp5660",
           position_work: "AADM",
           user_pf: "filipe.fla",
           created_at: new Date(),
           updated_at: new Date(),
         },
         {
-          fullName: "Eduardo",
+          fullname: "Eduardo", // ✅ fullname (não fullName)
           email: "edu@test.com",
           password: "flp5660",
           position_work: "APF",
@@ -27,7 +26,8 @@ module.exports = {
         },
       ],
       {}
-    ),
+    );
+  },
 
   down: async (queryInterface) => queryInterface.bulkDelete("users", null, {}),
 };

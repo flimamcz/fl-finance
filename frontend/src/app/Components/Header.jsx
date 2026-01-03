@@ -1,14 +1,16 @@
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { useAuth } from "../Context/AuthContext"; // ✅ NOVO IMPORT
 import "../Styles/Header.css";
 
 function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
-  const [user, setUser] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
   const location = useLocation();
-  const navigate = useNavigate();
+  
+  // ✅ NOVO: Use o AuthContext em vez de gerenciar estado manualmente
+  const { user, logout } = useAuth();
 
   // Detectar se é mobile
   useEffect(() => {
@@ -20,14 +22,6 @@ function Header() {
     window.addEventListener("resize", checkMobile);
     
     return () => window.removeEventListener("resize", checkMobile);
-  }, []);
-
-  // Carregar usuário
-  useEffect(() => {
-    const userData = localStorage.getItem("user");
-    if (userData) {
-      setUser(JSON.parse(userData));
-    }
   }, []);
 
   // Fechar menus ao trocar de página
@@ -48,13 +42,11 @@ function Header() {
     };
   }, [menuOpen]);
 
+  // ✅ NOVO: Função de logout usando o AuthContext
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    setUser(null);
+    logout(); // ✅ Usa a função do AuthContext
     setProfileMenuOpen(false);
     setMenuOpen(false);
-    navigate("/login");
   };
 
   const navItems = [
