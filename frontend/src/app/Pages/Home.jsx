@@ -16,6 +16,8 @@ import {
   FiAlertTriangle,
   FiAlertCircle,
   FiX,
+  FiSun,
+  FiMoon,
 } from "react-icons/fi";
 import {
   BarChart,
@@ -23,7 +25,7 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
+  Tooltip as RechartsTooltip,
   ResponsiveContainer,
   PieChart,
   Pie,
@@ -36,13 +38,17 @@ import MyContext from "../Context/Context";
 import "../Styles/Home.css";
 
 function Home() {
-  const { transactions, typesTransactions, amounts, getAllTransactions, recalculateAmounts  } =
-    useContext(MyContext);
+  const {
+    transactions,
+    typesTransactions,
+    amounts,
+    getAllTransactions,
+    recalculateAmounts,
+  } = useContext(MyContext);
 
-    useEffect(() => {
-  console.log('📊 Transações mudaram, recalculando amounts...');
-  recalculateAmounts();
-}, [transactions, recalculateAmounts]);
+  useEffect(() => {
+    recalculateAmounts();
+  }, [transactions, recalculateAmounts]);
 
   // Estados
   const [loading, setLoading] = useState(false);
@@ -52,6 +58,11 @@ function Home() {
   const [viewMode, setViewMode] = useState("grid");
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [timeRange, setTimeRange] = useState("month");
+
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem("darkMode");
+    return saved ? JSON.parse(saved) : false;
+  });
 
   // Estados para modais
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -243,13 +254,21 @@ function Home() {
 
   // Efeito para o countdown dos tooltips
   useEffect(() => {
-    if ((showSuccessTooltip || showErrorTooltip) && countdown > 0 && !isTooltipClosing) {
+    if (
+      (showSuccessTooltip || showErrorTooltip) &&
+      countdown > 0 &&
+      !isTooltipClosing
+    ) {
       const timer = setTimeout(() => {
-        setCountdown(prev => prev - 1);
+        setCountdown((prev) => prev - 1);
       }, 1000);
-      
+
       return () => clearTimeout(timer);
-    } else if ((showSuccessTooltip || showErrorTooltip) && countdown === 0 && !isTooltipClosing) {
+    } else if (
+      (showSuccessTooltip || showErrorTooltip) &&
+      countdown === 0 &&
+      !isTooltipClosing
+    ) {
       // Fecha com animação quando o contador chega a 0
       closeTooltipWithAnimation();
     }
@@ -307,10 +326,25 @@ function Home() {
     }
   };
 
+  useEffect(() => {
+    if (darkMode) {
+      document.body.classList.add("dark-mode");
+    } else {
+      document.body.classList.remove("dark-mode");
+    }
+    localStorage.setItem("darkMode", JSON.stringify(darkMode));
+  }, [darkMode]);
+
   return (
     <div className="dashboard-container">
       <Header />
-
+      <div className="theme-toggle" onClick={() => setDarkMode(!darkMode)}>
+        {darkMode ? (
+          <FiSun className="sun-icon" />
+        ) : (
+          <FiMoon className="moon-icon" />
+        )}
+      </div>
       <div className="dashboard-content">
         {/* Banner Welcome */}
         <div className="welcome-banner">
@@ -405,7 +439,7 @@ function Home() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis dataKey="name" stroke="#64748b" />
                   <YAxis stroke="#64748b" />
-                  <Tooltip
+                  <RechartsTooltip
                     formatter={(value) => [formatCurrency(value), "Valor"]}
                     contentStyle={{
                       backgroundColor: "white",
@@ -446,7 +480,7 @@ function Home() {
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip
+                    <RechartsTooltip
                       formatter={(value) => formatCurrency(value)}
                       labelFormatter={(name) => `Categoria: ${name}`}
                     />
@@ -473,6 +507,7 @@ function Home() {
                     activeFilter === "all" ? "active" : ""
                   }`}
                   onClick={() => setActiveFilter("all")}
+                  type="button"
                 >
                   Todas
                 </button>
@@ -481,6 +516,7 @@ function Home() {
                     activeFilter === "income" ? "active" : ""
                   }`}
                   onClick={() => setActiveFilter("income")}
+                  type="button"
                 >
                   Receitas
                 </button>
@@ -489,6 +525,7 @@ function Home() {
                     activeFilter === "expense" ? "active" : ""
                   }`}
                   onClick={() => setActiveFilter("expense")}
+                  type="button"
                 >
                   Despesas
                 </button>
@@ -497,6 +534,7 @@ function Home() {
                     activeFilter === "investment" ? "active" : ""
                   }`}
                   onClick={() => setActiveFilter("investment")}
+                  type="button"
                 >
                   Investimentos
                 </button>
@@ -505,6 +543,7 @@ function Home() {
               <button
                 className="btn-primary"
                 onClick={() => setModalActive(true)}
+                type="button"
               >
                 <FiPlus /> Nova Transação
               </button>
@@ -526,6 +565,7 @@ function Home() {
                   <button
                     className="btn-primary"
                     onClick={() => setModalActive(true)}
+                    type="button"
                   >
                     <FiPlus /> Criar Transação
                   </button>
@@ -576,12 +616,16 @@ function Home() {
                               setSelectedTransaction(transaction);
                               setActiveModalEdit(true);
                             }}
+                            type="button"
+                            aria-label="Editar"
                           >
                             <FiEdit2 />
                           </button>
                           <button
                             className="btn-icon btn-danger"
                             onClick={() => startDelete(transaction)}
+                            type="button"
+                            aria-label="Excluir"
                           >
                             <FiTrash2 />
                           </button>
@@ -596,7 +640,7 @@ function Home() {
 
           {filteredTransactions.length > 0 && (
             <div className="transactions-footer">
-              <button className="btn-secondary">
+              <button className="btn-secondary" type="button">
                 <FiDownload /> Exportar Extrato
               </button>
               <div className="pagination">
@@ -612,7 +656,15 @@ function Home() {
 
       {/* Modal de Confirmação de Exclusão */}
       {showConfirmModal && (
-        <div className="modal-overlay">
+        <div
+          className="modal-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowConfirmModal(false);
+              setSelectedTransaction(null);
+            }
+          }}
+        >
           <div className="modal-content modal-sm confirm-modal">
             <div className="modal-header">
               <h2>{modalTitle}</h2>
@@ -622,6 +674,8 @@ function Home() {
                   setShowConfirmModal(false);
                   setSelectedTransaction(null);
                 }}
+                type="button"
+                aria-label="Fechar"
               >
                 <FiX />
               </button>
@@ -664,6 +718,7 @@ function Home() {
                   setShowConfirmModal(false);
                   setSelectedTransaction(null);
                 }}
+                type="button"
               >
                 Cancelar
               </button>
@@ -676,6 +731,7 @@ function Home() {
                   setShowConfirmModal(false);
                   setSelectedTransaction(null);
                 }}
+                type="button"
                 title="Excluir"
                 aria-label="Excluir"
               >
@@ -688,7 +744,11 @@ function Home() {
 
       {/* Tooltip de Sucesso com Countdown */}
       {showSuccessTooltip && (
-        <div className={`notification-tooltip success-tooltip ${isTooltipClosing ? 'fade-out' : ''}`}>
+        <div
+          className={`notification-tooltip success-tooltip ${
+            isTooltipClosing ? "fade-out" : ""
+          }`}
+        >
           <div className="tooltip-content">
             <div className="tooltip-header">
               <FiCheckCircle size={20} color="#10b981" />
@@ -696,23 +756,26 @@ function Home() {
               <button
                 className="tooltip-close"
                 onClick={closeTooltipWithAnimation}
+                type="button"
+                aria-label="Fechar"
               >
                 <FiX size={16} />
               </button>
             </div>
-            
+
             <div className="tooltip-body">
               <p className="tooltip-message">{modalMessage}</p>
-              
+
               <div className="countdown-container">
                 <div className="countdown-bar">
-                  <div 
-                    className="countdown-progress" 
+                  <div
+                    className="countdown-progress"
                     style={{ width: `${(countdown / 3) * 100}%` }}
                   ></div>
                 </div>
                 <div className="countdown-text">
-                  Fecha em: <span className="countdown-number">{countdown}s</span>
+                  Fecha em:{" "}
+                  <span className="countdown-number">{countdown}s</span>
                 </div>
               </div>
             </div>
@@ -722,7 +785,11 @@ function Home() {
 
       {/* Tooltip de Erro com Countdown */}
       {showErrorTooltip && (
-        <div className={`notification-tooltip error-tooltip ${isTooltipClosing ? 'fade-out' : ''}`}>
+        <div
+          className={`notification-tooltip error-tooltip ${
+            isTooltipClosing ? "fade-out" : ""
+          }`}
+        >
           <div className="tooltip-content">
             <div className="tooltip-header">
               <FiAlertCircle size={20} color="#ef4444" />
@@ -730,23 +797,26 @@ function Home() {
               <button
                 className="tooltip-close"
                 onClick={closeTooltipWithAnimation}
+                type="button"
+                aria-label="Fechar"
               >
                 <FiX size={16} />
               </button>
             </div>
-            
+
             <div className="tooltip-body">
               <p className="tooltip-message">{modalMessage}</p>
-              
+
               <div className="countdown-container">
                 <div className="countdown-bar">
-                  <div 
-                    className="countdown-progress" 
+                  <div
+                    className="countdown-progress"
                     style={{ width: `${(countdown / 3) * 100}%` }}
                   ></div>
                 </div>
                 <div className="countdown-text">
-                  Fecha em: <span className="countdown-number">{countdown}s</span>
+                  Fecha em:{" "}
+                  <span className="countdown-number">{countdown}s</span>
                 </div>
               </div>
             </div>
@@ -756,26 +826,35 @@ function Home() {
 
       {/* Modal Nova Transação */}
       {modalActive && (
-        <div className="modal-overlay">
+        <div
+          className="modal-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setModalActive(false);
+          }}
+        >
           <div className="modal-content">
             <div className="modal-header">
               <h2>Nova Transação</h2>
               <button
                 className="btn-close"
                 onClick={() => setModalActive(false)}
+                type="button"
+                aria-label="Fechar"
               >
                 <FiX />
               </button>
             </div>
 
-            <form onSubmit={saveTransaction}>
+            <form onSubmit={saveTransaction} className="transaction-form">
               <div className="form-grid">
                 <div className="form-group">
-                  <label>Valor (R$)</label>
+                  <label htmlFor="value">Valor (R$)*</label>
                   <input
+                    id="value"
                     type="number"
                     step="0.01"
-                    placeholder="0.00"
+                    min="0.01"
+                    placeholder="0,00"
                     value={transactionData.value}
                     onChange={(e) =>
                       setTransactionData({
@@ -788,8 +867,9 @@ function Home() {
                 </div>
 
                 <div className="form-group">
-                  <label>Data</label>
+                  <label htmlFor="date">Data*</label>
                   <input
+                    id="date"
                     type="date"
                     value={transactionData.date}
                     onChange={(e) =>
@@ -803,8 +883,9 @@ function Home() {
                 </div>
 
                 <div className="form-group">
-                  <label>Tipo</label>
+                  <label htmlFor="type">Tipo*</label>
                   <select
+                    id="type"
                     value={transactionData.typeId}
                     onChange={(e) =>
                       setTransactionData({
@@ -823,7 +904,7 @@ function Home() {
                 </div>
 
                 <div className="form-group">
-                  <label>Status</label>
+                  <label>Status*</label>
                   <div className="radio-group">
                     <label className="radio-option">
                       <input
@@ -860,8 +941,9 @@ function Home() {
               </div>
 
               <div className="form-group">
-                <label>Descrição</label>
+                <label htmlFor="description">Descrição*</label>
                 <textarea
+                  id="description"
                   placeholder="Descreva esta transação..."
                   value={transactionData.description}
                   onChange={(e) =>
@@ -887,10 +969,19 @@ function Home() {
                   type="submit"
                   className="btn-primary"
                   disabled={
-                    !transactionData.value || !transactionData.description
+                    loading ||
+                    !transactionData.value ||
+                    !transactionData.description
                   }
                 >
-                  {loading ? "Salvando..." : "Salvar Transação"}
+                  {loading ? (
+                    <>
+                      <span className="spinner"></span>
+                      Salvando...
+                    </>
+                  ) : (
+                    "Salvar Transação"
+                  )}
                 </button>
               </div>
             </form>
