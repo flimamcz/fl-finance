@@ -4,14 +4,20 @@ import {
   FiCamera, FiSave, FiCheckCircle, FiAlertCircle,
   FiSun, FiMoon, FiLogOut, FiDownload, FiClock,
   FiShield, FiEye, FiEyeOff, FiActivity, FiDatabase,
-  FiSmartphone, FiGlobe, FiBell
+  FiSmartphone, FiGlobe, FiBell, FiX
 } from "react-icons/fi";
 import Header from "../Components/Header";
-import MyContext from "../Context/Context"; // Se tiver contexto
+import { useAuth } from "../Context/AuthContext";
+import MyContext from "../Context/Context";
 import "../Styles/Profile.css";
 
 function Profile() {
-  // Estados principais
+  const { user: authUser, logout } = useAuth();
+  const { getAllTransactions } = useContext(MyContext);
+  
+  const API_BASE_URL = "http://192.168.0.10:3001";
+  
+  // Estados
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem("darkMode");
     return saved ? JSON.parse(saved) : false;
@@ -27,7 +33,6 @@ function Profile() {
     confirmPassword: "",
   });
 
-  // Estados auxiliares
   const [photoPreview, setPhotoPreview] = useState(null);
   const [changePassword, setChangePassword] = useState(false);
   const [showPassword, setShowPassword] = useState({
@@ -39,17 +44,18 @@ function Profile() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("personal");
+  const [transactionCount, setTransactionCount] = useState(0);
   
-  // Estatísticas do usuário (mockadas por enquanto)
+  // Estatísticas
   const [stats, setStats] = useState({
-    joinedDate: "2024-01-15",
+    joinedDate: "",
     lastLogin: new Date().toISOString(),
     totalTransactions: 0,
     devices: 1,
     theme: "light"
   });
 
-  // Preferências (mockadas)
+  // Preferências
   const [preferences, setPreferences] = useState({
     notifications: true,
     currency: "BRL",
@@ -57,64 +63,100 @@ function Profile() {
     weeklyReport: false
   });
 
-  // ========== EFEITOS INICIAIS ==========
-  useEffect(() => {
-    // Simular carregamento de dados do usuário
-    const loadUserData = async () => {
-      setIsLoading(true);
-      
-      try {
-        // TODO: Substituir por chamada real à API
-        // const response = await fetch("http://192.168.0.10:3001/users/me", {
-        //   headers: {
-        //     Authorization: `Bearer ${localStorage.getItem("token")}`,
-        //   },
-        // });
-        // const userData = await response.json();
-        
-        // Dados mockados (remover depois)
-        const mockUser = {
-          name: "Filipe Lima",
-          email: "filipe@email.com",
-          birthDate: "2001-10-12",
-          photo: null,
-          joinedDate: "2024-01-15",
-          lastLogin: new Date().toISOString()
-        };
-        
-        setFormData({
-          name: mockUser.name,
-          email: mockUser.email,
-          birthDate: mockUser.birthDate,
-          photo: null,
-          currentPassword: "",
-          newPassword: "",
-          confirmPassword: "",
-        });
-        
-        setStats({
-          ...stats,
-          joinedDate: mockUser.joinedDate,
-          lastLogin: mockUser.lastLogin
-        });
-        
-        setPhotoPreview("/default-avatar.png");
-        
-      } catch (error) {
-        console.error("Erro ao carregar dados:", error);
-        setMessage({ 
-          type: 'error', 
-          text: 'Erro ao carregar dados do perfil' 
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  // ========== FUNÇÕES DE API ==========
+  const loadUserData = async () => {
+    setIsLoading(true);
     
-    loadUserData();
-  }, []);
+    try {
+      const token = localStorage.getItem("token");
+      
+      if (!token) {
+        setMessage({ type: 'error', text: 'Sessão expirada. Faça login novamente.' });
+        logout();
+        return;
+      }
 
-  // Aplicar tema
+      console.log('🔍 Carregando dados do perfil...');
+      
+      // Buscar dados do usuário
+      const userResponse = await fetch(`${API_BASE_URL}/users/me`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const userResult = await userResponse.json();
+
+      if (!userResponse.ok || userResult.error) {
+        throw new Error(userResult.message || `Erro ${userResponse.status}`);
+      }
+
+      // Buscar contagem de transações
+      let transactionCount = 0;
+      try {
+        const transResponse = await fetch(`${API_BASE_URL}/transactions`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        
+        if (transResponse.ok) {
+          const transData = await transResponse.json();
+          if (transData.data && Array.isArray(transData.data)) {
+            transactionCount = transData.data.length;
+          } else if (transData.message && Array.isArray(transData.message)) {
+            transactionCount = transData.message.length;
+          }
+        }
+      } catch (transError) {
+        console.log('⚠️ Não foi possível contar transações:', transError.message);
+      }
+
+      // Preencher formulário
+      const userData = userResult.data;
+      
+      setFormData({
+        name: userData.name || userData.fullname || authUser?.name || "",
+        email: userData.email || authUser?.email || "",
+        birthDate: userData.birthDate || "2001-10-12",
+        photo: null,
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+
+      // Atualizar estatísticas
+      setStats({
+        joinedDate: userData.createdAt || userData.joinedDate || "2024-01-01",
+        lastLogin: new Date().toISOString(),
+        totalTransactions: transactionCount,
+        devices: 1,
+        theme: darkMode ? "dark" : "light"
+      });
+
+      setTransactionCount(transactionCount);
+      setMessage({ type: '', text: '' });
+      
+    } catch (error) {
+      console.error("Erro ao carregar dados:", error);
+      setMessage({ 
+        type: 'error', 
+        text: error.message || 'Erro ao carregar dados do perfil' 
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ========== EFEITOS ==========
+  useEffect(() => {
+    if (authUser) {
+      loadUserData();
+    }
+  }, [authUser]);
+
   useEffect(() => {
     if (darkMode) {
       document.body.classList.add("dark-mode");
@@ -172,7 +214,6 @@ function Profile() {
 
   // ========== VALIDAÇÕES ==========
   const validateForm = () => {
-    // Validação básica
     if (!formData.name.trim()) {
       setMessage({ type: 'error', text: 'O nome é obrigatório.' });
       return false;
@@ -189,7 +230,6 @@ function Profile() {
       return false;
     }
 
-    // Validação de senha (se estiver alterando)
     if (changePassword) {
       if (!formData.currentPassword) {
         setMessage({ type: 'error', text: 'Digite sua senha atual.' });
@@ -215,9 +255,10 @@ function Profile() {
     return true;
   };
 
-  // ========== SUBMIT ==========
+  // ========== SUBMIT (CORRIGIDO - SEM RELOAD) ==========
   const handleSubmit = async (e) => {
     e.preventDefault();
+    e.stopPropagation(); // Evita reload da página
     
     if (!validateForm()) {
       return;
@@ -227,38 +268,67 @@ function Profile() {
     setMessage({ type: '', text: '' });
 
     try {
-      // TODO: Substituir por chamada real à API
-      // const endpoint = changePassword ? "/users/password" : "/users/me";
-      // const method = changePassword ? "PATCH" : "PATCH";
+      const token = localStorage.getItem("token");
       
-      // const response = await fetch(`http://192.168.0.10:3001${endpoint}`, {
-      //   method,
-      //   headers: {
-      //     "Content-Type": "application/json",
-      //     Authorization: `Bearer ${localStorage.getItem("token")}`,
-      //   },
-      //   body: JSON.stringify(changePassword ? {
-      //     currentPassword: formData.currentPassword,
-      //     newPassword: formData.newPassword
-      //   } : {
-      //     name: formData.name,
-      //     email: formData.email,
-      //     birthDate: formData.birthDate
-      //   }),
-      // });
+      if (!token) {
+        throw new Error('Sessão expirada. Faça login novamente.');
+      }
+
+      let endpoint, method, bodyData;
       
-      // Simular API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      if (changePassword) {
+        endpoint = "/users/password";
+        method = "PATCH";
+        bodyData = {
+          currentPassword: formData.currentPassword,
+          newPassword: formData.newPassword
+        };
+      } else {
+        endpoint = "/users/me";
+        method = "PATCH";
+        bodyData = {
+          name: formData.name,
+          email: formData.email,
+          birthDate: formData.birthDate
+        };
+      }
       
-      // Sucesso
-      setMessage({ 
-        type: 'success', 
-        text: changePassword 
-          ? 'Senha alterada com sucesso!' 
-          : 'Perfil atualizado com sucesso!' 
+      console.log('📤 Enviando dados:', { endpoint, bodyData });
+      
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(bodyData),
       });
       
-      // Limpar campos de senha se alterada
+      const result = await response.json();
+      console.log('📥 Resposta:', result);
+      
+      if (!response.ok || result.error) {
+        throw new Error(result.message || `Erro ${response.status}`);
+      }
+      
+      // Sucesso - NÃO FAZ RELOAD
+      setMessage({ 
+        type: 'success', 
+        text: result.message || 'Operação realizada com sucesso!' 
+      });
+      
+      // Atualizar localStorage sem reload
+      if (!changePassword) {
+        const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
+        const updatedUser = { 
+          ...currentUser, 
+          name: formData.name,
+          email: formData.email
+        };
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+      }
+      
+      // Limpar campos de senha
       if (changePassword) {
         setFormData(prev => ({
           ...prev,
@@ -269,18 +339,11 @@ function Profile() {
         setChangePassword(false);
       }
       
-      // Atualizar dados locais
-      const updatedStats = {
-        ...stats,
-        lastLogin: new Date().toISOString()
-      };
-      setStats(updatedStats);
-      
     } catch (error) {
       console.error("Erro ao atualizar:", error);
       setMessage({ 
         type: 'error', 
-        text: 'Erro ao atualizar perfil. Tente novamente.' 
+        text: error.message || 'Erro ao atualizar perfil. Tente novamente.' 
       });
     } finally {
       setIsSubmitting(false);
@@ -289,7 +352,6 @@ function Profile() {
 
   // ========== FUNÇÕES AUXILIARES ==========
   const exportData = () => {
-    // Simular exportação
     const userData = {
       personal: formData,
       preferences: preferences,
@@ -314,22 +376,47 @@ function Profile() {
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric'
-    });
+    if (!dateString) return "Não informado";
+    
+    try {
+      return new Date(dateString).toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric'
+      });
+    } catch {
+      return "Data inválida";
+    }
   };
 
-  // ========== RENDERIZAÇÃO POR TAB ==========
+  const refreshTransactions = async () => {
+    try {
+      await getAllTransactions();
+      await loadUserData();
+      setMessage({
+        type: 'success',
+        text: 'Dados atualizados com sucesso!'
+      });
+    } catch (error) {
+      setMessage({
+        type: 'error',
+        text: 'Erro ao atualizar transações'
+      });
+    }
+  };
+
+  // ========== RENDERIZAÇÃO ==========
   const renderPersonalTab = () => (
-    <div className="tab-content">
+    <div className="profile-tab-content">
       <div className="profile-picture-section">
         <div className="profile-picture-wrapper">
           <div className="profile-picture-preview">
             <img
               src={photoPreview || "/default-avatar.png"}
               alt="Foto de Perfil"
+              onError={(e) => {
+                e.target.src = "/default-avatar.png";
+              }}
             />
             <div className="profile-picture-overlay">
               <FiCamera size={16} />
@@ -337,7 +424,7 @@ function Profile() {
           </div>
         </div>
         
-        <label className="upload-button">
+        <label className="profile-upload-button">
           <FiCamera />
           <span>Alterar Foto</span>
           <input
@@ -350,7 +437,7 @@ function Profile() {
       </div>
 
       <form onSubmit={handleSubmit} className="profile-form">
-        <div className="form-group">
+        <div className="profile-form-group">
           <label>
             <FiUser className="icon-spacing" />
             Nome Completo
@@ -360,13 +447,13 @@ function Profile() {
             name="name"
             value={formData.name}
             onChange={handleChange}
-            className="form-input"
+            className="profile-form-input"
             placeholder="Digite seu nome completo"
             required
           />
         </div>
 
-        <div className="form-group">
+        <div className="profile-form-group">
           <label>
             <FiCalendar className="icon-spacing" />
             Data de Nascimento
@@ -376,12 +463,12 @@ function Profile() {
             name="birthDate"
             value={formData.birthDate}
             onChange={handleChange}
-            className="form-input"
+            className="profile-form-input"
             required
           />
         </div>
 
-        <div className="form-group">
+        <div className="profile-form-group">
           <label>
             <FiMail className="icon-spacing" />
             Email
@@ -391,17 +478,17 @@ function Profile() {
             name="email"
             value={formData.email}
             onChange={handleChange}
-            className="form-input"
+            className="profile-form-input"
             placeholder="seu@email.com"
             required
           />
         </div>
 
-        <div className="form-divider">
+        <div className="profile-form-divider">
           <FiLock /> Alteração de Senha
         </div>
 
-        <div className="checkbox-group" onClick={() => setChangePassword(!changePassword)}>
+        <div className="profile-checkbox-group" onClick={() => setChangePassword(!changePassword)}>
           <input
             type="checkbox"
             checked={changePassword}
@@ -414,21 +501,21 @@ function Profile() {
         </div>
 
         {changePassword && (
-          <div className="password-section">
-            <div className="form-group">
+          <div className="profile-password-section">
+            <div className="profile-form-group">
               <label>Senha Atual</label>
-              <div className="password-input-wrapper">
+              <div className="profile-password-input-wrapper">
                 <input
                   type={showPassword.current ? "text" : "password"}
                   name="currentPassword"
                   value={formData.currentPassword}
                   onChange={handleChange}
-                  className="form-input"
+                  className="profile-form-input"
                   placeholder="Digite sua senha atual"
                 />
                 <button 
                   type="button"
-                  className="password-toggle"
+                  className="profile-password-toggle"
                   onClick={() => togglePasswordVisibility("current")}
                 >
                   {showPassword.current ? <FiEyeOff /> : <FiEye />}
@@ -436,20 +523,20 @@ function Profile() {
               </div>
             </div>
 
-            <div className="form-group">
+            <div className="profile-form-group">
               <label>Nova Senha</label>
-              <div className="password-input-wrapper">
+              <div className="profile-password-input-wrapper">
                 <input
                   type={showPassword.new ? "text" : "password"}
                   name="newPassword"
                   value={formData.newPassword}
                   onChange={handleChange}
-                  className="form-input"
+                  className="profile-form-input"
                   placeholder="Mínimo 6 caracteres"
                 />
                 <button 
                   type="button"
-                  className="password-toggle"
+                  className="profile-password-toggle"
                   onClick={() => togglePasswordVisibility("new")}
                 >
                   {showPassword.new ? <FiEyeOff /> : <FiEye />}
@@ -457,20 +544,20 @@ function Profile() {
               </div>
             </div>
 
-            <div className="form-group">
+            <div className="profile-form-group">
               <label>Confirmar Nova Senha</label>
-              <div className="password-input-wrapper">
+              <div className="profile-password-input-wrapper">
                 <input
                   type={showPassword.confirm ? "text" : "password"}
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleChange}
-                  className="form-input"
+                  className="profile-form-input"
                   placeholder="Digite a senha novamente"
                 />
                 <button 
                   type="button"
-                  className="password-toggle"
+                  className="profile-password-toggle"
                   onClick={() => togglePasswordVisibility("confirm")}
                 >
                   {showPassword.confirm ? <FiEyeOff /> : <FiEye />}
@@ -481,9 +568,15 @@ function Profile() {
         )}
 
         {message.text && (
-          <div className={`form-message ${message.type}`}>
+          <div className={`profile-form-message ${message.type}`}>
             {message.type === 'success' ? <FiCheckCircle /> : <FiAlertCircle />}
             <span>{message.text}</span>
+            <button 
+              className="profile-message-close"
+              onClick={() => setMessage({ type: '', text: '' })}
+            >
+              <FiX size={14} />
+            </button>
           </div>
         )}
 
@@ -500,23 +593,23 @@ function Profile() {
   );
 
   const renderPreferencesTab = () => (
-    <div className="tab-content">
-      <div className="preferences-grid">
-        <div className="preference-card">
-          <div className="preference-header">
-            <FiSun className="preference-icon" />
+    <div className="profile-tab-content">
+      <div className="profile-preferences-grid">
+        <div className="profile-preference-card">
+          <div className="profile-preference-header">
+            <FiSun className="profile-preference-icon" />
             <h3>Tema da Aplicação</h3>
           </div>
           <p>Escolha entre tema claro ou escuro</p>
-          <div className="preference-control">
+          <div className="profile-preference-control">
             <button 
-              className={`theme-toggle-btn ${!darkMode ? 'active' : ''}`}
+              className={`profile-theme-toggle-btn ${!darkMode ? 'active' : ''}`}
               onClick={() => setDarkMode(false)}
             >
               <FiSun /> Claro
             </button>
             <button 
-              className={`theme-toggle-btn ${darkMode ? 'active' : ''}`}
+              className={`profile-theme-toggle-btn ${darkMode ? 'active' : ''}`}
               onClick={() => setDarkMode(true)}
             >
               <FiMoon /> Escuro
@@ -524,58 +617,58 @@ function Profile() {
           </div>
         </div>
 
-        <div className="preference-card">
-          <div className="preference-header">
-            <FiBell className="preference-icon" />
+        <div className="profile-preference-card">
+          <div className="profile-preference-header">
+            <FiBell className="profile-preference-icon" />
             <h3>Notificações</h3>
           </div>
           <p>Receber alertas e notificações</p>
-          <div className="preference-control">
-            <label className="toggle-switch">
+          <div className="profile-preference-control">
+            <label className="profile-toggle-switch">
               <input
                 type="checkbox"
                 name="notifications"
                 checked={preferences.notifications}
                 onChange={handleChange}
               />
-              <span className="toggle-slider"></span>
+              <span className="profile-toggle-slider"></span>
             </label>
-            <span className="toggle-label">
+            <span className="profile-toggle-label">
               {preferences.notifications ? 'Ativado' : 'Desativado'}
             </span>
           </div>
         </div>
 
-        <div className="preference-card">
-          <div className="preference-header">
-            <FiActivity className="preference-icon" />
+        <div className="profile-preference-card">
+          <div className="profile-preference-header">
+            <FiActivity className="profile-preference-icon" />
             <h3>Relatório Semanal</h3>
           </div>
           <p>Receber resumo semanal por email</p>
-          <div className="preference-control">
-            <label className="toggle-switch">
+          <div className="profile-preference-control">
+            <label className="profile-toggle-switch">
               <input
                 type="checkbox"
                 name="weeklyReport"
                 checked={preferences.weeklyReport}
                 onChange={handleChange}
               />
-              <span className="toggle-slider"></span>
+              <span className="profile-toggle-slider"></span>
             </label>
-            <span className="toggle-label">
+            <span className="profile-toggle-label">
               {preferences.weeklyReport ? 'Ativado' : 'Desativado'}
             </span>
           </div>
         </div>
 
-        <div className="preference-card">
-          <div className="preference-header">
-            <FiGlobe className="preference-icon" />
+        <div className="profile-preference-card">
+          <div className="profile-preference-header">
+            <FiGlobe className="profile-preference-icon" />
             <h3>Moeda Padrão</h3>
           </div>
           <p>Selecione sua moeda principal</p>
           <select 
-            className="form-input"
+            className="profile-form-input"
             value={preferences.currency}
             onChange={(e) => setPreferences(prev => ({
               ...prev,
@@ -589,8 +682,8 @@ function Profile() {
         </div>
       </div>
 
-      <div className="preferences-actions">
-        <button className="btn-secondary" onClick={exportData}>
+      <div className="profile-preferences-actions">
+        <button className="profile-btn-secondary" onClick={exportData}>
           <FiDownload /> Exportar Configurações
         </button>
       </div>
@@ -598,59 +691,73 @@ function Profile() {
   );
 
   const renderStatsTab = () => (
-    <div className="tab-content">
-      <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-icon">
+    <div className="profile-tab-content">
+      <div className="profile-stats-grid">
+        <div className="profile-stat-card">
+          <div className="profile-stat-icon">
+            <FiUser />
+          </div>
+          <div className="profile-stat-info">
+            <h3>Nome</h3>
+            <p>{formData.name || "Não informado"}</p>
+          </div>
+        </div>
+
+        <div className="profile-stat-card">
+          <div className="profile-stat-icon">
+            <FiMail />
+          </div>
+          <div className="profile-stat-info">
+            <h3>Email</h3>
+            <p>{formData.email || "Não informado"}</p>
+          </div>
+        </div>
+
+        <div className="profile-stat-card">
+          <div className="profile-stat-icon">
             <FiCalendar />
           </div>
-          <div className="stat-info">
-            <h3>Data de Cadastro</h3>
+          <div className="profile-stat-info">
+            <h3>Membro desde</h3>
             <p>{formatDate(stats.joinedDate)}</p>
           </div>
         </div>
 
-        <div className="stat-card">
-          <div className="stat-icon">
-            <FiClock />
-          </div>
-          <div className="stat-info">
-            <h3>Último Acesso</h3>
-            <p>{formatDate(stats.lastLogin)}</p>
-          </div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-icon">
+        <div className="profile-stat-card">
+          <div className="profile-stat-icon">
             <FiDatabase />
           </div>
-          <div className="stat-info">
+          <div className="profile-stat-info">
             <h3>Transações</h3>
             <p>{stats.totalTransactions} registros</p>
           </div>
         </div>
+      </div>
 
-        <div className="stat-card">
-          <div className="stat-icon">
-            <FiSmartphone />
-          </div>
-          <div className="stat-info">
-            <h3>Dispositivos</h3>
-            <p>{stats.devices} conectado(s)</p>
-          </div>
+      <div className="profile-data-actions">
+        <h3>Gerenciamento de Dados</h3>
+        <div className="profile-action-buttons">
+          <button className="profile-btn-primary" onClick={exportData}>
+            <FiDownload /> Exportar Meus Dados
+          </button>
+          <button className="profile-btn-secondary" onClick={refreshTransactions}>
+            <FiDatabase /> Atualizar Dados
+          </button>
         </div>
       </div>
 
-      <div className="data-actions">
-        <h3>Gerenciamento de Dados</h3>
-        <div className="action-buttons">
-          <button className="btn-primary" onClick={exportData}>
-            <FiDownload /> Exportar Meus Dados
-          </button>
-          <button className="btn-secondary">
-            <FiDatabase /> Limpar Cache
-          </button>
-        </div>
+      <div className="profile-logout-section">
+        <h3>Sessão</h3>
+        <button 
+          className="profile-btn-danger"
+          onClick={() => {
+            if (window.confirm("Tem certeza que deseja sair?")) {
+              logout();
+            }
+          }}
+        >
+          <FiLogOut /> Sair da Conta
+        </button>
       </div>
     </div>
   );
@@ -661,9 +768,30 @@ function Profile() {
       <Fragment>
         <Header />
         <div className="profile-container">
-          <div className="loading-profile">
-            <div className="loader"></div>
+          <div className="profile-loading">
+            <div className="profile-loader"></div>
             <p>Carregando perfil...</p>
+          </div>
+        </div>
+      </Fragment>
+    );
+  }
+
+  if (!authUser) {
+    return (
+      <Fragment>
+        <Header />
+        <div className="profile-container">
+          <div className="profile-not-logged-in">
+            <FiUser size={48} />
+            <h2>Usuário não logado</h2>
+            <p>Faça login para acessar seu perfil</p>
+            <button 
+              className="profile-btn-primary"
+              onClick={() => window.location.href = "/login"}
+            >
+              Ir para Login
+            </button>
           </div>
         </div>
       </Fragment>
@@ -683,19 +811,19 @@ function Profile() {
           {/* Tabs de Navegação */}
           <div className="profile-tabs">
             <button 
-              className={`tab-btn ${activeTab === "personal" ? "active" : ""}`}
+              className={`profile-tab-btn ${activeTab === "personal" ? "active" : ""}`}
               onClick={() => setActiveTab("personal")}
             >
               <FiUser /> Pessoal
             </button>
             <button 
-              className={`tab-btn ${activeTab === "preferences" ? "active" : ""}`}
+              className={`profile-tab-btn ${activeTab === "preferences" ? "active" : ""}`}
               onClick={() => setActiveTab("preferences")}
             >
               <FiSun /> Preferências
             </button>
             <button 
-              className={`tab-btn ${activeTab === "stats" ? "active" : ""}`}
+              className={`profile-tab-btn ${activeTab === "stats" ? "active" : ""}`}
               onClick={() => setActiveTab("stats")}
             >
               <FiActivity /> Estatísticas
