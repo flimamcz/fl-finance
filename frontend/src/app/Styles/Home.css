@@ -2389,3 +2389,53 @@ body.dark-mode input[type="radio"] {
 .tooltip-row-simple .tooltip-value.negative {
   color: var(--expense);
 }
+
+/* Estilos para o modal de edição */
+.form-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  display: block;
+}
+
+.form-error {
+  background-color: rgba(239, 68, 68, 0.1);
+  border: 1px solid var(--expense);
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--expense);
+}
+
+.transaction-preview {
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  padding: 16px;
+  margin: 20px 0;
+  border: 1px solid var(--border);
+}
+
+.transaction-preview h4 {
+  margin-top: 0;
+  margin-bottom: 12px;
+  color: var(--text-primary);
+}
+
+.preview-content {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.preview-content p {
+  margin: 4px 0;
+  font-size: 14px;
+}
+
+.preview-content strong {
+  color: var(--text-secondary);
+  margin-right: 6px;
+}

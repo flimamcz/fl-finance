@@ -47,6 +47,8 @@ import Moment from "moment";
 import Header from "../Components/Header";
 import MyContext from "../Context/Context";
 import ExportModal from "../Components/ExportModal";
+import EditTransactionModal from "../Components/EditTransactionModal";
+
 import "../Styles/Home.css";
 
 function Home() {
@@ -78,6 +80,11 @@ function Home() {
   const [showErrorTooltip, setShowErrorTooltip] = useState(false);
   const [modalMessage, setModalMessage] = useState("");
   const [modalTitle, setModalTitle] = useState("");
+
+  // Estados para edição
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [transactionToEdit, setTransactionToEdit] = useState(null);
+  const [successMessage, setSuccessMessage] = useState("");
 
   // Export modal
   const [exportModalOpen, setExportModalOpen] = useState(false);
@@ -890,6 +897,12 @@ function Home() {
     printWindow.document.close();
   };
 
+  // Função para abrir modal de edição
+  const handleEditClick = (transaction) => {
+    setTransactionToEdit(transaction);
+    setEditModalOpen(true);
+  };
+
   return (
     <div className="dashboard-container">
       <Header />
@@ -1513,10 +1526,7 @@ function Home() {
                         <div className="transaction-actions">
                           <button
                             className="btn-icon"
-                            onClick={() => {
-                              setSelectedTransaction(transaction);
-                              setActiveModalEdit(true);
-                            }}
+                            onClick={() => handleEditClick(transaction)} // ← NOVA FUNÇÃO
                             type="button"
                             aria-label="Editar"
                           >
@@ -1934,6 +1944,26 @@ function Home() {
           </div>
         </div>
       )}
+
+      {/* Modal de Edição */}
+      <EditTransactionModal
+        isOpen={editModalOpen}
+        onClose={() => {
+          setEditModalOpen(false);
+          setTransactionToEdit(null);
+        }}
+        transaction={transactionToEdit}
+        typesTransactions={typesTransactions}
+        onUpdateSuccess={(message) => {
+          setSuccessMessage(message);
+          // Mostrar tooltip de sucesso (opcional)
+          setModalTitle("Sucesso!");
+          setModalMessage(message);
+          setShowSuccessTooltip(true);
+          setCountdown(3);
+          setIsTooltipClosing(false);
+        }}
+      />
     </div>
   );
 }
