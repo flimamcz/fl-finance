@@ -254,6 +254,7 @@ function Home() {
   }, [transactions]);
 
   // ========== COMPONENTE PERCENTAGE TOOLTIP ==========
+  // NOVO COMPONENTE TOOLTIP - VERSÃO SIMPLIFICADA QUE FUNCIONA
   const PercentageTooltip = ({
     title,
     current,
@@ -264,52 +265,74 @@ function Home() {
     const isPositive = type === "expense" ? diff <= 0 : diff >= 0;
 
     return (
-      <div className="percentage-tooltip">
-        <div className="tooltip-content">
-          <div className="tooltip-header">
-            <strong>{title}</strong>
-            <FiInfo size={14} />
+      <div
+        style={{
+          position: "absolute",
+          bottom: "100%",
+          left: "50%",
+          transform: "translateX(-50%)",
+          backgroundColor: "var(--bg-card)",
+          border: "1px solid var(--border)",
+          borderRadius: "8px",
+          padding: "12px",
+          boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+          zIndex: 1000,
+          minWidth: "220px",
+          opacity: 0,
+          visibility: "hidden",
+          transition: "all 0.3s ease",
+          pointerEvents: "none",
+          fontSize: "13px",
+        }}
+        className="percentage-tooltip-simple"
+      >
+        <div
+          style={{
+            marginBottom: "8px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <strong style={{ color: "var(--text-primary)" }}>{title}</strong>
+          <FiInfo size={12} style={{ color: "var(--text-muted)" }} />
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <span style={{ color: "var(--text-secondary)" }}>
+              Este período:
+            </span>
+            <span style={{ color: "var(--text-primary)", fontWeight: "600" }}>
+              {formatCurrency(current)}
+            </span>
           </div>
-          <div className="tooltip-details">
-            <div className="tooltip-row">
-              <span className="tooltip-label">Este período:</span>
-              <span className="tooltip-value">{formatCurrency(current)}</span>
-            </div>
-            <div className="tooltip-row">
-              <span className="tooltip-label">Período anterior:</span>
-              <span className="tooltip-value">{formatCurrency(previous)}</span>
-            </div>
-            <div className="tooltip-row">
-              <span className="tooltip-label">Diferença:</span>
-              <span
-                className={`tooltip-value ${
-                  isPositive ? "positive" : "negative"
-                }`}
-              >
-                {diff >= 0 ? "+" : ""}
-                {formatCurrency(diff)}
-              </span>
-            </div>
-            <div className="tooltip-row">
-              <span className="tooltip-label">Variação:</span>
-              <span
-                className={`tooltip-value ${
-                  isPositive ? "positive" : "negative"
-                }`}
-              >
-                {diff === 0
-                  ? "0%"
-                  : previous === 0
-                  ? "∞%"
-                  : `${((diff / Math.abs(previous)) * 100).toFixed(1)}%`}
-              </span>
-            </div>
+
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <span style={{ color: "var(--text-secondary)" }}>
+              Período anterior:
+            </span>
+            <span style={{ color: "var(--text-primary)", fontWeight: "600" }}>
+              {formatCurrency(previous)}
+            </span>
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <span style={{ color: "var(--text-secondary)" }}>Diferença:</span>
+            <span
+              style={{
+                color: isPositive ? "var(--income)" : "var(--expense)",
+                fontWeight: "600",
+              }}
+            >
+              {diff >= 0 ? "+" : ""}
+              {formatCurrency(diff)}
+            </span>
           </div>
         </div>
       </div>
     );
   };
-
   // ========== RESTANTE DAS FUNÇÕES ==========
 
   // Função para obter dados do gráfico filtrados

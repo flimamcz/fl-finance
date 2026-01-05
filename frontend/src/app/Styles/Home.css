@@ -2149,3 +2149,243 @@ body.dark-mode input[type="radio"] {
   visibility: visible;
   transform: translateX(-50%) translateY(-5px);
 }
+
+/* ===== TOOLTIPS SIMPLES QUE FUNCIONAM ===== */
+.trend-with-tooltip {
+  position: relative;
+  display: inline-block;
+}
+
+/* ESSE É O SEGREDO - hover no CONTAINER, não no trend */
+.trend-with-tooltip:hover .percentage-tooltip-simple {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: translateX(-50%) translateY(-8px) !important;
+  pointer-events: auto !important;
+}
+
+/* Garantir que o trend seja clicável */
+.trend {
+  cursor: help;
+  transition: transform 0.2s ease;
+}
+
+.trend:hover {
+  transform: scale(1.05);
+}
+
+/* Setinha do tooltip */
+.percentage-tooltip-simple::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: var(--bg-card);
+}
+
+.percentage-tooltip-simple::before {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 7px solid transparent;
+  border-top-color: var(--border);
+  margin-top: -1px;
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+  .percentage-tooltip-simple {
+    min-width: 200px !important;
+    font-size: 12px !important;
+  }
+}
+
+/* ===== CORREÇÃO DO TOOLTIP ===== */
+
+/* 1. O CARD precisa permitir overflow */
+.summary-card {
+  position: relative;
+  overflow: visible !important; /* IMPORTANTE! */
+  z-index: 1;
+}
+
+/* 2. Container do tooltip */
+.trend-with-tooltip {
+  position: relative;
+  display: inline-block;
+  z-index: 100;
+}
+
+/* 3. Tooltip em si */
+.percentage-tooltip-simple {
+  position: absolute;
+  bottom: calc(100% + 15px); /* Distância do elemento pai */
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  z-index: 9999 !important; /* SUPER ALTO */
+  min-width: 260px;
+  max-width: 300px;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+  backdrop-filter: blur(10px);
+}
+
+/* 4. Hover - MOSTRAR */
+.trend-with-tooltip:hover .percentage-tooltip-simple {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: translateX(-50%) translateY(0) !important;
+  pointer-events: auto !important;
+}
+
+/* 5. Setinha do tooltip */
+.percentage-tooltip-simple::before {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 8px solid transparent;
+  border-top-color: var(--border);
+}
+
+.percentage-tooltip-simple::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 7px solid transparent;
+  border-top-color: var(--bg-card);
+  margin-top: -1px;
+}
+
+/* 6. Conteúdo interno do tooltip */
+.tooltip-content-simple {
+  position: relative;
+  z-index: 10000;
+}
+
+/* 7. Ajuste para evitar cortes */
+.dashboard-content,
+.summary-cards {
+  overflow: visible !important;
+}
+
+/* 8. Quando o tooltip está no card de cima */
+.summary-card:hover {
+  z-index: 1000;
+}
+
+/* 9. Responsivo */
+@media (max-width: 768px) {
+  .percentage-tooltip-simple {
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    bottom: auto !important;
+    transform: translate(-50%, -50%) scale(0.9) !important;
+    min-width: 85vw !important;
+    max-width: 85vw !important;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+  
+  .trend-with-tooltip:hover .percentage-tooltip-simple {
+    transform: translate(-50%, -50%) scale(1) !important;
+  }
+  
+  .percentage-tooltip-simple::before,
+  .percentage-tooltip-simple::after {
+    display: none;
+  }
+}
+
+/* 10. Animação */
+@keyframes tooltipPop {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+.percentage-tooltip-simple {
+  animation: tooltipPop 0.2s ease forwards;
+}
+
+/* Conteúdo do tooltip */
+.tooltip-content-simple {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tooltip-header-simple {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.tooltip-header-simple strong {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.tooltip-header-simple svg {
+  color: var(--text-muted);
+}
+
+.tooltip-details-simple {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tooltip-row-simple {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+}
+
+.tooltip-row-simple:not(:last-child) {
+  border-bottom: 1px solid var(--border-light);
+}
+
+.tooltip-row-simple span:first-child {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.tooltip-row-simple .tooltip-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.tooltip-row-simple .tooltip-value.positive {
+  color: var(--income);
+}
+
+.tooltip-row-simple .tooltip-value.negative {
+  color: var(--expense);
+}
