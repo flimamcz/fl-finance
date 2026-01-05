@@ -23,7 +23,8 @@ import {
   FiPrinter,
   FiBarChart2,
   FiEye,
-  FiEyeOff
+  FiEyeOff,
+  FiInfo,
 } from "react-icons/fi";
 import {
   BarChart,
@@ -40,7 +41,7 @@ import {
   AreaChart,
   Area,
   LineChart,
-  Line
+  Line,
 } from "recharts";
 import Moment from "moment";
 import Header from "../Components/Header";
@@ -49,8 +50,13 @@ import ExportModal from "../Components/ExportModal";
 import "../Styles/Home.css";
 
 function Home() {
-  const { transactions, typesTransactions, amounts, getAllTransactions, recalculateAmounts } =
-    useContext(MyContext);
+  const {
+    transactions,
+    typesTransactions,
+    amounts,
+    getAllTransactions,
+    recalculateAmounts,
+  } = useContext(MyContext);
 
   useEffect(() => {
     recalculateAmounts();
@@ -72,7 +78,7 @@ function Home() {
   const [showErrorTooltip, setShowErrorTooltip] = useState(false);
   const [modalMessage, setModalMessage] = useState("");
   const [modalTitle, setModalTitle] = useState("");
-  
+
   // Export modal
   const [exportModalOpen, setExportModalOpen] = useState(false);
 
@@ -109,26 +115,216 @@ function Home() {
 
   // Função para formatar moeda
   const formatCurrency = useCallback((value) => {
-    const numValue = typeof value === 'string' ? parseFloat(value.replace(/[^\d.-]/g, '')) : Number(value) || 0;
+    const numValue =
+      typeof value === "string"
+        ? parseFloat(value.replace(/[^\d.-]/g, ""))
+        : Number(value) || 0;
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
       currency: "BRL",
     }).format(numValue);
   }, []);
 
+  // ========== FUNÇÕES PARA CALCULAR DADOS REAIS ==========
+
+  // Calcular dados detalhados para porcentagens
+  const calculateTrendDetails = useMemo(() => {
+    if (
+      !transactions ||
+      !Array.isArray(transactions) ||
+      transactions.length === 0
+    ) {
+      return {
+        income: { current: 0, previous: 0, percentage: 0, diff: 0 },
+        expense: { current: 0, previous: 0, percentage: 0, diff: 0 },
+        investment: { current: 0, previous: 0, percentage: 0, diff: 0 },
+        balance: { current: 0, previous: 0, percentage: 0, diff: 0 },
+      };
+    }
+
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    // Mês atual
+    const currentMonthData = transactions.filter((t) => {
+      const date = new Date(t.date);
+      return (
+        date.getMonth() === currentMonth && date.getFullYear() === currentYear
+      );
+    });
+
+    // Mês passado
+    const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+    const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+    const lastMonthData = transactions.filter((t) => {
+      const date = new Date(t.date);
+      return (
+        date.getMonth() === lastMonth && date.getFullYear() === lastMonthYear
+      );
+    });
+
+    // Ano atual
+    const currentYearData = transactions.filter((t) => {
+      const date = new Date(t.date);
+      return date.getFullYear() === currentYear;
+    });
+
+    // Ano passado
+    const lastYearData = transactions.filter((t) => {
+      const date = new Date(t.date);
+      return date.getFullYear() === currentYear - 1;
+    });
+
+    // Função para calcular totais por tipo
+    const calculateTotal = (data, typeId) => {
+      return data
+        .filter((t) => t.typeId === typeId)
+        .reduce((acc, t) => acc + (parseFloat(t.value) || 0), 0);
+    };
+
+    // Calcular valores
+    const currentIncome = calculateTotal(currentMonthData, 1);
+    const previousIncome = calculateTotal(lastMonthData, 1);
+    const currentExpense = calculateTotal(currentMonthData, 2);
+    const previousExpense = calculateTotal(lastMonthData, 2);
+    const currentInvestment = calculateTotal(currentYearData, 3);
+    const previousInvestment = calculateTotal(lastYearData, 3);
+
+    // Calcular saldos
+    const calculateBalance = (data) => {
+      return data.reduce((acc, t) => {
+        const value = parseFloat(t.value) || 0;
+        if (t.typeId === 1) return acc + value; // Receita
+        if (t.typeId === 2) return acc - value; // Despesa
+        if (t.typeId === 3) return acc + value; // Investimento
+        return acc;
+      }, 0);
+    };
+
+    const currentBalance = calculateBalance(currentMonthData);
+    const previousBalance = calculateBalance(lastMonthData);
+
+    // Calcular porcentagens
+    const calculatePercentage = (current, previous) => {
+      if (previous === 0) return current > 0 ? 100 : current < 0 ? -100 : 0;
+      return ((current - previous) / Math.abs(previous)) * 100;
+    };
+
+    const incomePercentage = calculatePercentage(currentIncome, previousIncome);
+    const expensePercentage = calculatePercentage(
+      currentExpense,
+      previousExpense
+    );
+    const investmentPercentage = calculatePercentage(
+      currentInvestment,
+      previousInvestment
+    );
+    const balancePercentage = calculatePercentage(
+      currentBalance,
+      previousBalance
+    );
+
+    return {
+      income: {
+        current: currentIncome,
+        previous: previousIncome,
+        percentage: parseFloat(incomePercentage.toFixed(1)),
+        diff: currentIncome - previousIncome,
+      },
+      expense: {
+        current: currentExpense,
+        previous: previousExpense,
+        percentage: parseFloat(expensePercentage.toFixed(1)),
+        diff: currentExpense - previousExpense,
+      },
+      investment: {
+        current: currentInvestment,
+        previous: previousInvestment,
+        percentage: parseFloat(investmentPercentage.toFixed(1)),
+        diff: currentInvestment - previousInvestment,
+      },
+      balance: {
+        current: currentBalance,
+        previous: previousBalance,
+        percentage: parseFloat(balancePercentage.toFixed(1)),
+        diff: currentBalance - previousBalance,
+      },
+    };
+  }, [transactions]);
+
+  // ========== COMPONENTE PERCENTAGE TOOLTIP ==========
+  const PercentageTooltip = ({
+    title,
+    current,
+    previous,
+    diff,
+    type = "default",
+  }) => {
+    const isPositive = type === "expense" ? diff <= 0 : diff >= 0;
+
+    return (
+      <div className="percentage-tooltip">
+        <div className="tooltip-content">
+          <div className="tooltip-header">
+            <strong>{title}</strong>
+            <FiInfo size={14} />
+          </div>
+          <div className="tooltip-details">
+            <div className="tooltip-row">
+              <span className="tooltip-label">Este período:</span>
+              <span className="tooltip-value">{formatCurrency(current)}</span>
+            </div>
+            <div className="tooltip-row">
+              <span className="tooltip-label">Período anterior:</span>
+              <span className="tooltip-value">{formatCurrency(previous)}</span>
+            </div>
+            <div className="tooltip-row">
+              <span className="tooltip-label">Diferença:</span>
+              <span
+                className={`tooltip-value ${
+                  isPositive ? "positive" : "negative"
+                }`}
+              >
+                {diff >= 0 ? "+" : ""}
+                {formatCurrency(diff)}
+              </span>
+            </div>
+            <div className="tooltip-row">
+              <span className="tooltip-label">Variação:</span>
+              <span
+                className={`tooltip-value ${
+                  isPositive ? "positive" : "negative"
+                }`}
+              >
+                {diff === 0
+                  ? "0%"
+                  : previous === 0
+                  ? "∞%"
+                  : `${((diff / Math.abs(previous)) * 100).toFixed(1)}%`}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ========== RESTANTE DAS FUNÇÕES ==========
+
   // Função para obter dados do gráfico filtrados
   const getFilteredChartData = useMemo(() => {
     if (!transactions || !Array.isArray(transactions)) return [];
-    
+
     const now = new Date();
     let filtered = [...transactions];
-    
+
     // Filtrar por período
-    if (timeRange === 'week') {
+    if (timeRange === "week") {
       const sevenDaysAgo = new Date(now);
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      filtered = filtered.filter(t => new Date(t.date) >= sevenDaysAgo);
-      
+      filtered = filtered.filter((t) => new Date(t.date) >= sevenDaysAgo);
+
       // Agrupar por dia
       const daysMap = {};
       for (let i = 0; i < 7; i++) {
@@ -137,28 +333,28 @@ function Home() {
         const dayKey = Moment(date).format("DD/MM");
         daysMap[dayKey] = { income: 0, expense: 0, investment: 0, total: 0 };
       }
-      
-      filtered.forEach(t => {
+
+      filtered.forEach((t) => {
         const dayKey = Moment(t.date).format("DD/MM");
         if (daysMap[dayKey]) {
           const value = parseFloat(t.value) || 0;
-          if (t.typeId === 1) { // Receita
+          if (t.typeId === 1) {
             daysMap[dayKey].income += value;
             daysMap[dayKey].total += value;
-          } else if (t.typeId === 2) { // Despesa
+          } else if (t.typeId === 2) {
             daysMap[dayKey].expense += value;
             daysMap[dayKey].total -= value;
-          } else if (t.typeId === 3) { // Investimento
+          } else if (t.typeId === 3) {
             daysMap[dayKey].investment += value;
-            daysMap[dayKey].total += value; // Investimento é positivo
+            daysMap[dayKey].total += value;
           }
         }
       });
-      
+
       return Object.entries(daysMap)
         .sort((a, b) => {
-          const [dayA, monthA] = a[0].split('/').map(Number);
-          const [dayB, monthB] = b[0].split('/').map(Number);
+          const [dayA, monthA] = a[0].split("/").map(Number);
+          const [dayB, monthB] = b[0].split("/").map(Number);
           if (monthA !== monthB) return monthA - monthB;
           return dayA - dayB;
         })
@@ -168,25 +364,24 @@ function Home() {
           income: data.income,
           expense: data.expense,
           investment: data.investment,
-          balance: data.income - data.expense + data.investment // Inclui investimentos
+          balance: data.income - data.expense + data.investment,
         }));
-        
-    } else if (timeRange === 'month') {
+    } else if (timeRange === "month") {
       const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      filtered = filtered.filter(t => new Date(t.date) >= firstDayOfMonth);
-      
+      filtered = filtered.filter((t) => new Date(t.date) >= firstDayOfMonth);
+
       // Agrupar por semana
       const weeksMap = {};
       for (let i = 0; i < 5; i++) {
         const weekKey = `Sem ${i + 1}`;
         weeksMap[weekKey] = { income: 0, expense: 0, investment: 0, total: 0 };
       }
-      
-      filtered.forEach(t => {
+
+      filtered.forEach((t) => {
         const date = new Date(t.date);
         const weekOfMonth = Math.ceil(date.getDate() / 7);
         const weekKey = `Sem ${Math.min(weekOfMonth, 5)}`;
-        
+
         if (weeksMap[weekKey]) {
           const value = parseFloat(t.value) || 0;
           if (t.typeId === 1) {
@@ -197,39 +392,48 @@ function Home() {
             weeksMap[weekKey].total -= value;
           } else if (t.typeId === 3) {
             weeksMap[weekKey].investment += value;
-            weeksMap[weekKey].total += value; // Investimento é positivo
+            weeksMap[weekKey].total += value;
           }
         }
       });
-      
+
       return Object.entries(weeksMap).map(([name, data]) => ({
         name,
         total: Math.abs(data.total),
         income: data.income,
         expense: data.expense,
         investment: data.investment,
-        balance: data.income - data.expense + data.investment
+        balance: data.income - data.expense + data.investment,
       }));
-      
-    } else if (timeRange === 'year') {
+    } else if (timeRange === "year") {
       const firstDayOfYear = new Date(now.getFullYear(), 0, 1);
-      filtered = filtered.filter(t => new Date(t.date) >= firstDayOfYear);
-      
+      filtered = filtered.filter((t) => new Date(t.date) >= firstDayOfYear);
+
       // Agrupar por mês
       const months = [
-        'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
-        'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'
+        "Jan",
+        "Fev",
+        "Mar",
+        "Abr",
+        "Mai",
+        "Jun",
+        "Jul",
+        "Ago",
+        "Set",
+        "Out",
+        "Nov",
+        "Dez",
       ];
-      
+
       const monthsMap = {};
-      months.forEach(month => {
+      months.forEach((month) => {
         monthsMap[month] = { income: 0, expense: 0, investment: 0, total: 0 };
       });
-      
-      filtered.forEach(t => {
+
+      filtered.forEach((t) => {
         const monthIndex = new Date(t.date).getMonth();
         const monthKey = months[monthIndex];
-        
+
         if (monthsMap[monthKey]) {
           const value = parseFloat(t.value) || 0;
           if (t.typeId === 1) {
@@ -240,26 +444,29 @@ function Home() {
             monthsMap[monthKey].total -= value;
           } else if (t.typeId === 3) {
             monthsMap[monthKey].investment += value;
-            monthsMap[monthKey].total += value; // Investimento é positivo
+            monthsMap[monthKey].total += value;
           }
         }
       });
-      
-      return months.map(month => ({
+
+      return months.map((month) => ({
         name: month,
         total: Math.abs(monthsMap[month].total),
         income: monthsMap[month].income,
         expense: monthsMap[month].expense,
         investment: monthsMap[month].investment,
-        balance: monthsMap[month].income - monthsMap[month].expense + monthsMap[month].investment
+        balance:
+          monthsMap[month].income -
+          monthsMap[month].expense +
+          monthsMap[month].investment,
       }));
     }
-    
+
     // Default: últimos 30 dias
     const thirtyDaysAgo = new Date(now);
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    filtered = filtered.filter(t => new Date(t.date) >= thirtyDaysAgo);
-    
+    filtered = filtered.filter((t) => new Date(t.date) >= thirtyDaysAgo);
+
     const dailyMap = {};
     for (let i = 0; i < 30; i++) {
       const date = new Date(now);
@@ -267,8 +474,8 @@ function Home() {
       const dayKey = Moment(date).format("DD/MM");
       dailyMap[dayKey] = { income: 0, expense: 0, investment: 0, total: 0 };
     }
-    
-    filtered.forEach(t => {
+
+    filtered.forEach((t) => {
       const dayKey = Moment(t.date).format("DD/MM");
       if (dailyMap[dayKey]) {
         const value = parseFloat(t.value) || 0;
@@ -280,15 +487,15 @@ function Home() {
           dailyMap[dayKey].total -= value;
         } else if (t.typeId === 3) {
           dailyMap[dayKey].investment += value;
-          dailyMap[dayKey].total += value; // Investimento é positivo
+          dailyMap[dayKey].total += value;
         }
       }
     });
-    
+
     return Object.entries(dailyMap)
       .sort((a, b) => {
-        const [dayA, monthA] = a[0].split('/').map(Number);
-        const [dayB, monthB] = b[0].split('/').map(Number);
+        const [dayA, monthA] = a[0].split("/").map(Number);
+        const [dayB, monthB] = b[0].split("/").map(Number);
         if (monthA !== monthB) return monthA - monthB;
         return dayA - dayB;
       })
@@ -299,7 +506,7 @@ function Home() {
         income: data.income,
         expense: data.expense,
         investment: data.investment,
-        balance: data.income - data.expense + data.investment
+        balance: data.income - data.expense + data.investment,
       }));
   }, [transactions, timeRange]);
 
@@ -318,7 +525,7 @@ function Home() {
       } else if (typeId === 2) {
         totals.expense += value;
       } else if (typeId === 3) {
-        totals.investment += value; // Investimento positivo
+        totals.investment += value;
       }
     });
 
@@ -344,7 +551,7 @@ function Home() {
       result.push({
         name: "Investimentos",
         value: totals.investment,
-        color: "#f59e0b", // Cor laranja para investimentos
+        color: "#f59e0b",
       });
     }
 
@@ -390,10 +597,10 @@ function Home() {
     );
   }, []);
 
-  // Calcular valores CORRETOS incluindo investimentos como positivos
+  // Calcular valores
   const parsedAmounts = useMemo(() => {
     const parseAmount = (amount) => {
-      if (typeof amount === 'object' && amount !== null && 'amount' in amount) {
+      if (typeof amount === "object" && amount !== null && "amount" in amount) {
         return parseFloat(amount.amount) || 0;
       }
       return parseFloat(amount) || 0;
@@ -402,7 +609,7 @@ function Home() {
     const income = amounts.length > 0 ? parseAmount(amounts[0]) : 0;
     const expense = amounts.length > 1 ? parseAmount(amounts[1]) : 0;
     const investment = amounts.length > 2 ? parseAmount(amounts[2]) : 0;
-    const balance = income - expense + investment; // CORREÇÃO: Investimentos somam ao saldo
+    const balance = income - expense + investment;
 
     return { income, expense, investment, balance };
   }, [amounts]);
@@ -418,25 +625,25 @@ function Home() {
     });
   }, [transactions, activeFilter]);
 
-  // Calcular totais filtrados CORRETAMENTE
+  // Calcular totais filtrados
   const filteredTotals = useMemo(() => {
     let total = 0;
     let incomeTotal = 0;
     let expenseTotal = 0;
     let investmentTotal = 0;
 
-    filteredTransactions.forEach(t => {
+    filteredTransactions.forEach((t) => {
       const value = parseFloat(t.value) || 0;
-      
-      if (t.typeId === 1) { // Receita
+
+      if (t.typeId === 1) {
         incomeTotal += value;
         total += value;
-      } else if (t.typeId === 2) { // Despesa
+      } else if (t.typeId === 2) {
         expenseTotal += value;
         total -= value;
-      } else if (t.typeId === 3) { // Investimento
+      } else if (t.typeId === 3) {
         investmentTotal += value;
-        total += value; // CORREÇÃO: Investimento soma ao total
+        total += value;
       }
     });
 
@@ -499,16 +706,30 @@ function Home() {
 
   // Efeito para o countdown dos tooltips
   useEffect(() => {
-    if ((showSuccessTooltip || showErrorTooltip) && countdown > 0 && !isTooltipClosing) {
+    if (
+      (showSuccessTooltip || showErrorTooltip) &&
+      countdown > 0 &&
+      !isTooltipClosing
+    ) {
       const timer = setTimeout(() => {
-        setCountdown(prev => prev - 1);
+        setCountdown((prev) => prev - 1);
       }, 1000);
-      
+
       return () => clearTimeout(timer);
-    } else if ((showSuccessTooltip || showErrorTooltip) && countdown === 0 && !isTooltipClosing) {
+    } else if (
+      (showSuccessTooltip || showErrorTooltip) &&
+      countdown === 0 &&
+      !isTooltipClosing
+    ) {
       closeTooltipWithAnimation();
     }
-  }, [showSuccessTooltip, showErrorTooltip, countdown, isTooltipClosing, closeTooltipWithAnimation]);
+  }, [
+    showSuccessTooltip,
+    showErrorTooltip,
+    countdown,
+    isTooltipClosing,
+    closeTooltipWithAnimation,
+  ]);
 
   // Salvar transação
   const saveTransaction = async (e) => {
@@ -562,7 +783,7 @@ function Home() {
 
   // Função de impressão
   const handlePrint = () => {
-    const printWindow = window.open('', '_blank');
+    const printWindow = window.open("", "_blank");
     printWindow.document.write(`
       <!DOCTYPE html>
       <html>
@@ -581,7 +802,7 @@ function Home() {
       <body>
         <div class="header">
           <h1>Relatório Financeiro</h1>
-          <p>Gerado em: ${new Date().toLocaleDateString('pt-BR')}</p>
+          <p>Gerado em: ${new Date().toLocaleDateString("pt-BR")}</p>
         </div>
         <div class="cards">
           <div class="card">
@@ -612,14 +833,26 @@ function Home() {
             </tr>
           </thead>
           <tbody>
-            ${filteredTransactions.map(t => `
+            ${filteredTransactions
+              .map(
+                (t) => `
               <tr>
                 <td>${Moment(t.date).format("DD/MM/YYYY")}</td>
                 <td>${t.description}</td>
-                <td>${t.typeId === 1 ? 'Receita' : t.typeId === 2 ? 'Despesa' : 'Investimento'}</td>
-                <td>${t.typeId === 2 ? '-' : '+'} ${formatCurrency(t.value)}</td>
+                <td>${
+                  t.typeId === 1
+                    ? "Receita"
+                    : t.typeId === 2
+                    ? "Despesa"
+                    : "Investimento"
+                }</td>
+                <td>${t.typeId === 2 ? "-" : "+"} ${formatCurrency(
+                  t.value
+                )}</td>
               </tr>
-            `).join('')}
+            `
+              )
+              .join("")}
           </tbody>
         </table>
         <script>
@@ -637,7 +870,7 @@ function Home() {
   return (
     <div className="dashboard-container">
       <Header />
-      
+
       {/* Botão de Tema */}
       <div className="theme-toggle" onClick={() => setDarkMode(!darkMode)}>
         {darkMode ? (
@@ -655,13 +888,16 @@ function Home() {
             <p>Gerencie suas finanças de forma inteligente</p>
             <div className="quick-stats">
               <span className="stat-item">
-                <FiTrendingUp /> {transactions.filter(t => t.typeId === 1).length} receitas
+                <FiTrendingUp />{" "}
+                {transactions.filter((t) => t.typeId === 1).length} receitas
               </span>
               <span className="stat-item">
-                <FiTrendingDown /> {transactions.filter(t => t.typeId === 2).length} despesas
+                <FiTrendingDown />{" "}
+                {transactions.filter((t) => t.typeId === 2).length} despesas
               </span>
               <span className="stat-item">
-                <FiTarget /> {transactions.filter(t => t.typeId === 3).length} investimentos
+                <FiTarget /> {transactions.filter((t) => t.typeId === 3).length}{" "}
+                investimentos
               </span>
             </div>
           </div>
@@ -669,8 +905,8 @@ function Home() {
             <div className="date-info">
               <FiCalendar /> {getFormattedDate()}
             </div>
-            <button 
-              className="btn-eye" 
+            <button
+              className="btn-eye"
               onClick={() => setShowValues(!showValues)}
               title={showValues ? "Ocultar valores" : "Mostrar valores"}
             >
@@ -679,8 +915,9 @@ function Home() {
           </div>
         </div>
 
-        {/* Cards Resumo */}
+        {/* Cards Resumo COM TOOLTIPS */}
         <div className="summary-cards">
+          {/* Card Saldo Total - ATUALIZADO */}
           <div className="summary-card total-balance">
             <div className="card-header">
               <FiDollarSign className="card-icon" />
@@ -693,13 +930,35 @@ function Home() {
               {showValues ? formatCurrency(parsedAmounts.balance) : "••••••"}
             </div>
             <div className="card-trend">
-              <span className={`trend ${parsedAmounts.balance >= 0 ? 'positive' : 'negative'}`}>
-                {parsedAmounts.balance >= 0 ? <FiArrowUp /> : <FiArrowDown />}
-                {showValues ? formatCurrency(Math.abs(parsedAmounts.balance)) : "••••••"}
-              </span>
+              <div className="trend-with-tooltip">
+                <span
+                  className={`trend ${
+                    calculateTrendDetails.balance.diff >= 0
+                      ? "positive"
+                      : "negative"
+                  }`}
+                >
+                  {calculateTrendDetails.balance.diff >= 0 ? (
+                    <FiArrowUp />
+                  ) : (
+                    <FiArrowDown />
+                  )}
+                  {showValues
+                    ? `${Math.abs(calculateTrendDetails.balance.percentage)}%`
+                    : "•••"}{" "}
+                  vs mês passado
+                </span>
+                <PercentageTooltip
+                  title="Variação do Saldo"
+                  current={calculateTrendDetails.balance.current}
+                  previous={calculateTrendDetails.balance.previous}
+                  diff={calculateTrendDetails.balance.diff}
+                />
+              </div>
             </div>
           </div>
 
+          {/* Card Receitas - ATUALIZADO */}
           <div className="summary-card income-card">
             <div className="card-header">
               <FiTrendingUp className="card-icon" />
@@ -712,12 +971,35 @@ function Home() {
               {showValues ? formatCurrency(parsedAmounts.income) : "••••••"}
             </div>
             <div className="card-trend">
-              <span className="trend positive">
-                <FiArrowUp /> +12% vs mês passado
-              </span>
+              <div className="trend-with-tooltip">
+                <span
+                  className={`trend ${
+                    calculateTrendDetails.income.diff >= 0
+                      ? "positive"
+                      : "negative"
+                  }`}
+                >
+                  {calculateTrendDetails.income.diff >= 0 ? (
+                    <FiArrowUp />
+                  ) : (
+                    <FiArrowDown />
+                  )}
+                  {showValues
+                    ? `${Math.abs(calculateTrendDetails.income.percentage)}%`
+                    : "•••"}{" "}
+                  vs mês passado
+                </span>
+                <PercentageTooltip
+                  title="Variação de Receitas"
+                  current={calculateTrendDetails.income.current}
+                  previous={calculateTrendDetails.income.previous}
+                  diff={calculateTrendDetails.income.diff}
+                />
+              </div>
             </div>
           </div>
 
+          {/* Card Despesas - ATUALIZADO */}
           <div className="summary-card expense-card">
             <div className="card-header">
               <FiTrendingDown className="card-icon" />
@@ -730,12 +1012,36 @@ function Home() {
               {showValues ? formatCurrency(parsedAmounts.expense) : "••••••"}
             </div>
             <div className="card-trend">
-              <span className="trend negative">
-                <FiArrowDown /> -5% vs mês passado
-              </span>
+              <div className="trend-with-tooltip expense-tooltip">
+                <span
+                  className={`trend ${
+                    calculateTrendDetails.expense.diff <= 0
+                      ? "positive"
+                      : "negative"
+                  }`}
+                >
+                  {calculateTrendDetails.expense.diff <= 0 ? (
+                    <FiArrowDown />
+                  ) : (
+                    <FiArrowUp />
+                  )}
+                  {showValues
+                    ? `${calculateTrendDetails.expense.percentage}%`
+                    : "•••"}{" "}
+                  vs mês passado
+                </span>
+                <PercentageTooltip
+                  title="Variação de Despesas"
+                  current={calculateTrendDetails.expense.current}
+                  previous={calculateTrendDetails.expense.previous}
+                  diff={calculateTrendDetails.expense.diff}
+                  type="expense"
+                />
+              </div>
             </div>
           </div>
 
+          {/* Card Investimentos - ATUALIZADO */}
           <div className="summary-card investment-card">
             <div className="card-header">
               <FiTarget className="card-icon" />
@@ -748,9 +1054,33 @@ function Home() {
               {showValues ? formatCurrency(parsedAmounts.investment) : "••••••"}
             </div>
             <div className="card-trend">
-              <span className="trend positive">
-                <FiArrowUp /> +15% este ano
-              </span>
+              <div className="trend-with-tooltip">
+                <span
+                  className={`trend ${
+                    calculateTrendDetails.investment.diff >= 0
+                      ? "positive"
+                      : "negative"
+                  }`}
+                >
+                  {calculateTrendDetails.investment.diff >= 0 ? (
+                    <FiArrowUp />
+                  ) : (
+                    <FiArrowDown />
+                  )}
+                  {showValues
+                    ? `${Math.abs(
+                        calculateTrendDetails.investment.percentage
+                      )}%`
+                    : "•••"}{" "}
+                  vs ano passado
+                </span>
+                <PercentageTooltip
+                  title="Variação de Investimentos"
+                  current={calculateTrendDetails.investment.current}
+                  previous={calculateTrendDetails.investment.previous}
+                  diff={calculateTrendDetails.investment.diff}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -762,30 +1092,40 @@ function Home() {
               <div>
                 <h3>Fluxo Financeiro</h3>
                 <span className="chart-subtitle">
-                  {timeRange === 'week' ? 'Esta semana' : 
-                   timeRange === 'month' ? 'Este mês' : 
-                   timeRange === 'year' ? 'Este ano' : 'Últimos 30 dias'}
+                  {timeRange === "week"
+                    ? "Esta semana"
+                    : timeRange === "month"
+                    ? "Este mês"
+                    : timeRange === "year"
+                    ? "Este ano"
+                    : "Últimos 30 dias"}
                 </span>
               </div>
               <div className="chart-controls">
                 <div className="view-toggle">
-                  <button 
-                    className={`view-btn ${chartView === 'bar' ? 'active' : ''}`}
-                    onClick={() => setChartView('bar')}
+                  <button
+                    className={`view-btn ${
+                      chartView === "bar" ? "active" : ""
+                    }`}
+                    onClick={() => setChartView("bar")}
                     title="Gráfico de barras"
                   >
                     <FiBarChart2 />
                   </button>
-                  <button 
-                    className={`view-btn ${chartView === 'area' ? 'active' : ''}`}
-                    onClick={() => setChartView('area')}
+                  <button
+                    className={`view-btn ${
+                      chartView === "area" ? "active" : ""
+                    }`}
+                    onClick={() => setChartView("area")}
                     title="Gráfico de área"
                   >
                     <FiTrendingUp />
                   </button>
-                  <button 
-                    className={`view-btn ${chartView === 'line' ? 'active' : ''}`}
-                    onClick={() => setChartView('line')}
+                  <button
+                    className={`view-btn ${
+                      chartView === "line" ? "active" : ""
+                    }`}
+                    onClick={() => setChartView("line")}
                     title="Gráfico de linha"
                   >
                     <FiTrendingDown />
@@ -803,56 +1143,76 @@ function Home() {
                 </select>
               </div>
             </div>
-            
+
             <div className="chart-container">
               {getFilteredChartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={250}>
-                  {chartView === 'bar' ? (
+                  {chartView === "bar" ? (
                     <BarChart data={getFilteredChartData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                       <XAxis dataKey="name" stroke="#64748b" />
-                      <YAxis 
+                      <YAxis
                         stroke="#64748b"
-                        tickFormatter={(value) => showValues ? `R$ ${value.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}` : '••••'}
+                        tickFormatter={(value) =>
+                          showValues
+                            ? `R$ ${value.toLocaleString("pt-BR", {
+                                maximumFractionDigits: 0,
+                              })}`
+                            : "••••"
+                        }
                       />
                       <RechartsTooltip
-                        formatter={(value) => showValues ? [formatCurrency(value), "Valor"] : ['••••', 'Valor']}
+                        formatter={(value) =>
+                          showValues
+                            ? [formatCurrency(value), "Valor"]
+                            : ["••••", "Valor"]
+                        }
                         labelFormatter={(label) => `Período: ${label}`}
                         contentStyle={{
                           backgroundColor: "var(--bg-card)",
                           border: "1px solid var(--border)",
                           borderRadius: "8px",
-                          color: "var(--text-primary)"
+                          color: "var(--text-primary)",
                         }}
                       />
-                      <Bar 
-                        dataKey="total" 
-                        fill="#6366f1" 
+                      <Bar
+                        dataKey="total"
+                        fill="#6366f1"
                         radius={[4, 4, 0, 0]}
                         name="Total"
                       />
                     </BarChart>
-                  ) : chartView === 'area' ? (
+                  ) : chartView === "area" ? (
                     <AreaChart data={getFilteredChartData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                       <XAxis dataKey="name" stroke="#64748b" />
-                      <YAxis 
+                      <YAxis
                         stroke="#64748b"
-                        tickFormatter={(value) => showValues ? `R$ ${value.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}` : '••••'}
+                        tickFormatter={(value) =>
+                          showValues
+                            ? `R$ ${value.toLocaleString("pt-BR", {
+                                maximumFractionDigits: 0,
+                              })}`
+                            : "••••"
+                        }
                       />
                       <RechartsTooltip
-                        formatter={(value) => showValues ? [formatCurrency(value), "Valor"] : ['••••', 'Valor']}
+                        formatter={(value) =>
+                          showValues
+                            ? [formatCurrency(value), "Valor"]
+                            : ["••••", "Valor"]
+                        }
                         contentStyle={{
                           backgroundColor: "var(--bg-card)",
                           border: "1px solid var(--border)",
                           borderRadius: "8px",
-                          color: "var(--text-primary)"
+                          color: "var(--text-primary)",
                         }}
                       />
-                      <Area 
-                        type="monotone" 
-                        dataKey="total" 
-                        fill="#6366f1" 
+                      <Area
+                        type="monotone"
+                        dataKey="total"
+                        fill="#6366f1"
                         stroke="#6366f1"
                         fillOpacity={0.3}
                         name="Total"
@@ -862,23 +1222,33 @@ function Home() {
                     <LineChart data={getFilteredChartData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                       <XAxis dataKey="name" stroke="#64748b" />
-                      <YAxis 
+                      <YAxis
                         stroke="#64748b"
-                        tickFormatter={(value) => showValues ? `R$ ${value.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}` : '••••'}
+                        tickFormatter={(value) =>
+                          showValues
+                            ? `R$ ${value.toLocaleString("pt-BR", {
+                                maximumFractionDigits: 0,
+                              })}`
+                            : "••••"
+                        }
                       />
                       <RechartsTooltip
-                        formatter={(value) => showValues ? [formatCurrency(value), "Valor"] : ['••••', 'Valor']}
+                        formatter={(value) =>
+                          showValues
+                            ? [formatCurrency(value), "Valor"]
+                            : ["••••", "Valor"]
+                        }
                         contentStyle={{
                           backgroundColor: "var(--bg-card)",
                           border: "1px solid var(--border)",
                           borderRadius: "8px",
-                          color: "var(--text-primary)"
+                          color: "var(--text-primary)",
                         }}
                       />
-                      <Line 
-                        type="monotone" 
-                        dataKey="total" 
-                        stroke="#6366f1" 
+                      <Line
+                        type="monotone"
+                        dataKey="total"
+                        stroke="#6366f1"
                         strokeWidth={2}
                         dot={{ r: 4 }}
                         activeDot={{ r: 6 }}
@@ -893,8 +1263,6 @@ function Home() {
                   <p>Nenhum dado disponível para o período selecionado</p>
                 </div>
               )}
-              
-             
             </div>
           </div>
 
@@ -906,7 +1274,8 @@ function Home() {
               </div>
             </div>
             <div className="chart-container">
-              {categoryData.length > 0 && categoryData[0].name !== "Sem dados" ? (
+              {categoryData.length > 0 &&
+              categoryData[0].name !== "Sem dados" ? (
                 <>
                   <ResponsiveContainer width="100%" height={200}>
                     <PieChart>
@@ -915,8 +1284,8 @@ function Home() {
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={(entry) => 
-                          showValues 
+                        label={(entry) =>
+                          showValues
                             ? `${entry.name}: ${formatCurrency(entry.value)}`
                             : `${entry.name}: ••••••`
                         }
@@ -931,13 +1300,15 @@ function Home() {
                         ))}
                       </Pie>
                       <RechartsTooltip
-                        formatter={(value) => showValues ? formatCurrency(value) : '••••••'}
+                        formatter={(value) =>
+                          showValues ? formatCurrency(value) : "••••••"
+                        }
                         labelFormatter={(name) => `Categoria: ${name}`}
                         contentStyle={{
                           backgroundColor: "var(--bg-card)",
                           border: "1px solid var(--border)",
                           borderRadius: "8px",
-                          color: "var(--text-primary)"
+                          color: "var(--text-primary)",
                         }}
                       />
                     </PieChart>
@@ -945,10 +1316,13 @@ function Home() {
                   <div className="pie-legend">
                     {categoryData.map((item, index) => (
                       <div key={index} className="legend-item">
-                        <span className="legend-color" style={{ backgroundColor: item.color }}></span>
+                        <span
+                          className="legend-color"
+                          style={{ backgroundColor: item.color }}
+                        ></span>
                         <span className="legend-label">{item.name}</span>
                         <span className="legend-value">
-                          {showValues ? formatCurrency(item.value) : '••••••'}
+                          {showValues ? formatCurrency(item.value) : "••••••"}
                         </span>
                       </div>
                     ))}
@@ -976,32 +1350,41 @@ function Home() {
             <div className="section-actions">
               <div className="filter-buttons">
                 <button
-                  className={`filter-btn ${activeFilter === "all" ? "active" : ""}`}
+                  className={`filter-btn ${
+                    activeFilter === "all" ? "active" : ""
+                  }`}
                   onClick={() => setActiveFilter("all")}
                   type="button"
                 >
                   Todas ({transactions.length})
                 </button>
                 <button
-                  className={`filter-btn ${activeFilter === "income" ? "active" : ""}`}
+                  className={`filter-btn ${
+                    activeFilter === "income" ? "active" : ""
+                  }`}
                   onClick={() => setActiveFilter("income")}
                   type="button"
                 >
-                  Receitas ({transactions.filter(t => t.typeId === 1).length})
+                  Receitas ({transactions.filter((t) => t.typeId === 1).length})
                 </button>
                 <button
-                  className={`filter-btn ${activeFilter === "expense" ? "active" : ""}`}
+                  className={`filter-btn ${
+                    activeFilter === "expense" ? "active" : ""
+                  }`}
                   onClick={() => setActiveFilter("expense")}
                   type="button"
                 >
-                  Despesas ({transactions.filter(t => t.typeId === 2).length})
+                  Despesas ({transactions.filter((t) => t.typeId === 2).length})
                 </button>
                 <button
-                  className={`filter-btn ${activeFilter === "investment" ? "active" : ""}`}
+                  className={`filter-btn ${
+                    activeFilter === "investment" ? "active" : ""
+                  }`}
                   onClick={() => setActiveFilter("investment")}
                   type="button"
                 >
-                  Investimentos ({transactions.filter(t => t.typeId === 3).length})
+                  Investimentos (
+                  {transactions.filter((t) => t.typeId === 3).length})
                 </button>
               </div>
 
@@ -1052,7 +1435,13 @@ function Home() {
                   </button>
                 </div>
               ) : (
-                <div className={viewMode === "grid" ? "transactions-grid" : "transactions-list"}>
+                <div
+                  className={
+                    viewMode === "grid"
+                      ? "transactions-grid"
+                      : "transactions-list"
+                  }
+                >
                   {filteredTransactions.map((transaction) => (
                     <div key={transaction.id} className="transaction-card">
                       <div className="transaction-header">
@@ -1062,23 +1451,31 @@ function Home() {
                         <div className="transaction-info">
                           <h4>{transaction.description || "Sem descrição"}</h4>
                           <span className="transaction-date">
-                            <FiCalendar /> {Moment(transaction.date).format("DD/MM/YYYY")}
+                            <FiCalendar />{" "}
+                            {Moment(transaction.date).format("DD/MM/YYYY")}
                           </span>
                         </div>
                         <div className="transaction-amount">
                           <span
                             className={`amount ${
-                              transaction.typeId === 2 ? "negative" : 
-                              transaction.typeId === 3 ? "investment" : "positive"
+                              transaction.typeId === 2
+                                ? "negative"
+                                : transaction.typeId === 3
+                                ? "investment"
+                                : "positive"
                             }`}
                           >
-                            {/* Investimento mostra +, Despesa mostra - */}
                             {transaction.typeId === 2 ? "- " : "+ "}
-                            {showValues ? formatCurrency(transaction.value) : "••••••"}
+                            {showValues
+                              ? formatCurrency(transaction.value)
+                              : "••••••"}
                           </span>
                           <span className="transaction-type">
-                            {transaction.typeId === 1 ? "Receita" : 
-                             transaction.typeId === 2 ? "Despesa" : "Investimento"}
+                            {transaction.typeId === 1
+                              ? "Receita"
+                              : transaction.typeId === 2
+                              ? "Despesa"
+                              : "Investimento"}
                           </span>
                         </div>
                       </div>
@@ -1123,21 +1520,32 @@ function Home() {
             <div className="transactions-footer">
               <div className="transactions-summary">
                 <span className="summary-item">
-                  <strong>Total:</strong> {showValues ? formatCurrency(filteredTotals.total) : '••••••'}
+                  <strong>Total:</strong>{" "}
+                  {showValues ? formatCurrency(filteredTotals.total) : "••••••"}
                 </span>
                 <span className="summary-item">
-                  <strong>Receitas:</strong> {showValues ? formatCurrency(filteredTotals.incomeTotal) : '••••••'}
+                  <strong>Receitas:</strong>{" "}
+                  {showValues
+                    ? formatCurrency(filteredTotals.incomeTotal)
+                    : "••••••"}
                 </span>
                 <span className="summary-item">
-                  <strong>Despesas:</strong> {showValues ? formatCurrency(filteredTotals.expenseTotal) : '••••••'}
+                  <strong>Despesas:</strong>{" "}
+                  {showValues
+                    ? formatCurrency(filteredTotals.expenseTotal)
+                    : "••••••"}
                 </span>
                 <span className="summary-item">
-                  <strong>Investimentos:</strong> {showValues ? formatCurrency(filteredTotals.investmentTotal) : '••••••'}
+                  <strong>Investimentos:</strong>{" "}
+                  {showValues
+                    ? formatCurrency(filteredTotals.investmentTotal)
+                    : "••••••"}
                 </span>
               </div>
               <div className="pagination">
                 <span>
-                  Mostrando {filteredTransactions.length} de {transactions.length} transações
+                  Mostrando {filteredTransactions.length} de{" "}
+                  {transactions.length} transações
                 </span>
               </div>
             </div>
@@ -1153,18 +1561,21 @@ function Home() {
         amounts={amounts}
         filters={{
           activeFilter,
-          timeRange
+          timeRange,
         }}
       />
 
       {/* Modal de Confirmação de Exclusão */}
       {showConfirmModal && (
-        <div className="modal-overlay" onClick={(e) => {
-          if (e.target === e.currentTarget) {
-            setShowConfirmModal(false);
-            setSelectedTransaction(null);
-          }
-        }}>
+        <div
+          className="modal-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowConfirmModal(false);
+              setSelectedTransaction(null);
+            }
+          }}
+        >
           <div className="modal-content modal-sm confirm-modal">
             <div className="modal-header">
               <h2>{modalTitle}</h2>
@@ -1193,11 +1604,16 @@ function Home() {
                     <span className="preview-label">Valor:</span>
                     <span
                       className={`preview-value ${
-                        selectedTransaction.typeId === 1 ? "positive" :
-                        selectedTransaction.typeId === 2 ? "negative" : "investment"
+                        selectedTransaction.typeId === 1
+                          ? "positive"
+                          : selectedTransaction.typeId === 2
+                          ? "negative"
+                          : "investment"
                       }`}
                     >
-                      {showValues ? formatCurrency(selectedTransaction.value) : "••••••"}
+                      {showValues
+                        ? formatCurrency(selectedTransaction.value)
+                        : "••••••"}
                     </span>
                   </div>
                   <div className="transaction-preview">
@@ -1209,8 +1625,11 @@ function Home() {
                   <div className="transaction-preview">
                     <span className="preview-label">Tipo:</span>
                     <span className="preview-value">
-                      {selectedTransaction.typeId === 1 ? "Receita" : 
-                       selectedTransaction.typeId === 2 ? "Despesa" : "Investimento"}
+                      {selectedTransaction.typeId === 1
+                        ? "Receita"
+                        : selectedTransaction.typeId === 2
+                        ? "Despesa"
+                        : "Investimento"}
                     </span>
                   </div>
                 </div>
@@ -1248,7 +1667,11 @@ function Home() {
 
       {/* Tooltip de Sucesso com Countdown */}
       {showSuccessTooltip && (
-        <div className={`notification-tooltip success-tooltip ${isTooltipClosing ? 'fade-out' : ''}`}>
+        <div
+          className={`notification-tooltip success-tooltip ${
+            isTooltipClosing ? "fade-out" : ""
+          }`}
+        >
           <div className="tooltip-content">
             <div className="tooltip-header">
               <FiCheckCircle size={20} color="#10b981" />
@@ -1262,19 +1685,20 @@ function Home() {
                 <FiX size={16} />
               </button>
             </div>
-            
+
             <div className="tooltip-body">
               <p className="tooltip-message">{modalMessage}</p>
-              
+
               <div className="countdown-container">
                 <div className="countdown-bar">
-                  <div 
-                    className="countdown-progress" 
+                  <div
+                    className="countdown-progress"
                     style={{ width: `${(countdown / 3) * 100}%` }}
                   ></div>
                 </div>
                 <div className="countdown-text">
-                  Fecha em: <span className="countdown-number">{countdown}s</span>
+                  Fecha em:{" "}
+                  <span className="countdown-number">{countdown}s</span>
                 </div>
               </div>
             </div>
@@ -1284,7 +1708,11 @@ function Home() {
 
       {/* Tooltip de Erro com Countdown */}
       {showErrorTooltip && (
-        <div className={`notification-tooltip error-tooltip ${isTooltipClosing ? 'fade-out' : ''}`}>
+        <div
+          className={`notification-tooltip error-tooltip ${
+            isTooltipClosing ? "fade-out" : ""
+          }`}
+        >
           <div className="tooltip-content">
             <div className="tooltip-header">
               <FiAlertCircle size={20} color="#ef4444" />
@@ -1298,19 +1726,20 @@ function Home() {
                 <FiX size={16} />
               </button>
             </div>
-            
+
             <div className="tooltip-body">
               <p className="tooltip-message">{modalMessage}</p>
-              
+
               <div className="countdown-container">
                 <div className="countdown-bar">
-                  <div 
-                    className="countdown-progress" 
+                  <div
+                    className="countdown-progress"
                     style={{ width: `${(countdown / 3) * 100}%` }}
                   ></div>
                 </div>
                 <div className="countdown-text">
-                  Fecha em: <span className="countdown-number">{countdown}s</span>
+                  Fecha em:{" "}
+                  <span className="countdown-number">{countdown}s</span>
                 </div>
               </div>
             </div>
@@ -1320,9 +1749,12 @@ function Home() {
 
       {/* Modal Nova Transação */}
       {modalActive && (
-        <div className="modal-overlay" onClick={(e) => {
-          if (e.target === e.currentTarget) setModalActive(false);
-        }}>
+        <div
+          className="modal-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setModalActive(false);
+          }}
+        >
           <div className="modal-content">
             <div className="modal-header">
               <h2>Nova Transação</h2>

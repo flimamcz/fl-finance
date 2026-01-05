@@ -262,8 +262,8 @@ body.dark-mode .theme-toggle .moon-icon {
   .theme-toggle {
     width: 40px;
     height: 40px;
-    top: 15px;
-    right: 8x;
+    top: 40px;
+    right: 40px;
   }
 }
 
@@ -1094,7 +1094,7 @@ body.dark-mode .theme-toggle .moon-icon {
     width: 36px;
     height: 36px;
     top: 12px;
-    right: 12px;
+    right: 70px;
   }
   
   .action-buttons {
@@ -1804,5 +1804,348 @@ body.dark-mode input[type="radio"] {
   accent-color: var(--primary-light);
 }
 
-/* ===== IMPORTAÇÃO DE MODAL DE EXPORTAÇÃO ===== */
-/* Os estilos do ExportModal.css devem ser incluídos separadamente */
+.percentage-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: var(--shadow-hover);
+  z-index: 100;
+  min-width: 200px;
+  display: none;
+}
+
+.trend:hover .percentage-tooltip {
+  display: block;
+}
+
+.tooltip-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* ===== TOOLTIPS DE PORCENTAGEM ===== */
+.trend-with-tooltip {
+  position: relative;
+  display: inline-block;
+}
+
+.trend-with-tooltip:hover .percentage-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.percentage-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: var(--shadow-hover);
+  z-index: 100;
+  min-width: 220px;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+  margin-bottom: 10px;
+}
+
+.percentage-tooltip::before {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: var(--border);
+}
+
+.percentage-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--bg-card);
+  margin-top: -1px;
+}
+
+.tooltip-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.tooltip-header strong {
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.tooltip-details {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tooltip-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.tooltip-value {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.tooltip-value.positive {
+  color: var(--income);
+}
+
+.tooltip-value.negative {
+  color: var(--expense);
+}
+
+/* Ajuste para tooltip em telas pequenas */
+@media (max-width: 768px) {
+  .percentage-tooltip {
+    min-width: 180px;
+    font-size: 12px;
+  }
+  
+  .tooltip-header strong {
+    font-size: 13px;
+  }
+  
+  .tooltip-label,
+  .tooltip-value {
+    font-size: 11px;
+  }
+}
+
+/* ===== TOOLTIPS DE PORCENTAGEM ===== */
+.trend-with-tooltip {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+}
+
+.trend-with-tooltip:hover .percentage-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(-5px);
+  pointer-events: auto;
+}
+
+.percentage-tooltip {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  min-width: 280px;
+  max-width: 320px;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+  backdrop-filter: blur(10px);
+}
+
+.percentage-tooltip::before {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 8px solid transparent;
+  border-top-color: var(--border);
+}
+
+.percentage-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 7px solid transparent;
+  border-top-color: var(--bg-card);
+  margin-top: -1px;
+}
+
+.tooltip-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tooltip-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.tooltip-header strong {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.tooltip-header svg {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.tooltip-details {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+}
+
+.tooltip-row:not(:last-child) {
+  border-bottom: 1px solid var(--border-light);
+}
+
+.tooltip-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.tooltip-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.tooltip-value.positive {
+  color: var(--income);
+}
+
+.tooltip-value.negative {
+  color: var(--expense);
+}
+
+/* Melhorar o hover dos trends */
+.trend {
+  transition: all 0.2s ease;
+}
+
+.trend:hover {
+  transform: scale(1.05);
+}
+
+/* Para despesas - lógica especial */
+.trend-with-tooltip.expense-tooltip .trend.positive {
+  color: var(--income);
+}
+
+.trend-with-tooltip.expense-tooltip .trend.negative {
+  color: var(--expense);
+}
+
+/* Ajuste para telas pequenas */
+@media (max-width: 768px) {
+  .percentage-tooltip {
+    min-width: 240px;
+    max-width: 280px;
+    left: 50%;
+    transform: translateX(-50%) translateY(10px);
+  }
+  
+  .percentage-tooltip::before {
+    display: none;
+  }
+  
+  .percentage-tooltip::after {
+    display: none;
+  }
+  
+  .trend-with-tooltip:hover .percentage-tooltip {
+    transform: translateX(-50%) translateY(-5px);
+  }
+}
+
+@media (max-width: 480px) {
+  .percentage-tooltip {
+    position: fixed;
+    bottom: auto;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.95);
+    min-width: 90vw;
+    max-width: 90vw;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+  
+  .trend-with-tooltip:hover .percentage-tooltip {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  
+  .percentage-tooltip::before,
+  .percentage-tooltip::after {
+    display: none;
+  }
+}
+
+/* Animações */
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-5px) scale(1);
+  }
+}
+
+.percentage-tooltip {
+  animation: tooltipFadeIn 0.2s ease forwards;
+}
+
+/* Para evitar que o tooltip suma quando mover o mouse para ele */
+.percentage-tooltip:hover {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(-5px);
+}
