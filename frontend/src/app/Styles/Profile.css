@@ -64,9 +64,6 @@
   min-height: 500px;
 }
 
-.profile-card:hover {
-  transform: translateY(-2px);
-}
 
 /* ===== HEADER DO PERFIL ===== */
 .profile-header {

@@ -43,188 +43,213 @@ const createUser = async (req, res) => {
   return res.status(200).json(createdUser);
 };
 
-// ============================================
-// NOVAS FUNÇÕES PARA PERFIL
-// ============================================
-
 const getMyProfile = async (req, res) => {
   try {
-    console.log('👤 Controller getMyProfile: Iniciando...');
-    console.log('👤 Usuário autenticado:', req.user);
-    
+    console.log("👤 Controller getMyProfile: Iniciando...");
+
     if (!req.user || !req.user.id) {
-      return res.status(401).json({ 
-        error: true, 
-        message: "Usuário não autenticado" 
+      return res.status(401).json({
+        error: true,
+        message: "Usuário não autenticado",
       });
     }
-    
+
     const userId = req.user.id;
-    console.log('🔍 Buscando perfil do usuário ID:', userId);
-    
-    // TODO: Implementar no service para buscar do banco
-    // Por enquanto retorna dados mockados baseados no token
-    const userData = {
-      id: userId,
-      name: req.user.name || "Usuário Teste",
-      email: req.user.email || "usuario@email.com",
-      birthDate: "2001-10-12", // Default - buscar do banco depois
-      createdAt: "2024-01-15T10:30:00Z",
-      lastLogin: new Date().toISOString()
-    };
-    
-    console.log('✅ Dados retornados:', userData);
-    
+    console.log("🔍 Buscando perfil do usuário ID:", userId);
+
+    // Chamar service REAL
+    const { error, message } = await userService.getMyProfile(userId);
+
+    if (error === "NOT_FOUND") {
+      return res.status(404).json({
+        error: true,
+        message: "Usuário não encontrado",
+      });
+    }
+
+    if (error) {
+      return res.status(400).json({
+        error: true,
+        message,
+      });
+    }
+
+    console.log("✅ Dados retornados do banco");
+
     return res.status(200).json({
       error: false,
-      data: userData
+      data: message,
     });
-    
   } catch (error) {
-    console.error('❌ Controller ERROR getMyProfile:', error.message);
-    console.error('❌ Stack:', error.stack);
-    return res.status(500).json({ 
-      error: true, 
-      message: "Erro interno ao buscar perfil" 
+    console.error("❌ Controller ERROR getMyProfile:", error.message);
+    return res.status(500).json({
+      error: true,
+      message: "Erro interno ao buscar perfil",
     });
   }
 };
 
 const updateMyProfile = async (req, res) => {
   try {
-    console.log('🔄 Controller updateMyProfile: Iniciando...');
-    console.log('👤 Usuário:', req.user);
-    console.log('📦 Body recebido:', req.body);
-    
+    console.log("🔄 Controller updateMyProfile: Iniciando...");
+
     if (!req.user || !req.user.id) {
-      return res.status(401).json({ 
-        error: true, 
-        message: "Usuário não autenticado" 
+      return res.status(401).json({
+        error: true,
+        message: "Usuário não autenticado",
       });
     }
-    
+
     const { name, email, birthDate } = req.body;
     const userId = req.user.id;
-    
-    console.log(`📝 Tentando atualizar usuário ${userId}:`, { name, email, birthDate });
-    
+
+    console.log(`📝 Tentando atualizar usuário ${userId}:`, {
+      name,
+      email,
+      birthDate,
+    });
+
     // Validações básicas
-    if (!name || !email) {
-      return res.status(400).json({ 
-        error: true, 
-        message: "Nome e email são obrigatórios" 
+    if (!name && !email) {
+      return res.status(400).json({
+        error: true,
+        message: "Pelo menos um campo deve ser fornecido para atualização",
       });
     }
-    
-    if (email && !email.includes('@')) {
-      return res.status(400).json({ 
-        error: true, 
-        message: "Email inválido" 
+
+    if (email && !email.includes("@")) {
+      return res.status(400).json({
+        error: true,
+        message: "Email inválido",
       });
     }
-    
-    // TODO: Implementar no service para atualizar no banco
-    // Por enquanto simula sucesso
-    
-    console.log('✅ Perfil atualizado com sucesso (mock)');
-    
+
+    // Chamar service REAL
+    const { error, message } = await userService.updateMyProfile(userId, {
+      name,
+      email,
+      birthDate,
+    });
+
+    if (error === "EMAIL_EXISTS") {
+      return res.status(400).json({
+        error: true,
+        message,
+      });
+    }
+
+    if (error === "NO_CHANGES") {
+      return res.status(400).json({
+        error: true,
+        message,
+      });
+    }
+
+    if (error) {
+      return res.status(400).json({
+        error: true,
+        message,
+      });
+    }
+
+    console.log("✅ Perfil atualizado com sucesso");
+
     return res.status(200).json({
       error: false,
       message: "Perfil atualizado com sucesso!",
-      data: { 
-        id: userId,
-        name, 
-        email, 
-        birthDate,
-        updatedAt: new Date().toISOString()
-      }
+      data: message,
     });
-    
   } catch (error) {
-    console.error('❌ Controller ERROR updateMyProfile:', error.message);
-    return res.status(500).json({ 
-      error: true, 
-      message: "Erro interno ao atualizar perfil" 
+    console.error("❌ Controller ERROR updateMyProfile:", error.message);
+    return res.status(500).json({
+      error: true,
+      message: "Erro interno ao atualizar perfil",
     });
   }
 };
 
 const updatePassword = async (req, res) => {
   try {
-    console.log('🔐 Controller updatePassword: Iniciando...');
-    
+    console.log("🔐 Controller updatePassword: Iniciando...");
+
     if (!req.user || !req.user.id) {
-      return res.status(401).json({ 
-        error: true, 
-        message: "Usuário não autenticado" 
+      return res.status(401).json({
+        error: true,
+        message: "Usuário não autenticado",
       });
     }
-    
+
     const { currentPassword, newPassword } = req.body;
     const userId = req.user.id;
-    
+
+    console.log(`🔑 Usuário ${userId} tentando alterar senha`);
+
     // Validações
     if (!currentPassword || !newPassword) {
-      return res.status(400).json({ 
-        error: true, 
-        message: "Senha atual e nova senha são obrigatórias" 
+      return res.status(400).json({
+        error: true,
+        message: "Senha atual e nova senha são obrigatórias",
       });
     }
-    
+
     if (newPassword.length < 6) {
-      return res.status(400).json({ 
-        error: true, 
-        message: "A nova senha deve ter pelo menos 6 caracteres" 
+      return res.status(400).json({
+        error: true,
+        message: "A nova senha deve ter pelo menos 6 caracteres",
       });
     }
-    
-    // CHAMAR SERVICE REAL (com hash)
+
+    // CHAMAR SERVICE REAL
     const { error, message } = await userService.updatePassword(
-      userId, 
-      currentPassword, 
+      userId,
+      currentPassword,
       newPassword
     );
-    
+
     if (error === "INVALID_PASSWORD") {
-      return res.status(400).json({ 
-        error: true, 
-        message: message 
+      return res.status(400).json({
+        error: true,
+        message,
       });
     }
-    
+
+    if (error === "SAME_PASSWORD") {
+      return res.status(400).json({
+        error: true,
+        message,
+      });
+    }
+
     if (error) {
-      return res.status(400).json({ 
-        error: true, 
-        message: message 
+      return res.status(400).json({
+        error: true,
+        message,
       });
     }
-    
-    console.log('✅ Senha alterada com sucesso');
-    
+
+    console.log("✅ Senha alterada com sucesso");
+
     return res.status(200).json({
       error: false,
-      message: "Senha alterada com sucesso!"
+      message: "Senha alterada com sucesso!",
     });
-    
   } catch (error) {
-    console.error('❌ Controller ERROR updatePassword:', error.message);
-    return res.status(500).json({ 
-      error: true, 
-      message: "Erro interno ao alterar senha" 
+    console.error("❌ Controller ERROR updatePassword:", error.message);
+    return res.status(500).json({
+      error: true,
+      message: "Erro interno ao alterar senha",
     });
   }
 };
+
 // ============================================
 // EXPORTAR TODAS AS FUNÇÕES
 // ============================================
 
 module.exports = {
-  // Funções existentes
   createUser,
   searchUsers,
-  
-  // Novas funções para perfil
   getMyProfile,
   updateMyProfile,
-  updatePassword
+  updatePassword,
 };
