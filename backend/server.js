@@ -40,3 +40,4 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('💥 PROMISE REJEITADA:', reason);
   console.error('💥 Na promise:', promise);
 });
+
