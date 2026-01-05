@@ -34,6 +34,7 @@ import {
 } from "recharts";
 import Moment from "moment";
 import Header from "../Components/Header";
+import ExportModal from "../Components/ExportModal";
 import MyContext from "../Context/Context";
 import "../Styles/Home.css";
 
@@ -58,6 +59,7 @@ function Home() {
   const [viewMode, setViewMode] = useState("grid");
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [timeRange, setTimeRange] = useState("month");
+  const [exportModalOpen, setExportModalOpen] = useState(false);
 
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem("darkMode");
@@ -640,7 +642,11 @@ function Home() {
 
           {filteredTransactions.length > 0 && (
             <div className="transactions-footer">
-              <button className="btn-secondary" type="button">
+              <button
+                className="btn-secondary"
+                onClick={() => setExportModalOpen(true)}
+                type="button"
+              >
                 <FiDownload /> Exportar Extrato
               </button>
               <div className="pagination">
@@ -988,6 +994,16 @@ function Home() {
           </div>
         </div>
       )}
+      <ExportModal
+        isOpen={exportModalOpen}
+        onClose={() => setExportModalOpen(false)}
+        transactions={transactions}
+        amounts={amounts}
+        filters={{
+          activeFilter,
+          timeRange,
+        }}
+      />
     </div>
   );
 }
