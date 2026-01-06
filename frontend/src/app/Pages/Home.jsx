@@ -120,6 +120,8 @@ function Home() {
     localStorage.setItem("darkMode", JSON.stringify(darkMode));
   }, [darkMode]);
 
+  // ========== FUNÇÕES AUXILIARES ==========
+
   // Função para formatar moeda
   const formatCurrency = useCallback((value) => {
     const numValue =
@@ -131,6 +133,459 @@ function Home() {
       currency: "BRL",
     }).format(numValue);
   }, []);
+
+  // Função para formatar data em português
+  const getFormattedDate = useCallback(() => {
+    const formatter = new Intl.DateTimeFormat("pt-BR", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+
+    const formatted = formatter.format(new Date());
+    return formatted.replace(/\b\w/g, (char) => char.toUpperCase());
+  }, []);
+
+  // Funções auxiliares
+  const getTypeIcon = useCallback((typeId) => {
+    switch (typeId) {
+      case 1:
+        return <FiTrendingUp className="icon-income" />;
+      case 2:
+        return <FiTrendingDown className="icon-expense" />;
+      case 3:
+        return <FiTarget className="icon-investment" />;
+      default:
+        return <FiDollarSign />;
+    }
+  }, []);
+
+  const getStatusIcon = useCallback((status) => {
+    return status ? (
+      <FiCheckCircle className="status-confirmed" />
+    ) : (
+      <FiClock className="status-pending" />
+    );
+  }, []);
+
+  // ========== FUNÇÕES PARA DADOS DO GRÁFICO ==========
+
+  // Funções auxiliares puras para manipulação de datas
+  const extractDateOnly = useCallback((dateString) => {
+    if (!dateString) return "";
+    const match = dateString.match(/^(\d{4}-\d{2}-\d{2})/);
+    return match ? match[1] : dateString;
+  }, []);
+
+  const formatToYMD = useCallback((date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }, []);
+
+  // Formata Date para DD/MM (formato brasileiro)
+  const formatToDM = useCallback((date) => {
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    return `${day}/${month}`;
+  }, []);
+
+  // Formata Date para DD/MM com dia da semana (formato brasileiro)
+  const formatToDayDM = useCallback((date) => {
+    const daysOfWeek = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+    const dayOfWeek = daysOfWeek[date.getDay()];
+    return `${dayOfWeek} ${formatToDM(date)}`;
+  }, []);
+
+  const createLocalDate = useCallback((dateString) => {
+    const [year, month, day] = dateString.split("-").map(Number);
+    return new Date(year, month - 1, day, 12, 0, 0);
+  }, []);
+
+  const getStartOfWeek = useCallback((date) => {
+    const d = new Date(date);
+    const day = d.getDay();
+    d.setDate(d.getDate() - day);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
+
+  const getStartOfMonth = useCallback((date) => {
+    const d = new Date(date);
+    d.setDate(1);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
+
+  const getStartOfYear = useCallback((date) => {
+    const d = new Date(date);
+    d.setMonth(0, 1);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
+
+  const addDays = useCallback((date, days) => {
+    const result = new Date(date);
+    result.setDate(result.getDate() + days);
+    return result;
+  }, []);
+
+  // Funções específicas para cada período
+  const getWeekData = useCallback(
+    (transactions, now) => {
+      const startOfWeek = getStartOfWeek(now);
+      const daysOfWeek = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+
+      // Criar mapa para os 7 dias da semana
+      const weekDays = Array.from({ length: 7 }, (_, i) => {
+        const date = addDays(startOfWeek, i);
+        return {
+          key: `${daysOfWeek[i]} ${formatToDM(date)}`, // Formato: "Seg 08/01"
+          date: new Date(date),
+          data: { income: 0, expense: 0, investment: 0, total: 0, balance: 0 },
+        };
+      });
+
+      // Filtrar transações da semana
+      const weekTransactions = transactions.filter((t) => {
+        const transDate = createLocalDate(extractDateOnly(t.date));
+        return transDate >= startOfWeek && transDate < addDays(startOfWeek, 7);
+      });
+
+      // Agrupar por dia
+      weekTransactions.forEach((t) => {
+        const transDate = createLocalDate(extractDateOnly(t.date));
+        const dayIndex = Math.floor(
+          (transDate - startOfWeek) / (1000 * 60 * 60 * 24)
+        );
+
+        if (dayIndex >= 0 && dayIndex < 7) {
+          const dayData = weekDays[dayIndex].data;
+          const value = parseFloat(t.value) || 0;
+
+          switch (t.typeId) {
+            case 1:
+              dayData.income += value;
+              dayData.total += value;
+              dayData.balance += value;
+              break;
+            case 2:
+              dayData.expense += value;
+              dayData.total -= value;
+              dayData.balance -= value;
+              break;
+            case 3:
+              dayData.investment += value;
+              dayData.total += value;
+              dayData.balance += value;
+              break;
+          }
+        }
+      });
+
+      return weekDays.map((day) => ({
+        name: day.key,
+        total: Math.abs(day.data.total),
+        income: day.data.income,
+        expense: day.data.expense,
+        investment: day.data.investment,
+        balance: day.data.balance,
+        date: day.date,
+      }));
+    },
+    [getStartOfWeek, addDays, formatToDM, createLocalDate, extractDateOnly]
+  );
+
+  const getMonthData = useCallback(
+    (transactions, now) => {
+      const startOfMonth = getStartOfMonth(now);
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      const daysInMonth = endOfMonth.getDate();
+      const weeksInMonth = Math.ceil(daysInMonth / 7);
+
+      // Filtrar transações do mês
+      const monthTransactions = transactions.filter((t) => {
+        const transDate = createLocalDate(extractDateOnly(t.date));
+        return transDate >= startOfMonth && transDate <= endOfMonth;
+      });
+
+      // Agrupar por semana do mês
+      const weekGroups = Array.from({ length: weeksInMonth }, (_, i) => ({
+        key: `Sem ${i + 1}`,
+        data: { income: 0, expense: 0, investment: 0, total: 0, balance: 0 },
+      }));
+
+      monthTransactions.forEach((t) => {
+        const transDate = createLocalDate(extractDateOnly(t.date));
+        const dayOfMonth = transDate.getDate();
+        const weekIndex = Math.ceil(dayOfMonth / 7) - 1;
+
+        if (weekIndex >= 0 && weekIndex < weeksInMonth) {
+          const weekData = weekGroups[weekIndex].data;
+          const value = parseFloat(t.value) || 0;
+
+          switch (t.typeId) {
+            case 1:
+              weekData.income += value;
+              weekData.total += value;
+              weekData.balance += value;
+              break;
+            case 2:
+              weekData.expense += value;
+              weekData.total -= value;
+              weekData.balance -= value;
+              break;
+            case 3:
+              weekData.investment += value;
+              weekData.total += value;
+              weekData.balance += value;
+              break;
+          }
+        }
+      });
+
+      return weekGroups.map((week) => ({
+        name: week.key,
+        total: Math.abs(week.data.total),
+        income: week.data.income,
+        expense: week.data.expense,
+        investment: week.data.investment,
+        balance: week.data.balance,
+      }));
+    },
+    [getStartOfMonth, createLocalDate, extractDateOnly]
+  );
+
+  const getYearData = useCallback(
+    (transactions, now) => {
+      const months = [
+        "Jan",
+        "Fev",
+        "Mar",
+        "Abr",
+        "Mai",
+        "Jun",
+        "Jul",
+        "Ago",
+        "Set",
+        "Out",
+        "Nov",
+        "Dez",
+      ];
+
+      // Filtrar transações do ano
+      const yearTransactions = transactions.filter((t) => {
+        const transDate = createLocalDate(extractDateOnly(t.date));
+        return transDate.getFullYear() === now.getFullYear();
+      });
+
+      // Agrupar por mês
+      const monthGroups = months.map((month, index) => ({
+        key: month,
+        index,
+        data: { income: 0, expense: 0, investment: 0, total: 0, balance: 0 },
+      }));
+
+      yearTransactions.forEach((t) => {
+        const transDate = createLocalDate(extractDateOnly(t.date));
+        const monthIndex = transDate.getMonth();
+
+        if (monthIndex >= 0 && monthIndex < 12) {
+          const monthData = monthGroups[monthIndex].data;
+          const value = parseFloat(t.value) || 0;
+
+          switch (t.typeId) {
+            case 1:
+              monthData.income += value;
+              monthData.total += value;
+              monthData.balance += value;
+              break;
+            case 2:
+              monthData.expense += value;
+              monthData.total -= value;
+              monthData.balance -= value;
+              break;
+            case 3:
+              monthData.investment += value;
+              monthData.total += value;
+              monthData.balance += value;
+              break;
+          }
+        }
+      });
+
+      return monthGroups.map((month) => ({
+        name: month.key,
+        total: Math.abs(month.data.total),
+        income: month.data.income,
+        expense: month.data.expense,
+        investment: month.data.investment,
+        balance: month.data.balance,
+      }));
+    },
+    [createLocalDate, extractDateOnly]
+  );
+
+  const getLast30DaysData = useCallback(
+    (transactions, now) => {
+      const thirtyDaysAgo = addDays(now, -29);
+      thirtyDaysAgo.setHours(0, 0, 0, 0);
+
+      // Filtrar transações dos últimos 30 dias
+      const recentTransactions = transactions.filter((t) => {
+        const transDate = createLocalDate(extractDateOnly(t.date));
+        return transDate >= thirtyDaysAgo && transDate <= now;
+      });
+
+      // Criar mapa para os últimos 30 dias
+      const dailyMap = new Map();
+
+      for (let i = 0; i < 30; i++) {
+        const date = addDays(now, -i);
+        const dateKey = formatToYMD(date);
+        const displayKey = formatToDM(date);
+
+        dailyMap.set(dateKey, {
+          key: displayKey, // Formato DD/MM
+          date: new Date(date),
+          data: { income: 0, expense: 0, investment: 0, total: 0, balance: 0 },
+        });
+      }
+
+      // Agrupar por dia
+      recentTransactions.forEach((t) => {
+        const transDate = extractDateOnly(t.date);
+        const dayData = dailyMap.get(transDate);
+
+        if (dayData) {
+          const value = parseFloat(t.value) || 0;
+
+          switch (t.typeId) {
+            case 1:
+              dayData.data.income += value;
+              dayData.data.total += value;
+              dayData.data.balance += value;
+              break;
+            case 2:
+              dayData.data.expense += value;
+              dayData.data.total -= value;
+              dayData.data.balance -= value;
+              break;
+            case 3:
+              dayData.data.investment += value;
+              dayData.data.total += value;
+              dayData.data.balance += value;
+              break;
+          }
+        }
+      });
+
+      // Converter para array, ordenar e pegar últimos 15 dias
+      return Array.from(dailyMap.values())
+        .map((day) => ({
+          name: day.key,
+          total: Math.abs(day.data.total),
+          income: day.data.income,
+          expense: day.data.expense,
+          investment: day.data.investment,
+          balance: day.data.balance,
+          date: day.date,
+        }))
+        .sort((a, b) => a.date - b.date)
+        .slice(-15); // Últimos 15 dias
+    },
+    [addDays, createLocalDate, extractDateOnly, formatToYMD, formatToDM]
+  );
+
+  // Função principal para dados do gráfico
+  const getFilteredChartData = useMemo(() => {
+    if (
+      !transactions ||
+      !Array.isArray(transactions) ||
+      transactions.length === 0
+    ) {
+      return [];
+    }
+
+    const now = new Date();
+    now.setHours(12, 0, 0, 0); // Normalizar para meio-dia
+
+    try {
+      switch (timeRange) {
+        case "week":
+          return getWeekData(transactions, now);
+
+        case "month":
+          return getMonthData(transactions, now);
+
+        case "year":
+          return getYearData(transactions, now);
+
+        default: // "all" ou "Últimos 30 dias"
+          return getLast30DaysData(transactions, now);
+      }
+    } catch (error) {
+      console.error("Erro ao processar dados do gráfico:", error);
+      return [];
+    }
+  }, [
+    transactions,
+    timeRange,
+    getWeekData,
+    getMonthData,
+    getYearData,
+    getLast30DaysData,
+  ]);
+
+  // Transformar transações para o gráfico de pizza
+  const categoryData = useMemo(() => {
+    if (!transactions || !Array.isArray(transactions)) return [];
+
+    const totals = transactions.reduce(
+      (acc, transaction) => {
+        const typeId = transaction.typeId;
+        const value = parseFloat(transaction.value) || 0;
+
+        switch (typeId) {
+          case 1:
+            acc.income += value;
+            break;
+          case 2:
+            acc.expense += value;
+            break;
+          case 3:
+            acc.investment += value;
+            break;
+        }
+        return acc;
+      },
+      { income: 0, expense: 0, investment: 0 }
+    );
+
+    const result = [
+      totals.income > 0 && {
+        name: "Receitas",
+        value: totals.income,
+        color: "#10b981",
+      },
+      totals.expense > 0 && {
+        name: "Despesas",
+        value: totals.expense,
+        color: "#ef4444",
+      },
+      totals.investment > 0 && {
+        name: "Investimentos",
+        value: totals.investment,
+        color: "#f59e0b",
+      },
+    ].filter(Boolean);
+
+    return result.length > 0
+      ? result
+      : [{ name: "Sem dados", value: 1, color: "#e2e8f0" }];
+  }, [transactions]);
 
   // ========== FUNÇÕES PARA CALCULAR DADOS REAIS ==========
 
@@ -202,9 +657,9 @@ function Home() {
     const calculateBalance = (data) => {
       return data.reduce((acc, t) => {
         const value = parseFloat(t.value) || 0;
-        if (t.typeId === 1) return acc + value; // Receita
-        if (t.typeId === 2) return acc - value; // Despesa
-        if (t.typeId === 3) return acc + value; // Investimento
+        if (t.typeId === 1) return acc + value;
+        if (t.typeId === 2) return acc - value;
+        if (t.typeId === 3) return acc + value;
         return acc;
       }, 0);
     };
@@ -261,7 +716,6 @@ function Home() {
   }, [transactions]);
 
   // ========== COMPONENTE PERCENTAGE TOOLTIP ==========
-  // NOVO COMPONENTE TOOLTIP - VERSÃO SIMPLIFICADA QUE FUNCIONA
   const PercentageTooltip = ({
     title,
     current,
@@ -340,292 +794,8 @@ function Home() {
       </div>
     );
   };
-  // ========== RESTANTE DAS FUNÇÕES ==========
 
-  // Função para obter dados do gráfico filtrados
-  const getFilteredChartData = useMemo(() => {
-    if (!transactions || !Array.isArray(transactions)) return [];
-
-    const now = new Date();
-    let filtered = [...transactions];
-
-    // Filtrar por período
-    if (timeRange === "week") {
-      const sevenDaysAgo = new Date(now);
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      filtered = filtered.filter((t) => new Date(t.date) >= sevenDaysAgo);
-
-      // Agrupar por dia
-      const daysMap = {};
-      for (let i = 0; i < 7; i++) {
-        const date = new Date(now);
-        date.setDate(date.getDate() - i);
-        const dayKey = Moment(date).format("DD/MM");
-        daysMap[dayKey] = { income: 0, expense: 0, investment: 0, total: 0 };
-      }
-
-      filtered.forEach((t) => {
-        const dayKey = Moment(t.date).format("DD/MM");
-        if (daysMap[dayKey]) {
-          const value = parseFloat(t.value) || 0;
-          if (t.typeId === 1) {
-            daysMap[dayKey].income += value;
-            daysMap[dayKey].total += value;
-          } else if (t.typeId === 2) {
-            daysMap[dayKey].expense += value;
-            daysMap[dayKey].total -= value;
-          } else if (t.typeId === 3) {
-            daysMap[dayKey].investment += value;
-            daysMap[dayKey].total += value;
-          }
-        }
-      });
-
-      return Object.entries(daysMap)
-        .sort((a, b) => {
-          const [dayA, monthA] = a[0].split("/").map(Number);
-          const [dayB, monthB] = b[0].split("/").map(Number);
-          if (monthA !== monthB) return monthA - monthB;
-          return dayA - dayB;
-        })
-        .map(([name, data]) => ({
-          name,
-          total: Math.abs(data.total),
-          income: data.income,
-          expense: data.expense,
-          investment: data.investment,
-          balance: data.income - data.expense + data.investment,
-        }));
-    } else if (timeRange === "month") {
-      const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      filtered = filtered.filter((t) => new Date(t.date) >= firstDayOfMonth);
-
-      // Agrupar por semana
-      const weeksMap = {};
-      for (let i = 0; i < 5; i++) {
-        const weekKey = `Sem ${i + 1}`;
-        weeksMap[weekKey] = { income: 0, expense: 0, investment: 0, total: 0 };
-      }
-
-      filtered.forEach((t) => {
-        const date = new Date(t.date);
-        const weekOfMonth = Math.ceil(date.getDate() / 7);
-        const weekKey = `Sem ${Math.min(weekOfMonth, 5)}`;
-
-        if (weeksMap[weekKey]) {
-          const value = parseFloat(t.value) || 0;
-          if (t.typeId === 1) {
-            weeksMap[weekKey].income += value;
-            weeksMap[weekKey].total += value;
-          } else if (t.typeId === 2) {
-            weeksMap[weekKey].expense += value;
-            weeksMap[weekKey].total -= value;
-          } else if (t.typeId === 3) {
-            weeksMap[weekKey].investment += value;
-            weeksMap[weekKey].total += value;
-          }
-        }
-      });
-
-      return Object.entries(weeksMap).map(([name, data]) => ({
-        name,
-        total: Math.abs(data.total),
-        income: data.income,
-        expense: data.expense,
-        investment: data.investment,
-        balance: data.income - data.expense + data.investment,
-      }));
-    } else if (timeRange === "year") {
-      const firstDayOfYear = new Date(now.getFullYear(), 0, 1);
-      filtered = filtered.filter((t) => new Date(t.date) >= firstDayOfYear);
-
-      // Agrupar por mês
-      const months = [
-        "Jan",
-        "Fev",
-        "Mar",
-        "Abr",
-        "Mai",
-        "Jun",
-        "Jul",
-        "Ago",
-        "Set",
-        "Out",
-        "Nov",
-        "Dez",
-      ];
-
-      const monthsMap = {};
-      months.forEach((month) => {
-        monthsMap[month] = { income: 0, expense: 0, investment: 0, total: 0 };
-      });
-
-      filtered.forEach((t) => {
-        const monthIndex = new Date(t.date).getMonth();
-        const monthKey = months[monthIndex];
-
-        if (monthsMap[monthKey]) {
-          const value = parseFloat(t.value) || 0;
-          if (t.typeId === 1) {
-            monthsMap[monthKey].income += value;
-            monthsMap[monthKey].total += value;
-          } else if (t.typeId === 2) {
-            monthsMap[monthKey].expense += value;
-            monthsMap[monthKey].total -= value;
-          } else if (t.typeId === 3) {
-            monthsMap[monthKey].investment += value;
-            monthsMap[monthKey].total += value;
-          }
-        }
-      });
-
-      return months.map((month) => ({
-        name: month,
-        total: Math.abs(monthsMap[month].total),
-        income: monthsMap[month].income,
-        expense: monthsMap[month].expense,
-        investment: monthsMap[month].investment,
-        balance:
-          monthsMap[month].income -
-          monthsMap[month].expense +
-          monthsMap[month].investment,
-      }));
-    }
-
-    // Default: últimos 30 dias
-    const thirtyDaysAgo = new Date(now);
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    filtered = filtered.filter((t) => new Date(t.date) >= thirtyDaysAgo);
-
-    const dailyMap = {};
-    for (let i = 0; i < 30; i++) {
-      const date = new Date(now);
-      date.setDate(date.getDate() - i);
-      const dayKey = Moment(date).format("DD/MM");
-      dailyMap[dayKey] = { income: 0, expense: 0, investment: 0, total: 0 };
-    }
-
-    filtered.forEach((t) => {
-      const dayKey = Moment(t.date).format("DD/MM");
-      if (dailyMap[dayKey]) {
-        const value = parseFloat(t.value) || 0;
-        if (t.typeId === 1) {
-          dailyMap[dayKey].income += value;
-          dailyMap[dayKey].total += value;
-        } else if (t.typeId === 2) {
-          dailyMap[dayKey].expense += value;
-          dailyMap[dayKey].total -= value;
-        } else if (t.typeId === 3) {
-          dailyMap[dayKey].investment += value;
-          dailyMap[dayKey].total += value;
-        }
-      }
-    });
-
-    return Object.entries(dailyMap)
-      .sort((a, b) => {
-        const [dayA, monthA] = a[0].split("/").map(Number);
-        const [dayB, monthB] = b[0].split("/").map(Number);
-        if (monthA !== monthB) return monthA - monthB;
-        return dayA - dayB;
-      })
-      .slice(-15)
-      .map(([name, data]) => ({
-        name,
-        total: Math.abs(data.total),
-        income: data.income,
-        expense: data.expense,
-        investment: data.investment,
-        balance: data.income - data.expense + data.investment,
-      }));
-  }, [transactions, timeRange]);
-
-  // Transformar transações para o gráfico de pizza
-  const categoryData = useMemo(() => {
-    if (!transactions || !Array.isArray(transactions)) return [];
-
-    const totals = { income: 0, expense: 0, investment: 0 };
-
-    transactions.forEach((transaction) => {
-      const typeId = transaction.typeId;
-      const value = parseFloat(transaction.value) || 0;
-
-      if (typeId === 1) {
-        totals.income += value;
-      } else if (typeId === 2) {
-        totals.expense += value;
-      } else if (typeId === 3) {
-        totals.investment += value;
-      }
-    });
-
-    const result = [];
-
-    if (totals.income > 0) {
-      result.push({
-        name: "Receitas",
-        value: totals.income,
-        color: "#10b981",
-      });
-    }
-
-    if (totals.expense > 0) {
-      result.push({
-        name: "Despesas",
-        value: totals.expense,
-        color: "#ef4444",
-      });
-    }
-
-    if (totals.investment > 0) {
-      result.push({
-        name: "Investimentos",
-        value: totals.investment,
-        color: "#f59e0b",
-      });
-    }
-
-    if (result.length === 0) {
-      return [{ name: "Sem dados", value: 1, color: "#e2e8f0" }];
-    }
-
-    return result;
-  }, [transactions]);
-
-  // Função para formatar data em português
-  const getFormattedDate = useCallback(() => {
-    const formatter = new Intl.DateTimeFormat("pt-BR", {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    });
-
-    const formatted = formatter.format(new Date());
-    return formatted.replace(/\b\w/g, (char) => char.toUpperCase());
-  }, []);
-
-  // Funções auxiliares
-  const getTypeIcon = useCallback((typeId) => {
-    switch (typeId) {
-      case 1:
-        return <FiTrendingUp className="icon-income" />;
-      case 2:
-        return <FiTrendingDown className="icon-expense" />;
-      case 3:
-        return <FiTarget className="icon-investment" />;
-      default:
-        return <FiDollarSign />;
-    }
-  }, []);
-
-  const getStatusIcon = useCallback((status) => {
-    return status ? (
-      <FiCheckCircle className="status-confirmed" />
-    ) : (
-      <FiClock className="status-pending" />
-    );
-  }, []);
+  // ========== FUNÇÕES PARA DADOS E FILTROS ==========
 
   // Calcular valores
   const parsedAmounts = useMemo(() => {
@@ -679,6 +849,8 @@ function Home() {
 
     return { total, incomeTotal, expenseTotal, investmentTotal };
   }, [filteredTransactions]);
+
+  // ========== FUNÇÕES DE CRUD ==========
 
   // Função de exclusão
   const deleteItem = async (endpoint, id) => {
@@ -767,10 +939,16 @@ function Home() {
     setLoading(true);
 
     try {
+      // Validar dados
+      if (!transactionData.value || !transactionData.description) {
+        throw new Error("Preencha todos os campos obrigatórios");
+      }
+
       const dataToSend = {
         ...transactionData,
         value: parseFloat(transactionData.value),
         typeId: parseInt(transactionData.typeId),
+        // Mantém a data como YYYY-MM-DD (já está nesse formato do input date)
       };
 
       const response = await fetch("http://192.168.0.10:3001/transactions", {
@@ -903,6 +1081,7 @@ function Home() {
     setEditModalOpen(true);
   };
 
+  // AGORA VEM O RETURN DO COMPONENTE...
   return (
     <div className="dashboard-container">
       <Header />
@@ -1526,7 +1705,7 @@ function Home() {
                         <div className="transaction-actions">
                           <button
                             className="btn-icon"
-                            onClick={() => handleEditClick(transaction)} // ← NOVA FUNÇÃO
+                            onClick={() => handleEditClick(transaction)}
                             type="button"
                             aria-label="Editar"
                           >
