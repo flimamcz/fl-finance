@@ -16,7 +16,6 @@ import {
   FiAlertTriangle,
   FiAlertCircle,
   FiX,
-  FiFilter,
   FiCalendar,
   FiSun,
   FiMoon,
@@ -25,6 +24,7 @@ import {
   FiEye,
   FiEyeOff,
   FiInfo,
+  FiExternalLink,
 } from "react-icons/fi";
 import {
   BarChart,
@@ -37,7 +37,6 @@ import {
   PieChart,
   Pie,
   Cell,
-  Legend,
   AreaChart,
   Area,
   LineChart,
@@ -68,11 +67,14 @@ function Home() {
   const [loading, setLoading] = useState(false);
   const [activeFilter, setActiveFilter] = useState("all");
   const [modalActive, setModalActive] = useState(false);
-  const [activeModalEdit, setActiveModalEdit] = useState(false);
   const [viewMode, setViewMode] = useState("grid");
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [timeRange, setTimeRange] = useState("month");
   const [chartView, setChartView] = useState("bar");
+
+  // Junto com os outros estados (procure por: // Estados)
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [transactionToView, setTransactionToView] = useState(null);
 
   // Estados para modais
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -215,13 +217,6 @@ function Home() {
   const getStartOfMonth = useCallback((date) => {
     const d = new Date(date);
     d.setDate(1);
-    d.setHours(0, 0, 0, 0);
-    return d;
-  }, []);
-
-  const getStartOfYear = useCallback((date) => {
-    const d = new Date(date);
-    d.setMonth(0, 1);
     d.setHours(0, 0, 0, 0);
     return d;
   }, []);
@@ -1081,7 +1076,11 @@ function Home() {
     setEditModalOpen(true);
   };
 
-  // AGORA VEM O RETURN DO COMPONENTE...
+  const handleViewClick = (transaction) => {
+    setTransactionToView(transaction);
+    setViewModalOpen(true);
+  };
+
   return (
     <div className="dashboard-container">
       <Header />
@@ -1719,6 +1718,16 @@ function Home() {
                           >
                             <FiTrash2 />
                           </button>
+
+                          <button
+                            className="btn-icon btn-view"
+                            onClick={() => handleViewClick(transaction)}
+                            type="button"
+                            aria-label="Visualizar"
+                            title="Ver detalhes"
+                          >
+                            <FiEye />
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -2143,6 +2152,147 @@ function Home() {
           setIsTooltipClosing(false);
         }}
       />
+
+      {/* Modal de Visualização */}
+      {viewModalOpen && transactionToView && (
+        <div
+          className="modal-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setViewModalOpen(false);
+              setTransactionToView(null);
+            }
+          }}
+        >
+          <div className="modal-content modal-view">
+            <div className="modal-header">
+              <h2>Detalhes da Transação</h2>
+              <button
+                className="btn-close"
+                onClick={() => {
+                  setViewModalOpen(false);
+                  setTransactionToView(null);
+                }}
+                type="button"
+                aria-label="Fechar"
+              >
+                <FiX />
+              </button>
+            </div>
+
+            <div className="modal-body view-modal-body">
+              <div className="transaction-header-view">
+                <div className="transaction-icon-view">
+                  {getTypeIcon(transactionToView.typeId)}
+                </div>
+                <div>
+                  <h3>{transactionToView.description || "Sem descrição"}</h3>
+                  <span className="transaction-type-view">
+                    {transactionToView.typeId === 1
+                      ? "Receita"
+                      : transactionToView.typeId === 2
+                      ? "Despesa"
+                      : "Investimento"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="transaction-details-grid">
+                <div className="detail-item">
+                  <span className="detail-label">Valor</span>
+                  <span
+                    className={`detail-value ${
+                      transactionToView.typeId === 2 ? "negative" : "positive"
+                    }`}
+                  >
+                    {transactionToView.typeId === 2 ? "- " : "+ "}
+                    {formatCurrency(transactionToView.value)}
+                  </span>
+                </div>
+
+                <div className="detail-item">
+                  <span className="detail-label">Data</span>
+                  <span className="detail-value">
+                    {Moment(transactionToView.date).format("DD/MM/YYYY")}
+                  </span>
+                </div>
+
+                <div className="detail-item">
+                  <span className="detail-label">Status</span>
+                  <span
+                    className={`detail-value status-${
+                      transactionToView.status ? "confirmed" : "pending"
+                    }`}
+                  >
+                    {getStatusIcon(transactionToView.status)}
+                    {transactionToView.status ? " Confirmado" : " Pendente"}
+                  </span>
+                </div>
+
+                <div className="detail-item">
+                  <span className="detail-label">ID</span>
+                  <span className="detail-value id-value">
+                    #{transactionToView.id}
+                  </span>
+                </div>
+              </div>
+
+              {transactionToView.notes && (
+                <div className="transaction-notes">
+                  <h4>Observações</h4>
+                  <p>{transactionToView.notes}</p>
+                </div>
+              )}
+
+              <div className="transaction-summary">
+                <div className="summary-item">
+                  <span>Criada em:</span>
+                  <span>
+                    {Moment(
+                      transactionToView.createdAt || transactionToView.date
+                    ).format("DD/MM/YYYY HH:mm")}
+                  </span>
+                </div>
+                {transactionToView.updatedAt &&
+                  transactionToView.updatedAt !==
+                    transactionToView.createdAt && (
+                    <div className="summary-item">
+                      <span>Atualizada em:</span>
+                      <span>
+                        {Moment(transactionToView.updatedAt).format(
+                          "DD/MM/YYYY HH:mm"
+                        )}
+                      </span>
+                    </div>
+                  )}
+              </div>
+            </div>
+
+            <div className="modal-actions">
+              <button
+                className="btn-secondary"
+                onClick={() => {
+                  setViewModalOpen(false);
+                  setTransactionToView(null);
+                }}
+                type="button"
+              >
+                Fechar
+              </button>
+              <button
+                className="btn-primary"
+                onClick={() => {
+                  handleEditClick(transactionToView);
+                  setViewModalOpen(false);
+                }}
+                type="button"
+              >
+                <FiEdit2 /> Editar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
