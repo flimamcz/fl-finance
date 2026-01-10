@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FiDownload, FiFileText, FiFile, FiGrid, FiX } from 'react-icons/fi';
-import { jsPDF } from 'jspdf';
+import { jsPDF } from "jspdf";
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
