@@ -1,11 +1,9 @@
-// src/app/controllers/Transaction.controller.js
+// src/app/controllers/Transaction.controller.js - VERSÃO COM CATEGORIAS
 const transactionService = require("../services/Transaction.service");
 
 const searchTrasctions = async (req, res) => {
   try {
     console.log('🔍 Controller: Iniciando busca de transações...');
-    console.log('👤 Controller - req.user:', req.user);
-    console.log('👤 Controller - req.user.id:', req.user?.id);
     
     // Verificar se o usuário está autenticado
     if (!req.user || !req.user.id) {
@@ -33,10 +31,20 @@ const searchTrasctions = async (req, res) => {
     }
 
     console.log(`✅ Controller: Retornando ${message.length} transações`);
+    
+    // ✅ MELHORIA: Formata resposta para incluir categoria de forma amigável
+    const formattedData = message.map(transaction => {
+      const trans = transaction.toJSON ? transaction.toJSON() : transaction;
+      return {
+        ...trans,
+        category: trans.category || null
+      };
+    });
+
     return res.status(200).json({
       error: false,
-      data: message,
-      count: message.length
+      data: formattedData,
+      count: formattedData.length
     });
     
   } catch (error) {
@@ -63,7 +71,7 @@ const createTrasaction = async (req, res) => {
       });
     }
     
-    const { value, typeId, description, date, status } = req.body;
+    const { value, typeId, categoryId, description, date, status } = req.body;
     
     // Validar campos obrigatórios
     if (!value || !description || !date) {
@@ -73,15 +81,27 @@ const createTrasaction = async (req, res) => {
       });
     }
     
-    // ✅ CORREÇÃO: Usar user_id em vez de userId
+    // ✅ NOVO: Valida categoryId se fornecido
+    if (categoryId && typeof categoryId !== 'number') {
+      return res.status(400).json({ 
+        error: true, 
+        message: "categoryId deve ser um número" 
+      });
+    }
+    
     const transactionData = { 
       value, 
       typeId, 
       description, 
       date, 
-      status,
-      user_id: req.user.id // ✅ MUDOU PARA user_id (snake_case)
+      status: status !== undefined ? status : true,
+      user_id: req.user.id
     };
+    
+    // ✅ NOVO: Adiciona categoryId se fornecido
+    if (categoryId) {
+      transactionData.categoryId = categoryId;
+    }
     
     console.log('📤 Controller: Enviando para service:', transactionData);
     
@@ -132,11 +152,18 @@ const updateTransaction = async (req, res) => {
       });
     }
     
-    // ✅ CORREÇÃO: Usar user_id em vez de userId
     const updateData = {
       ...req.body,
-      user_id: req.user.id // ✅ MUDOU PARA user_id (snake_case)
+      user_id: req.user.id
     };
+    
+    // ✅ NOVO: Valida categoryId se fornecido
+    if (updateData.categoryId && typeof updateData.categoryId !== 'number') {
+      return res.status(400).json({ 
+        error: true, 
+        message: "categoryId deve ser um número" 
+      });
+    }
     
     console.log('📤 Controller: Enviando para service:', updateData);
     
@@ -151,7 +178,8 @@ const updateTransaction = async (req, res) => {
 
     return res.status(200).json({ 
       error: false,
-      message 
+      message: typeof message === 'string' ? message : "Transação atualizada com sucesso!",
+      data: typeof message === 'object' ? message : undefined
     });
     
   } catch (error) {
@@ -189,7 +217,6 @@ const deleteTransaction = async (req, res) => {
     
     console.log(`🗑️ Usuário ${userId} deletando transação ${transactionId}`);
     
-    // ✅ CORREÇÃO: Passa userId também para verificação no service
     const { error, message } = await transactionService.deleteTransaction(transactionId, userId);
 
     if (error) {
@@ -213,9 +240,145 @@ const deleteTransaction = async (req, res) => {
   }
 };
 
+// ✅ NOVO CONTROLLER: Buscar categorias por tipo
+const getCategoriesByType = async (req, res) => {
+  try {
+    console.log('🏷️ Controller: Buscando categorias por tipo...');
+    console.log('🎯 req.params:', req.params);
+    
+    const { typeId } = req.params;
+    
+    if (!typeId) {
+      return res.status(400).json({ 
+        error: true, 
+        message: "typeId é obrigatório" 
+      });
+    }
+    
+    const typeIdNumber = parseInt(typeId, 10);
+    
+    if (isNaN(typeIdNumber) || typeIdNumber < 1 || typeIdNumber > 3) {
+      return res.status(400).json({ 
+        error: true, 
+        message: "typeId deve ser 1 (Receita), 2 (Despesa) ou 3 (Investimento)" 
+      });
+    }
+    
+    const { error, message } = await transactionService.getCategoriesByType(typeIdNumber);
+    
+    if (error) {
+      return res.status(404).json({ 
+        error: true, 
+        message 
+      });
+    }
+
+    console.log(`✅ Controller: Retornando ${message.length} categorias para tipo ${typeId}`);
+    
+    return res.status(200).json({
+      error: false,
+      data: message,
+      count: message.length,
+      typeId: typeIdNumber
+    });
+    
+  } catch (error) {
+    console.error('❌ Controller ERROR (categorias):', error.message);
+    return res.status(500).json({ 
+      error: true, 
+      message: "Erro interno no servidor" 
+    });
+  }
+};
+
+// ✅ NOVO CONTROLLER: Buscar todas as categorias
+const getAllCategories = async (req, res) => {
+  try {
+    console.log('🏷️ Controller: Buscando TODAS as categorias...');
+    
+    const { error, message, grouped } = await transactionService.getAllCategories();
+    
+    if (error) {
+      return res.status(404).json({ 
+        error: true, 
+        message 
+      });
+    }
+
+    console.log(`✅ Controller: Retornando ${message.length} categorias no total`);
+    
+    return res.status(200).json({
+      error: false,
+      data: message,
+      grouped: grouped || {},
+      count: message.length
+    });
+    
+  } catch (error) {
+    console.error('❌ Controller ERROR (todas categorias):', error.message);
+    return res.status(500).json({ 
+      error: true, 
+      message: "Erro interno no servidor" 
+    });
+  }
+};
+
+// ✅ NOVO CONTROLLER: Validar categoria (opcional)
+const validateCategory = async (req, res) => {
+  try {
+    console.log('✅ Controller: Validando categoria...');
+    console.log('📦 req.body:', req.body);
+    
+    const { categoryId, typeId } = req.body;
+    
+    if (!categoryId || !typeId) {
+      return res.status(400).json({ 
+        error: true, 
+        message: "categoryId e typeId são obrigatórios" 
+      });
+    }
+    
+    // Busca categorias do tipo especificado
+    const { error, message } = await transactionService.getCategoriesByType(typeId);
+    
+    if (error) {
+      return res.status(404).json({ 
+        error: true, 
+        message 
+      });
+    }
+    
+    // Verifica se a categoria existe e pertence ao tipo correto
+    const categoryExists = message.some(cat => cat.id === categoryId);
+    
+    if (!categoryExists) {
+      return res.status(400).json({ 
+        error: true, 
+        message: "Categoria não encontrada ou não pertence ao tipo especificado" 
+      });
+    }
+    
+    return res.status(200).json({
+      error: false,
+      message: "Categoria válida",
+      valid: true
+    });
+    
+  } catch (error) {
+    console.error('❌ Controller ERROR (validar categoria):', error.message);
+    return res.status(500).json({ 
+      error: true, 
+      message: "Erro interno no servidor" 
+    });
+  }
+};
+
 module.exports = {
   searchTrasctions,
   createTrasaction,
   deleteTransaction,
   updateTransaction,
+  getCategoriesByType,    // ✅ NOVO
+  getAllCategories,       // ✅ NOVO
+  validateCategory        // ✅ NOVO (opcional)
 };

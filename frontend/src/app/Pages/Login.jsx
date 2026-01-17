@@ -99,7 +99,7 @@ function Login() {
     try {
       console.log('🔐 Tentando login para:', email);
       
-      const response = await fetch('http://192.168.0.10:3001/auth/login', {
+      const response = await fetch('https://9c3dc958291c.ngrok-free.app/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -122,6 +122,7 @@ function Login() {
       // getAllTransactions(); // Chama a função para obter todas as transações
       console.log('💾 Salvando no localStorage...');
       
+      
       // 1. Limpa qualquer coisa anterior
       localStorage.clear();
       sessionStorage.clear();
@@ -130,7 +131,7 @@ function Login() {
       await new Promise(resolve => setTimeout(resolve, 50));
       
       // 3. Salva os NOVOS dados
-      localStorage.setItem('token', data.token);
+      localStorage.setItem('token' ,data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
       
       console.log('💾 Token salvo no localStorage:', localStorage.getItem('token') ? 'SIM' : 'NÃO');

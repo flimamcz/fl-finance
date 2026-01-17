@@ -10,7 +10,7 @@ function Provider({ children }) {
   const [error, setError] = useState(null);
 
   const port_backend = 3001;
-  const API_BASE_URL = `http://192.168.0.10:${port_backend}`;
+  const API_BASE_URL = `https://9c3dc958291c.ngrok-free.app`;
 
   // ✅ 1. FUNÇÃO PARA CALCULAR AMOUNTS
   const calculateAmounts = useCallback((transactionsList) => {
@@ -84,8 +84,10 @@ function Provider({ children }) {
       }
 
       console.log("🔑 Token encontrado (primeiros 20 chars):", token.substring(0, 20) + "...");
+      console.log(token);
+      
 
-      const response = await fetch(`${API_BASE_URL}/transactions`, {
+      const response = await fetch(`https://9c3dc958291c.ngrok-free.app/transactions`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -191,7 +193,7 @@ function Provider({ children }) {
         ...(token && { Authorization: `Bearer ${token}` })
       };
 
-      const response = await fetch(`${API_BASE_URL}/types`, {
+      const response = await fetch(`https://9c3dc958291c.ngrok-free.app/types`, {
         method: "GET",
         headers: headers,
       });
@@ -236,7 +238,7 @@ function Provider({ children }) {
 
         console.log("📤 Enviando transação:", transactionData);
 
-        const response = await fetch(`${API_BASE_URL}/transactions`, {
+        const response = await fetch(`https://9c3dc958291c.ngrok-free.app/transactions`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -288,7 +290,7 @@ function Provider({ children }) {
 
         console.log(`🗑️ Deletando transação ID: ${id}`);
 
-        const response = await fetch(`${API_BASE_URL}/transactions/${id}`, {
+        const response = await fetch(`https://9c3dc958291c.ngrok-free.app/transactions/${id}`, {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",

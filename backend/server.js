@@ -3,7 +3,7 @@ require("dotenv").config();
 const app = require("./app");
 
 const port = process.env.PORT || 3001;
-const host = process.env.HOST || '192.168.0.10'; // Use variável de ambiente
+// ❌ REMOVIDO host fixo (isso causava o EACCES)
 
 console.log('\n🚀 === INICIANDO SERVIDOR ===');
 console.log('📅', new Date().toISOString());
@@ -16,20 +16,25 @@ if (!process.env.JWT_SECRET) {
   console.warn('⚠️  AVISO: JWT_SECRET não definido no .env! Usando valor padrão.');
 }
 
-app.listen(port, host, () => {
+// ================================
+// START SERVER (SEM IP FIXO)
+// ================================
+app.listen(port, () => {
   console.log('\n✅ === SERVIDOR INICIADO ===');
   console.log(`   🔗 Local:      http://localhost:${port}`);
-  console.log(`   🌐 Rede:       http://${host}:${port}`);
+  console.log(`   🌐 Rede:       http://0.0.0.0:${port}`);
   console.log('\n📌 ENDPOINTS:');
-  console.log(`   🔐 Auth:       http://${host}:${port}/auth`);
-  console.log(`   💰 Transações: http://${host}:${port}/transactions`);
-  console.log(`   📊 Tipos:      http://${host}:${port}/types`);
-  console.log(`   👤 Usuários:   http://${host}:${port}/users`);
-  console.log(`   🩺 Health:     http://${host}:${port}/health`);
+  console.log(`   🔐 Auth:       http://localhost:${port}/auth`);
+  console.log(`   💰 Transações: http://localhost:${port}/transactions`);
+  console.log(`   📊 Tipos:      http://localhost:${port}/types`);
+  console.log(`   👤 Usuários:   http://localhost:${port}/users`);
+  console.log(`   🩺 Health:     http://localhost:${port}/health`);
   console.log(`\n🚀 Pronto para receber requisições!`);
 });
 
-// Tratamento de erros de inicialização
+// ================================
+// TRATAMENTO GLOBAL DE ERROS
+// ================================
 process.on('uncaughtException', (error) => {
   console.error('💥 ERRO NÃO TRATADO:', error);
   console.error('💥 Stack:', error.stack);
@@ -40,4 +45,3 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('💥 PROMISE REJEITADA:', reason);
   console.error('💥 Na promise:', promise);
 });
-

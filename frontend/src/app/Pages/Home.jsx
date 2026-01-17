@@ -850,7 +850,7 @@ function Home() {
   // Função de exclusão
   const deleteItem = async (endpoint, id) => {
     try {
-      const url = `http://192.168.0.10:3001/${endpoint}/${id}`;
+      const url = `https://9c3dc958291c.ngrok-free.app//${endpoint}/${id}`;
 
       const response = await fetch(url, {
         method: "DELETE",
@@ -943,10 +943,9 @@ function Home() {
         ...transactionData,
         value: parseFloat(transactionData.value),
         typeId: parseInt(transactionData.typeId),
-        // Mantém a data como YYYY-MM-DD (já está nesse formato do input date)
       };
 
-      const response = await fetch("http://192.168.0.10:3001/transactions", {
+      const response = await fetch("https://9c3dc958291c.ngrok-free.app/transactions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

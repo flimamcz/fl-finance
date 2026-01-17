@@ -1,22 +1,13 @@
-// src/app/services/Transaction.service.js
-const { Transaction } = require("../../models");
+// src/app/services/Transaction.service.js - VERSÃO COM CATEGORIAS
+const { Transaction, Category } = require("../../models");
 
 const searchTransactions = async (userId = null) => {
   console.log('🔍 Service: Buscando transações para userId:', userId);
-  console.log('📊 Tipo do userId:', typeof userId);
-  
-  // DEBUG: Veja a estrutura REAL do modelo
-  console.log('🔧 Atributos do modelo Transaction:');
-  Object.keys(Transaction.rawAttributes).forEach(attr => {
-    console.log(`  - ${attr}: ${Transaction.rawAttributes[attr].field || attr}`);
-  });
   
   const whereClause = {};
   
   if (userId) {
-    // ✅ CORREÇÃO: Use user_id (snake_case) que está no BANCO
-    // O Sequelize com `underscored: true` converte automaticamente
-    whereClause.user_id = Number(userId); // ← MUDOU AQUI!
+    whereClause.user_id = Number(userId);
     console.log('🛠️ Usando filtro: { user_id:', userId, '}');
   } else {
     console.log('⚠️ AVISO: userId não fornecido, buscando TODAS as transações');
@@ -25,20 +16,26 @@ const searchTransactions = async (userId = null) => {
   try {
     const transactions = await Transaction.findAll({
       where: whereClause,
-      order: [['date', 'DESC']]
+      order: [['date', 'DESC']],
+      include: [
+        {
+          model: Category,
+          as: 'category',
+          attributes: ['id', 'name', 'icon', 'color']
+        }
+      ]
     });
 
     console.log(`✅ Service: Encontradas ${transactions.length} transações`);
     
-    // DEBUG: Ver estrutura REAL
+    // Log para debug
     if (transactions.length > 0) {
       const firstTrans = transactions[0].toJSON();
-      console.log('🔍 DEBUG - ESTRUTURA da primeira transação:');
-      console.log(JSON.stringify(firstTrans, null, 2));
-      console.log('🔍 Campos relacionados a usuário:');
-      console.log('  userId:', firstTrans.userId);
-      console.log('  user_id:', firstTrans.user_id);
-      console.log('  user:', firstTrans.user);
+      console.log('🔍 Transação com categoria:', {
+        id: firstTrans.id,
+        description: firstTrans.description,
+        category: firstTrans.category
+      });
     }
 
     return { error: null, message: transactions };
@@ -63,12 +60,35 @@ const createTransaction = async (dataTransaction) => {
       delete dataToSave.userId;
     }
     
+    // ✅ NOVO: Trata categoryId
+    if (dataToSave.categoryId !== undefined) {
+      dataToSave.category_id = dataToSave.categoryId;
+      delete dataToSave.categoryId;
+    }
+    
+    // Se não tiver category_id, usa null (mantém compatibilidade)
+    if (!dataToSave.category_id) {
+      dataToSave.category_id = null;
+    }
+    
     console.log('📤 Dados para salvar no banco:', dataToSave);
     
     const newTransaction = await Transaction.create(dataToSave);
-    console.log('✅ Transação criada:', newTransaction.toJSON());
     
-    return { error: null, message: newTransaction };
+    // Busca transação com dados da categoria
+    const transactionWithCategory = await Transaction.findByPk(newTransaction.id, {
+      include: [
+        {
+          model: Category,
+          as: 'category',
+          attributes: ['id', 'name', 'icon', 'color']
+        }
+      ]
+    });
+    
+    console.log('✅ Transação criada com categoria:', transactionWithCategory.toJSON());
+    
+    return { error: null, message: transactionWithCategory };
   } catch (error) {
     console.error('❌ Erro ao criar transação:', error);
     return { error: "Bad Request", message: "Erro ao criar transação!" };
@@ -109,13 +129,30 @@ const updateTransaction = async (dataTransaction) => {
       delete updateData.userId;
     }
     
+    // ✅ NOVO: Trata categoryId
+    if (updateData.categoryId !== undefined) {
+      updateData.category_id = updateData.categoryId;
+      delete updateData.categoryId;
+    }
+    
     await Transaction.update(updateData, {
       where: { id: dataTransaction.id }
     });
 
+    // Busca transação atualizada com categoria
+    const updatedTransaction = await Transaction.findByPk(dataTransaction.id, {
+      include: [
+        {
+          model: Category,
+          as: 'category',
+          attributes: ['id', 'name', 'icon', 'color']
+        }
+      ]
+    });
+
     return {
       error: null,
-      message: `Sucesso ao atualizar transação ID ${dataTransaction.id}`
+      message: updatedTransaction || `Sucesso ao atualizar transação ID ${dataTransaction.id}`
     };
     
   } catch (error) {
@@ -162,9 +199,73 @@ const deleteTransaction = async (id, userId = null) => {
   }
 };
 
+// ✅ NOVA FUNÇÃO: Buscar categorias por tipo
+const getCategoriesByType = async (typeId = null) => {
+  console.log('🏷️ Service: Buscando categorias para typeId:', typeId);
+  
+  try {
+    const whereClause = {};
+    
+    if (typeId) {
+      whereClause.type_id = Number(typeId);
+    }
+    
+    const categories = await Category.findAll({
+      where: whereClause,
+      order: [['name', 'ASC']]
+    });
+
+    console.log(`✅ Service: Encontradas ${categories.length} categorias`);
+    
+    return { error: null, message: categories };
+    
+  } catch (error) {
+    console.error('❌ Service ERROR (categorias):', error.message);
+    return { error: "DATABASE_ERROR", message: "Erro ao buscar categorias" };
+  }
+};
+
+// ✅ NOVA FUNÇÃO: Buscar todas as categorias
+const getAllCategories = async () => {
+  console.log('🏷️ Service: Buscando TODAS as categorias');
+  
+  try {
+    const categories = await Category.findAll({
+      order: [
+        ['type_id', 'ASC'],
+        ['name', 'ASC']
+      ]
+    });
+
+    console.log(`✅ Service: Encontradas ${categories.length} categorias no total`);
+    
+    // Agrupa por type_id para facilitar no frontend
+    const grouped = categories.reduce((acc, category) => {
+      const typeId = category.type_id;
+      if (!acc[typeId]) {
+        acc[typeId] = [];
+      }
+      acc[typeId].push(category);
+      return acc;
+    }, {});
+
+    return { 
+      error: null, 
+      message: categories,
+      grouped 
+    };
+    
+  } catch (error) {
+    console.error('❌ Service ERROR (todas categorias):', error.message);
+    return { error: "DATABASE_ERROR", message: "Erro ao buscar categorias" };
+  }
+};
+
 module.exports = {
   searchTransactions,
   createTransaction,
   deleteTransaction,
   updateTransaction,
+  getCategoriesByType,    // ✅ NOVO
+  getAllCategories        // ✅ NOVO
 };

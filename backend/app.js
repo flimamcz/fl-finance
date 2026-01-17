@@ -23,10 +23,9 @@ app.use((req, res, next) => {
 
 // ⭐ CORS SUPER PERMISSIVO ⭐
 app.use(cors({
-  origin: "*",
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "Accept", "X-Requested-With"],
-  exposedHeaders: ["Content-Length", "Authorization"],
+  origin: '*',
+  methods: '*',
+  allowedHeaders: '*',
   credentials: false,
   maxAge: 86400
 }));
