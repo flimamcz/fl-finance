@@ -1,17 +1,17 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { FiAlertCircle, FiCheck, FiEye, FiEyeOff, FiLock, FiMail, FiShield, FiUser } from "react-icons/fi";
 import { API_BASE_URL } from "../Services/request";
 import "../Styles/Login.css";
 
 function Register() {
-  const navigate = useNavigate();
   const [formData, setFormData] = useState({ fullname: "", email: "", password: "", confirmPassword: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [recoveryCode, setRecoveryCode] = useState("");
   const [particles, setParticles] = useState([]);
 
   useEffect(() => {
@@ -61,8 +61,8 @@ function Register() {
         throw new Error(data.message || "Não foi possível criar sua conta.");
       }
 
-      setSuccess("Conta criada com sucesso! Redirecionando para o login...");
-      setTimeout(() => navigate("/login"), 1200);
+      setRecoveryCode(data.recoveryCode);
+      setSuccess("Conta criada com sucesso! Guarde seu código de recuperação.");
     } catch (requestError) {
       setError(requestError.message || "Erro ao criar sua conta.");
     } finally {
@@ -107,6 +107,7 @@ function Register() {
           <h2 className="form-title"><span className="welcome-text">Comece agora!</span></h2>
           {error && <div className="error-notification"><FiAlertCircle /><span>{error}</span></div>}
           {success && <div className="success-notification"><FiCheck /><span>{success}</span></div>}
+          {recoveryCode && <div className="recovery-code"><span>Seu código de recuperação</span><strong>{recoveryCode}</strong><small>Você precisará dele para redefinir sua senha.</small></div>}
 
           <div className="input-group">
             <label htmlFor="fullname"><FiUser /><span>Nome completo</span></label>
@@ -130,11 +131,11 @@ function Register() {
               <button type="button" className="toggle-password" onClick={() => setShowConfirmPassword((visible) => !visible)} aria-label={showConfirmPassword ? "Ocultar senha" : "Mostrar senha"}>{showConfirmPassword ? <FiEyeOff /> : <FiEye />}</button>
             </div>
           </div>
-          <button className={`login-button ${loading ? "loading" : ""}`} type="submit" disabled={loading || !formData.fullname || !formData.email || !formData.password || !formData.confirmPassword}>
+          {!recoveryCode && <button className={`login-button ${loading ? "loading" : ""}`} type="submit" disabled={loading || !formData.fullname || !formData.email || !formData.password || !formData.confirmPassword}>
             {loading ? "Criando conta..." : "Criar minha conta"}
-          </button>
+          </button>}
           <div className="form-footer">
-            <div className="register-link"><span>Já possui uma conta?</span><Link to="/login" className="register-cta">Entrar</Link></div>
+            <div className="register-link"><span>{recoveryCode ? "Sua conta está pronta." : "Já possui uma conta?"}</span><Link to="/login" className="register-cta">Entrar</Link></div>
           </div>
         </form>
       </div>

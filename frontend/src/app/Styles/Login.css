@@ -398,6 +398,41 @@
   font-size: 14px;
 }
 
+.recovery-code {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 20px;
+  padding: 14px;
+  text-align: center;
+  color: var(--text-primary);
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: var(--radius-md);
+}
+
+.recovery-code strong {
+  color: var(--primary-dark);
+  font-size: 26px;
+  letter-spacing: 4px;
+}
+
+.recovery-code small,
+.recovery-hint {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.recovery-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 18px;
+  padding: 12px;
+  color: var(--primary-dark);
+  background: rgba(99, 102, 241, 0.08);
+  border-radius: var(--radius-md);
+}
+
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
   25% { transform: translateX(-5px); }

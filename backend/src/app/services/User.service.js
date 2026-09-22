@@ -1,6 +1,7 @@
 // src/app/services/User.service.js
 const { User } = require("../../models");
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 
 const SALT_ROUNDS = 10;
 
@@ -201,11 +202,15 @@ const createUser = async (dataUser) => {
 
     // CRIAR HASH DA SENHA
     const hashedPassword = bcrypt.hashSync(dataUser.password, SALT_ROUNDS);
+    const resetCode = String(crypto.randomInt(100000, 1000000));
+    const resetCodeHash = bcrypt.hashSync(resetCode, SALT_ROUNDS);
     
     const userDataWithHash = {
       fullname: dataUser.fullname,
       email: dataUser.email,
       password: hashedPassword,
+      resetCodeHash,
+      resetCodeHint: `${resetCode.slice(0, 2)}***${resetCode.slice(-1)}`,
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -222,6 +227,8 @@ const createUser = async (dataUser) => {
     // Remove a senha do retorno (segurança)
     const userWithoutPassword = createUserRequest.toJSON();
     delete userWithoutPassword.password;
+    delete userWithoutPassword.resetCodeHash;
+    userWithoutPassword.recoveryCode = resetCode;
     
     console.log('✅ Usuário criado com sucesso:', userWithoutPassword.email);
     
@@ -231,6 +238,22 @@ const createUser = async (dataUser) => {
     console.error('❌ Service ERROR createUser:', error);
     return { error: "DATABASE_ERROR", message: "Erro ao criar usuário" };
   }
+};
+
+const findUserForPasswordReset = async (email) => {
+  const user = await User.findOne({ where: { email } });
+  if (!user || !user.resetCodeHash) return null;
+  return user;
+};
+
+const resetPassword = async (user, code, newPassword) => {
+  if (!bcrypt.compareSync(code, user.resetCodeHash)) {
+    return { error: "INVALID_CODE", message: "Código de recuperação inválido" };
+  }
+
+  user.password = bcrypt.hashSync(newPassword, SALT_ROUNDS);
+  await user.save();
+  return { error: null, message: "Senha redefinida com sucesso" };
 };
 
 const findUserForLogin = async (email) => {
@@ -296,4 +319,6 @@ module.exports = {
   updatePassword,
   verifyCredentials,
   findUserForLogin
+  ,findUserForPasswordReset
+  ,resetPassword
 };

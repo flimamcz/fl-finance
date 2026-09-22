@@ -92,6 +92,18 @@ class AuthService {
     }
   }
 
+  async getResetHint(email) {
+    const user = await UserService.findUserForPasswordReset(email);
+    if (!user) return { error: true, message: "Usuário não encontrado" };
+    return { error: false, message: user.resetCodeHint };
+  }
+
+  async resetPassword(email, code, newPassword) {
+    const user = await UserService.findUserForPasswordReset(email);
+    if (!user) return { error: true, message: "Dados de recuperação inválidos" };
+    return UserService.resetPassword(user, code, newPassword);
+  }
+
   async register(userData) {
     try {
       console.log("📝 Registrando usuário:", userData.email);
@@ -139,6 +151,7 @@ class AuthService {
             email: message.email,
             createdAt: message.createdAt,
           },
+          recoveryCode: message.recoveryCode,
           token,
         },
       };

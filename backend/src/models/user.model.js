@@ -28,6 +28,16 @@ const UserModel = (sequelize, DataTypes) => {
         type: DataTypes.TEXT("medium"),
         allowNull: true,
       },
+      resetCodeHash: {
+        field: "reset_code_hash",
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      resetCodeHint: {
+        field: "reset_code_hint",
+        type: DataTypes.STRING(6),
+        allowNull: true,
+      },
     },
     { timestamp: true, underscored: true}
   );
