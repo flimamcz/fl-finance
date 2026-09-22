@@ -17,7 +17,7 @@ module.exports = {
         {
           fullname: "Eduardo", // ✅ fullname (não fullName)
           email: "edu@test.com",
-          password: "flp5660",
+          password: "$2b$10$iAceZtWrKknfS5ndBGtvceqKgac6fAi4iIvHCCNT7.dS4i8x0yRni",
           position_work: "APF",
           created_at: new Date(),
           updated_at: new Date(),

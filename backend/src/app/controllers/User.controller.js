@@ -100,7 +100,7 @@ const updateMyProfile = async (req, res) => {
       });
     }
 
-    const { name, email, birthDate } = req.body;
+    const { name, email, birthDate, photo } = req.body;
     const userId = req.user.id;
 
     console.log(`📝 Tentando atualizar usuário ${userId}:`, {
@@ -110,7 +110,7 @@ const updateMyProfile = async (req, res) => {
     });
 
     // Validações básicas
-    if (!name && !email) {
+    if (!name && !email && photo === undefined) {
       return res.status(400).json({
         error: true,
         message: "Pelo menos um campo deve ser fornecido para atualização",
@@ -124,11 +124,28 @@ const updateMyProfile = async (req, res) => {
       });
     }
 
+    if (photo !== undefined && photo !== null) {
+      if (typeof photo !== "string" || !photo.startsWith("data:image/")) {
+        return res.status(400).json({
+          error: true,
+          message: "Formato de foto inválido",
+        });
+      }
+
+      if (photo.length > 14 * 1024 * 1024) {
+        return res.status(413).json({
+          error: true,
+          message: "A foto deve ter no máximo 10 MB",
+        });
+      }
+    }
+
     // Chamar service REAL
     const { error, message } = await userService.updateMyProfile(userId, {
       name,
       email,
       birthDate,
+      photo,
     });
 
     if (error === "EMAIL_EXISTS") {
@@ -139,8 +156,8 @@ const updateMyProfile = async (req, res) => {
     }
 
     if (error === "NO_CHANGES") {
-      return res.status(400).json({
-        error: true,
+      return res.status(200).json({
+        error: false,
         message,
       });
     }

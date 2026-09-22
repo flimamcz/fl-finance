@@ -24,6 +24,10 @@ const UserModel = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: false,
       },
+      photo: {
+        type: DataTypes.TEXT("medium"),
+        allowNull: true,
+      },
     },
     { timestamp: true, underscored: true}
   );

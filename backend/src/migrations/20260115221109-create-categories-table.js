@@ -18,7 +18,7 @@ module.exports = {
       },
       icon: {
         type: Sequelize.STRING,
-        defaultValue: "📄"
+        defaultValue: "file"
       },
       color: {
         type: Sequelize.STRING,
@@ -34,6 +34,9 @@ module.exports = {
         type: Sequelize.DATE,
         defaultValue: Sequelize.fn('NOW')
       }
+    }, {
+      charset: 'utf8mb4',
+      collate: 'utf8mb4_unicode_ci'
     });
   },
 

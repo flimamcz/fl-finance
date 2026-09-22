@@ -45,6 +45,7 @@ import {
 import Moment from "moment";
 import Header from "../Components/Header";
 import MyContext from "../Context/Context";
+import { API_BASE_URL } from "../Services/request";
 import ExportModal from "../Components/ExportModal";
 import EditTransactionModal from "../Components/EditTransactionModal";
 
@@ -850,7 +851,7 @@ function Home() {
   // Função de exclusão
   const deleteItem = async (endpoint, id) => {
     try {
-      const url = `https://9c3dc958291c.ngrok-free.app//${endpoint}/${id}`;
+      const url = `${API_BASE_URL}/${endpoint}/${id}`;
 
       const response = await fetch(url, {
         method: "DELETE",
@@ -945,7 +946,7 @@ function Home() {
         typeId: parseInt(transactionData.typeId),
       };
 
-      const response = await fetch("https://9c3dc958291c.ngrok-free.app/transactions", {
+      const response = await fetch(`${API_BASE_URL}/transactions`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -8,13 +8,13 @@ services:
     platform: linux/x86_64
     working_dir: /app-frontend
     volumes:
-      - ./backend/src:/app-frontend/src
+      - ./frontend/src:/app-frontend/src
 
   backend:
     container_name: app_backend_finance
     build: ./backend
     ports:
-      - 3001:3001
+      - 5000:5000
     platform: linux/x86_64
     working_dir: /app-backend
     restart: always
@@ -26,18 +26,24 @@ services:
       - JWT_SECRET=jwt_secret
       - MYSQL_USER=root
       - MYSQL_PASSWORD=flp5660
+      - MYSQL_DATABASE=flp-finance
       - MYSQL_HOST=db
-      - API_PORT=3001
+      - PORT=5000
+    depends_on:
+      - db
+
   db:
     container_name: app_database
     image: mysql:5.7
     platform: linux/x86_64
+    command: --max_allowed_packet=32M
     restart: always
     ports:
       - 3306:3306
       - 33060:33060
     environment:
       - MYSQL_ROOT_PASSWORD=flp5660
+      - MYSQL_DATABASE=flp-finance
     volumes:
       - flp-finance:/var/lib/mysql
 

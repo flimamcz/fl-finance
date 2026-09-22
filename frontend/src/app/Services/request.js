@@ -1,7 +1,11 @@
 import axios from "axios";
 
+export const API_BASE_URL =
+  import.meta.env.VITE_API_URL ||
+  `${window.location.protocol}//${window.location.hostname}:5000`;
+
 const api = axios.create({
-  baseURL: `https://9c3dc958291c.ngrok-free.app}`,
+  baseURL: API_BASE_URL,
 });
 
 export const requestPost = async (endpoint, body) => {

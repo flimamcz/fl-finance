@@ -11,12 +11,10 @@ import {
   FiShield,
   FiLoader 
 } from "react-icons/fi";
-import { useAuth } from '../Context/AuthContext';
+import { API_BASE_URL } from '../Services/request';
 import "../Styles/Login.css";
 
 function Login() {
-  const { login } = useAuth();
-  
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -99,7 +97,7 @@ function Login() {
     try {
       console.log('🔐 Tentando login para:', email);
       
-      const response = await fetch('https://9c3dc958291c.ngrok-free.app/auth/login', {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -137,12 +135,8 @@ function Login() {
       console.log('💾 Token salvo no localStorage:', localStorage.getItem('token') ? 'SIM' : 'NÃO');
       console.log('💾 User salvo no localStorage:', localStorage.getItem('user') ? 'SIM' : 'NÃO');
       
-      // 4. Espera mais um pouco
-      await new Promise(resolve => setTimeout(resolve, 50));
-      
-      // 5. DEPOIS chama a função de login do context
-      console.log('🚀 Chamando authContext.login()...');
-      await login(data.user, data.token);
+      // Recarrega para o AuthProvider validar o token e restaurar a sessão.
+      window.location.replace('/home');
       
     } catch (err) {
       console.error('❌ Erro no login:', err);

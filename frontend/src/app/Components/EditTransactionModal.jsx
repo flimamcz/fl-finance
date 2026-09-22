@@ -1,6 +1,7 @@
 import { useState, useEffect, useContext } from "react";
 import { FiX, FiCheckCircle, FiClock, FiAlertCircle } from "react-icons/fi";
 import MyContext from "../Context/Context";
+import { API_BASE_URL } from "../Services/request";
 
 function EditTransactionModal({ 
   isOpen, 
@@ -70,7 +71,7 @@ function EditTransactionModal({
 
       console.log("🔄 Enviando atualização:", updateData);
 
-      const response = await fetch("http://192.168.0.10:3001/transactions", {
+      const response = await fetch(`${API_BASE_URL}/transactions`, {
         method: "PATCH", // Note: SEU BACKEND usa PATCH, não PUT
         headers: {
           "Content-Type": "application/json",

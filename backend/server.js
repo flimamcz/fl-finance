@@ -19,7 +19,7 @@ if (!process.env.JWT_SECRET) {
 // ================================
 // START SERVER (SEM IP FIXO)
 // ================================
-app.listen(port, () => {
+app.listen(port, "0.0.0.0", () => {
   console.log('\n✅ === SERVIDOR INICIADO ===');
   console.log(`   🔗 Local:      http://localhost:${port}`);
   console.log(`   🌐 Rede:       http://0.0.0.0:${port}`);

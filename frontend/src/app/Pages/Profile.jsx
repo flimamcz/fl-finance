@@ -9,13 +9,12 @@ import {
 import Header from "../Components/Header";
 import { useAuth } from "../Context/AuthContext";
 import MyContext from "../Context/Context";
+import { API_BASE_URL } from "../Services/request";
 import "../Styles/Profile.css";
 
 function Profile() {
   const { user: authUser, logout } = useAuth();
   const { getAllTransactions } = useContext(MyContext);
-  
-  const API_BASE_URL = "http://192.168.0.10:3001";
   
   // Estados
   const [darkMode, setDarkMode] = useState(() => {
@@ -121,11 +120,12 @@ function Profile() {
         name: userData.name || userData.fullname || authUser?.name || "",
         email: userData.email || authUser?.email || "",
         birthDate: userData.birthDate || "2001-10-12",
-        photo: null,
+        photo: userData.photo || null,
         currentPassword: "",
         newPassword: "",
         confirmPassword: "",
       });
+      setPhotoPreview(userData.photo || null);
 
       // Atualizar estatísticas
       setStats({
@@ -174,12 +174,21 @@ function Profile() {
 
     if (files && name === "photo") {
       const file = files[0];
-      if (file && file.type.startsWith('image/')) {
-        setFormData((prev) => ({ ...prev, photo: file }));
-        setPhotoPreview(URL.createObjectURL(file));
+      if (file && file.type.startsWith('image/') && file.size <= 10 * 1024 * 1024) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          setFormData((prev) => ({ ...prev, photo: reader.result }));
+          setPhotoPreview(reader.result);
+        };
+        reader.readAsDataURL(file);
         setMessage({ 
           type: 'success', 
           text: 'Foto carregada com sucesso!' 
+        });
+      } else if (file && file.size > 10 * 1024 * 1024) {
+        setMessage({ 
+          type: 'error',
+          text: 'A foto deve ter no máximo 10 MB.' 
         });
       } else {
         setMessage({ 
@@ -289,7 +298,8 @@ function Profile() {
         bodyData = {
           name: formData.name,
           email: formData.email,
-          birthDate: formData.birthDate
+          birthDate: formData.birthDate,
+          photo: formData.photo,
         };
       }
       

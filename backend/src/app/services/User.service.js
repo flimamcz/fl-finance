@@ -14,7 +14,7 @@ const getMyProfile = async (userId) => {
     
     const user = await User.findOne({
       where: { id: userId },
-      attributes: ['id', 'fullname', 'email', 'createdAt'] // Não retorna password!
+      attributes: ['id', 'fullname', 'email', 'photo', 'createdAt'] // Não retorna password!
     });
 
     if (!user) {
@@ -70,6 +70,11 @@ const updateMyProfile = async (userId, updateData) => {
     
     if (updateData.email && updateData.email !== user.email) {
       user.email = updateData.email;
+      updated = true;
+    }
+
+    if (updateData.photo !== undefined && updateData.photo !== user.photo) {
+      user.photo = updateData.photo || null;
       updated = true;
     }
     

@@ -1,6 +1,7 @@
 import PropTypes from "prop-types";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import MyContext from "./Context";
+import { API_BASE_URL } from "../Services/request";
 
 function Provider({ children }) {
   const [transactions, setTransactions] = useState([]);
@@ -8,9 +9,6 @@ function Provider({ children }) {
   const [amounts, setAmounts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-
-  const port_backend = 3001;
-  const API_BASE_URL = `https://9c3dc958291c.ngrok-free.app`;
 
   // ✅ 1. FUNÇÃO PARA CALCULAR AMOUNTS
   const calculateAmounts = useCallback((transactionsList) => {
@@ -87,7 +85,7 @@ function Provider({ children }) {
       console.log(token);
       
 
-      const response = await fetch(`https://9c3dc958291c.ngrok-free.app/transactions`, {
+      const response = await fetch(`${API_BASE_URL}/transactions`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -193,7 +191,7 @@ function Provider({ children }) {
         ...(token && { Authorization: `Bearer ${token}` })
       };
 
-      const response = await fetch(`https://9c3dc958291c.ngrok-free.app/types`, {
+      const response = await fetch(`${API_BASE_URL}/types`, {
         method: "GET",
         headers: headers,
       });
@@ -238,7 +236,7 @@ function Provider({ children }) {
 
         console.log("📤 Enviando transação:", transactionData);
 
-        const response = await fetch(`https://9c3dc958291c.ngrok-free.app/transactions`, {
+        const response = await fetch(`${API_BASE_URL}/transactions`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -290,7 +288,7 @@ function Provider({ children }) {
 
         console.log(`🗑️ Deletando transação ID: ${id}`);
 
-        const response = await fetch(`https://9c3dc958291c.ngrok-free.app/transactions/${id}`, {
+        const response = await fetch(`${API_BASE_URL}/transactions/${id}`, {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",

@@ -1,6 +1,7 @@
 // AuthContext.jsx - VERSÃO SIMPLIFICADA
 import { createContext, useState, useContext, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "../Services/request";
 
 const AuthContext = createContext({});
 import MyContext from "../Context/Context";
@@ -16,16 +17,12 @@ export const AuthProvider = ({ children }) => {
   // ✅ Função para verificar token
   const verifyToken = async (token) => {
     try {
-      const response = await fetch(
-        "https://9c3dc958291c.ngrok-free.app/auth/verify",
-        {
+      const response = await fetch(`${API_BASE_URL}/auth/verify`, {
           method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,
-            "ngrok-skip-browser-warning": "true",
           },
-        }
-      );
+        });
 
       const data = await response.json();
 
@@ -62,6 +59,7 @@ export const AuthProvider = ({ children }) => {
         if (verification.valid) {
           const userData = JSON.parse(storedUser);
           setUser(userData);
+          await getAllTransactions();
           console.log("✅ Usuário carregado:", userData.email);
         } else {
           console.log("⚠️ Token expirado, limpando...");
