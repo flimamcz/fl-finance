@@ -112,14 +112,8 @@ class AuthService {
         }
       }
 
-      // 2. ✅ JÁ ESTÁ CERTO: Criptografar senha
-      const hashedPassword = await bcrypt.hash(userData.password, 10);
-
-      // 3. Chamar UserService para criar usuário
-      const { error, message } = await UserService.createUser({
-        ...userData,
-        password: hashedPassword,
-      });
+      // UserService.createUser já gera o hash da senha uma única vez.
+      const { error, message } = await UserService.createUser(userData);
 
       if (error) {
         return { error: true, message };

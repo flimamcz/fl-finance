@@ -2,6 +2,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./app/Context/AuthContext"; // NOVO IMPORT
 import Login from "./app/Pages/Login";
+import Register from "./app/Pages/Register";
 import Home from "./app/Pages/Home";
 import Profile from "./app/Pages/Profile";
 import ProtectedRoute from "./app/Components/ProtectedRoute";
@@ -13,6 +14,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Navigate to="/home" replace />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
         <Route path="/home" element={
           <ProtectedRoute>
             <Home />
