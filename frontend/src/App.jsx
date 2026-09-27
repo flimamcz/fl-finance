@@ -6,6 +6,7 @@ import Register from "./app/Pages/Register";
 import ForgotPassword from "./app/Pages/ForgotPassword";
 import Home from "./app/Pages/Home";
 import Profile from "./app/Pages/Profile";
+import Debts from "./app/Pages/Debts";
 import ProtectedRoute from "./app/Components/ProtectedRoute";
 
 function App() {
@@ -25,6 +26,11 @@ function App() {
         <Route path="/profile" element={
           <ProtectedRoute>
             <Profile />
+          </ProtectedRoute>
+        } />
+        <Route path="/debts" element={
+          <ProtectedRoute>
+            <Debts />
           </ProtectedRoute>
         } />
       </Routes>

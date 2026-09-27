@@ -52,10 +52,8 @@ function Header() {
   };
 
   const navItems = [
-    // { path: "/home", label: "Dashboard", icon: "📊" },
-    // { path: "/transactions", label: "Transações", icon: "💰" },
-    // { path: "/reports", label: "Relatórios", icon: "📈" },
-    // { path: "/goals", label: "Metas", icon: "🎯" },
+    { path: "/home", label: "Dashboard", icon: "📊" },
+    { path: "/debts", label: "Dívidas", icon: "💳" },
   ];
 
   return (

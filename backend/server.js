@@ -1,8 +1,17 @@
 // src/server.js
 require("dotenv").config();
 const app = require("./app");
+const { settleDueInstallments } = require("./src/app/services/Debt.service");
 
 const port = process.env.PORT || 3001;
+const settleDebts = () => {
+  settleDueInstallments().catch((error) => {
+    console.error("Erro ao processar parcelas vencidas:", error);
+  });
+};
+
+settleDebts();
+setInterval(settleDebts, 60 * 1000);
 // ❌ REMOVIDO host fixo (isso causava o EACCES)
 
 console.log('\n🚀 === INICIANDO SERVIDOR ===');
