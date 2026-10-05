@@ -84,10 +84,18 @@ const listDebts = async (userId) => {
   });
 };
 
-const createDebt = async (userId, input) => {
-  const amount = Number(input.amount);
-  const count = input.recurring ? Number(input.installmentCount) : 1;
-  const firstDueDate = input.firstDueDate;
+const buildDebtInstallments = (firstDueDate, amount, count) => Array.from({ length: count }, (_, index) => ({
+  installment_number: index + 1,
+  due_date: getInstallmentDate(firstDueDate, index),
+  amount: Number(amount).toFixed(2),
+  status: "pending",
+}));
+
+const validateDebtInput = (input, options = {}) => {
+  const { allowExistingCount = false } = options;
+  const amount = Number(input.amount ?? input.value ?? 0);
+  const count = input.recurring ? Number(input.installmentCount ?? input.installment_count ?? 1) : 1;
+  const firstDueDate = input.firstDueDate ?? input.first_due_date;
 
   if (!input.name || input.name.trim().length > 120) {
     return { error: "Informe um nome para a dívida com até 120 caracteres.", status: 400 };
@@ -95,23 +103,37 @@ const createDebt = async (userId, input) => {
   if (!Number.isFinite(amount) || amount <= 0) {
     return { error: "O valor deve ser maior que zero e ter no máximo duas casas decimais.", status: 400 };
   }
-  const parsedDueDate = new Date(`${firstDueDate}T00:00:00Z`);
-  if (
-    !/^\d{4}-\d{2}-\d{2}$/.test(firstDueDate || "") ||
-    Number.isNaN(parsedDueDate.getTime()) ||
-    formatDate(parsedDueDate) !== firstDueDate
-  ) {
+  if (!firstDueDate || !/^\d{4}-\d{2}-\d{2}$/.test(firstDueDate)) {
     return { error: "Informe uma data de vencimento válida.", status: 400 };
   }
+
+  const parsedDueDate = new Date(`${firstDueDate}T00:00:00Z`);
+  if (Number.isNaN(parsedDueDate.getTime()) || formatDate(parsedDueDate) !== firstDueDate) {
+    return { error: "Informe uma data de vencimento válida.", status: 400 };
+  }
+
   if (Math.abs(amount * 100 - Math.round(amount * 100)) > 1e-7) {
     return { error: "O valor deve ter no máximo duas casas decimais.", status: 400 };
   }
-  if (input.recurring && (!Number.isInteger(count) || count < 2 || count > 120)) {
-    return { error: "A recorrência deve ter entre 2 e 120 parcelas.", status: 400 };
+
+  if (input.recurring || allowExistingCount) {
+    if (!Number.isInteger(count) || count < 1 || count > 120) {
+      return { error: "A recorrência deve ter entre 1 e 120 parcelas.", status: 400 };
+    }
   }
+
   if (input.creditor && input.creditor.trim().length > 120) {
     return { error: "O nome da pessoa/credor deve ter até 120 caracteres.", status: 400 };
   }
+
+  return { amount, count, firstDueDate };
+};
+
+const createDebt = async (userId, input) => {
+  const validation = validateDebtInput(input, { allowExistingCount: false });
+  if (validation.error) return validation;
+
+  const { amount, count, firstDueDate } = validation;
 
   const debt = await sequelize.transaction(async (transaction) => {
     const createdDebt = await Debt.create(
@@ -122,17 +144,14 @@ const createDebt = async (userId, input) => {
         amount: amount.toFixed(2),
         first_due_date: firstDueDate,
         recurring: Boolean(input.recurring),
-        installment_count: count,
+        installment_count: input.recurring ? count : 1,
       },
       { transaction }
     );
 
-    const installments = Array.from({ length: count }, (_, index) => ({
+    const installments = buildDebtInstallments(firstDueDate, amount, input.recurring ? count : 1).map((installment) => ({
+      ...installment,
       debt_id: createdDebt.id,
-      installment_number: index + 1,
-      due_date: getInstallmentDate(firstDueDate, index),
-      amount: amount.toFixed(2),
-      status: "pending",
     }));
 
     await DebtInstallment.bulkCreate(installments, { transaction });
@@ -141,6 +160,117 @@ const createDebt = async (userId, input) => {
 
   await settleDueInstallments(userId);
   return { data: debt };
+};
+
+const updateDebt = async (userId, debtId, input) => {
+  const debt = await Debt.findOne({
+    where: { id: debtId, user_id: Number(userId) },
+    include: [{ model: DebtInstallment, as: "installments" }],
+  });
+
+  if (!debt) return { error: "Dívida não encontrada.", status: 404 };
+  if (debt.installments.some((installment) => installment.status === "paid")) {
+    return { error: "Não é possível editar uma dívida com parcelas já pagas.", status: 409 };
+  }
+
+  const nextInput = {
+    name: input.name ?? debt.name,
+    creditor: input.creditor ?? debt.creditor,
+    amount: input.amount ?? debt.amount,
+    firstDueDate: input.firstDueDate ?? debt.first_due_date,
+    recurring: input.recurring ?? debt.recurring,
+    installmentCount: input.installmentCount ?? debt.installment_count,
+  };
+
+  const validation = validateDebtInput(nextInput, { allowExistingCount: true });
+  if (validation.error) return validation;
+
+  const { amount, count, firstDueDate } = validation;
+  const finalCount = Boolean(nextInput.recurring) ? count : 1;
+
+  await sequelize.transaction(async (transaction) => {
+    await debt.update(
+      {
+        name: nextInput.name.trim(),
+        creditor: nextInput.creditor?.trim() || null,
+        amount: amount.toFixed(2),
+        first_due_date: firstDueDate,
+        recurring: Boolean(nextInput.recurring),
+        installment_count: finalCount,
+      },
+      { transaction }
+    );
+
+    await DebtInstallment.destroy({ where: { debt_id: debt.id }, transaction });
+    const installments = buildDebtInstallments(firstDueDate, amount, finalCount).map((installment, index) => ({
+      debt_id: debt.id,
+      installment_number: index + 1,
+      due_date: installment.due_date,
+      amount: installment.amount,
+      status: "pending",
+    }));
+    await DebtInstallment.bulkCreate(installments, { transaction });
+  });
+
+  return { data: true };
+};
+
+const updateInstallment = async (userId, installmentId, input) => {
+  const installment = await DebtInstallment.findOne({
+    where: { id: installmentId },
+    include: [{ model: Debt, as: "debt", where: { user_id: Number(userId) } }],
+  });
+
+  if (!installment) return { error: "Parcela não encontrada.", status: 404 };
+  if (installment.status === "paid") {
+    return { error: "Parcela paga não pode ser alterada.", status: 409 };
+  }
+
+  const nextAmount = input.amount !== undefined ? Number(input.amount) : Number(installment.amount);
+  const nextDueDate = input.due_date ?? input.dueDate ?? installment.due_date;
+
+  if (!nextDueDate || !/^\d{4}-\d{2}-\d{2}$/.test(nextDueDate)) {
+    return { error: "Informe uma data de vencimento válida.", status: 400 };
+  }
+
+  if (!Number.isFinite(nextAmount) || nextAmount <= 0) {
+    return { error: "O valor da parcela deve ser maior que zero.", status: 400 };
+  }
+
+  const parsedDueDate = new Date(`${nextDueDate}T00:00:00Z`);
+  if (Number.isNaN(parsedDueDate.getTime()) || formatDate(parsedDueDate) !== nextDueDate) {
+    return { error: "Informe uma data de vencimento válida.", status: 400 };
+  }
+
+  if (Math.abs(nextAmount * 100 - Math.round(nextAmount * 100)) > 1e-7) {
+    return { error: "O valor deve ter no máximo duas casas decimais.", status: 400 };
+  }
+
+  installment.amount = nextAmount.toFixed(2);
+  installment.due_date = nextDueDate;
+  await installment.save();
+
+  return { data: true };
+};
+
+const settleDebt = async (userId, debtId) => {
+  const debt = await Debt.findOne({
+    where: { id: debtId, user_id: Number(userId) },
+    include: [{ model: DebtInstallment, as: "installments" }],
+  });
+
+  if (!debt) return { error: "Dívida não encontrada.", status: 404 };
+
+  const pendingInstallments = debt.installments.filter((installment) => installment.status === "pending");
+  if (pendingInstallments.length === 0) {
+    return { error: "Não há parcelas pendentes para liquidar esta dívida.", status: 409 };
+  }
+
+  for (const installment of pendingInstallments) {
+    await settleInstallment(installment.id, installment.due_date);
+  }
+
+  return { data: true };
 };
 
 const payInstallment = async (userId, installmentId) => {
@@ -176,5 +306,8 @@ module.exports = {
   deleteDebt,
   listDebts,
   payInstallment,
+  settleDebt,
   settleDueInstallments,
+  updateDebt,
+  updateInstallment,
 };
