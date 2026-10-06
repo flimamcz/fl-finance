@@ -5,6 +5,7 @@ const {
   deleteDebt,
   listDebts,
   payInstallment,
+  unpayInstallment,
   settleDebt,
   updateDebt,
   updateInstallment,
@@ -18,6 +19,7 @@ router.post("/", createDebt);
 router.put("/:id", updateDebt);
 router.post("/:id/settle", settleDebt);
 router.post("/installments/:installmentId/pay", payInstallment);
+router.post("/installments/:installmentId/unpay", unpayInstallment);
 router.put("/installments/:installmentId", updateInstallment);
 router.delete("/:id", deleteDebt);
 

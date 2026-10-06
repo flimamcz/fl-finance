@@ -7,6 +7,7 @@ function Provider({ children }) {
   const [transactions, setTransactions] = useState([]);
   const [typesTransactions, setTypesTransactions] = useState([]);
   const [amounts, setAmounts] = useState([]);
+  const [initialized, setInitialized] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -177,6 +178,7 @@ function Provider({ children }) {
       throw error;
     } finally {
       setLoading(false);
+      setInitialized(true);
     }
   }, [API_BASE_URL, calculateAmounts]);
 
@@ -366,6 +368,7 @@ function Provider({ children }) {
       typesTransactions,
       amounts,
       recalculateAmounts,
+      initialized,
       loading,
       error,
       refreshTransactions: getAllTransactions,
@@ -378,6 +381,7 @@ function Provider({ children }) {
       typesTransactions,
       amounts,
       recalculateAmounts,
+      initialized,
       loading,
       error,
     ]

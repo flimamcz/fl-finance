@@ -1,4 +1,5 @@
-import { useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   FiAlertCircle,
   FiCalendar,
@@ -68,21 +69,28 @@ const getDaysUntil = (dateString) => {
   return Math.ceil(diff / (1000 * 60 * 60 * 24));
 };
 
-const getDebtStatus = (debt) => {
-  const installments = debt.installments || [];
+const getDebtStatus = (debt, installments = debt.installments || []) => {
   const pending = installments.filter((installment) => installment.status === "pending");
 
-  if (pending.length === 0) return "paid";
+  if (pending.length === 0) {
+    const allInstallments = debt.installments || [];
+    return allInstallments.length > 0 && allInstallments.every((installment) => installment.status === "paid")
+      ? "paid"
+      : "paidInPeriod";
+  }
 
   const closest = [...pending].sort((a, b) => new Date(a.due_date) - new Date(b.due_date))[0];
   const daysUntil = getDaysUntil(closest.due_date);
 
   if (daysUntil < 0) return "overdue";
+  if (daysUntil === 0) return "dueToday";
   if (daysUntil <= 7) return "dueSoon";
   return "upcoming";
 };
 
 function Debts() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const { getAllTransactions } = useContext(MyContext);
   const [debts, setDebts] = useState([]);
   const [form, setForm] = useState(initialForm);
@@ -95,11 +103,14 @@ function Debts() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [busyInstallment, setBusyInstallment] = useState(null);
+  const [expandedDebtId, setExpandedDebtId] = useState(null);
+  const [paymentDialog, setPaymentDialog] = useState(null);
   const [debtEditor, setDebtEditor] = useState(null);
   const [installmentEditor, setInstallmentEditor] = useState(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const handledDashboardEdit = useRef(null);
 
   useEffect(() => {
     if (!formOpen) return undefined;
@@ -255,9 +266,21 @@ function Debts() {
         return true;
       });
 
-      return { ...debt, visibleInstallments: filteredInstallments };
+      return { ...debt, periodInstallments: installments, visibleInstallments: filteredInstallments };
     }).filter((debt) => debt.visibleInstallments.length > 0);
   }, [debts, periodView, selectedMonth, statusFilter, timeFilter]);
+
+  const debtStatusGroups = [
+    { status: "overdue", title: "Vencidas" },
+    { status: "dueToday", title: "Vencem hoje" },
+    { status: "dueSoon", title: "Próximas dívidas" },
+    { status: "upcoming", title: "Em dia" },
+    { status: "paidInPeriod", title: "Pagas neste período" },
+    { status: "paid", title: "Quitadas" },
+  ].map((group) => ({
+    ...group,
+    debts: visibleDebts.filter((debt) => getDebtStatus(debt, debt.visibleInstallments) === group.status),
+  })).filter((group) => group.debts.length > 0);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -285,16 +308,54 @@ function Debts() {
     }
   };
 
-  const payInstallment = async (installment) => {
+  const openPaymentDialog = (installment, debt) => {
+    setPaymentDialog({
+      installment,
+      debt,
+      paymentDate: localDateString(),
+    });
+    setError("");
+    setNotice("");
+  };
+
+  const payInstallment = async (event) => {
+    event.preventDefault();
+    if (!paymentDialog?.paymentDate) {
+      setError("Informe a data em que a parcela foi paga.");
+      return;
+    }
+
+    const { installment, paymentDate } = paymentDialog;
     setBusyInstallment(installment.id);
     setError("");
     setNotice("");
     try {
       const result = await apiRequest(`/debts/installments/${installment.id}/pay`, {
         method: "POST",
+        body: JSON.stringify({ paymentDate }),
       });
       setDebts(result.data || []);
-      setNotice("Pagamento registrado no histórico de despesas.");
+      setPaymentDialog(null);
+      setNotice(`Pagamento de ${formatDate(paymentDate)} registrado no histórico de despesas.`);
+      await getAllTransactions();
+    } catch (requestError) {
+      setError(requestError.message);
+      await loadDebts();
+    } finally {
+      setBusyInstallment(null);
+    }
+  };
+
+  const unpayInstallment = async (installment) => {
+    setBusyInstallment(installment.id);
+    setError("");
+    setNotice("");
+    try {
+      const result = await apiRequest(`/debts/installments/${installment.id}/unpay`, {
+        method: "POST",
+      });
+      setDebts(result.data || []);
+      setNotice("Pagamento desfeito; a despesa foi removida do histórico.");
       await getAllTransactions();
     } catch (requestError) {
       setError(requestError.message);
@@ -365,6 +426,80 @@ function Debts() {
     setNotice("");
   };
 
+  useEffect(() => {
+    const requestedInstallmentId = location.state?.editInstallmentId;
+    const requestedDebtId = location.state?.editDebtId;
+    const requestId = requestedInstallmentId ? `installment:${requestedInstallmentId}` : requestedDebtId ? `debt:${requestedDebtId}` : null;
+    if (!requestId || loading) return;
+    if (handledDashboardEdit.current === requestId) return;
+
+    const requestedState = location.state;
+    handledDashboardEdit.current = requestId;
+    navigate(location.pathname, { replace: true, state: null });
+
+    const openRequestedInstallment = async () => {
+      if (requestedDebtId) {
+        const debt = debts.find((item) => String(item.id) === String(requestedDebtId));
+        if (!debt) {
+          setError("Não foi possível encontrar a dívida vinculada a esta despesa.");
+          return;
+        }
+
+        setTimeFilter("all");
+        setStatusFilter("all");
+        setExpandedDebtId(debt.id);
+
+        const hasPaidInstallments = (debt.installments || []).some((item) => item.status === "paid");
+        if (hasPaidInstallments) {
+          setNotice("Para editar os dados gerais desta dívida, reabra primeiro cada parcela paga. Nenhum pagamento foi desfeito.");
+          return;
+        }
+
+        openDebtEditor(debt);
+        return;
+      }
+
+      const installment = debts
+        .flatMap((debt) => (debt.installments || []).map((item) => ({ ...item, debt })))
+        .find((item) => String(item.id) === String(requestedInstallmentId));
+
+      if (!installment) {
+        setError("Não foi possível encontrar a parcela vinculada a esta despesa.");
+        return;
+      }
+
+      setSelectedMonth(installment.due_date.slice(0, 7));
+      setTimeFilter("month");
+      setStatusFilter("all");
+      setExpandedDebtId(installment.debt.id);
+
+      if (!requestedState.undoPaymentFirst) {
+        openInstallmentEditor(installment);
+        return;
+      }
+
+      setBusyInstallment(installment.id);
+      try {
+        await apiRequest(`/debts/installments/${installment.id}/unpay`, { method: "POST" });
+        const result = await apiRequest("/debts");
+        setDebts(result.data || []);
+        openInstallmentEditor(installment);
+        setNotice("Pagamento desfeito. Ajuste a parcela e registre o pagamento novamente.");
+        try {
+          await getAllTransactions();
+        } catch (refreshError) {
+          setError(`A parcela foi reaberta, mas não foi possível atualizar o extrato: ${refreshError.message}`);
+        }
+      } catch (requestError) {
+        setError(requestError.message);
+      } finally {
+        setBusyInstallment(null);
+      }
+    };
+
+    openRequestedInstallment();
+  }, [apiRequest, debts, getAllTransactions, loading, location.pathname, location.state, navigate]);
+
   const saveInstallmentChanges = async (event) => {
     event.preventDefault();
     setSaving(true);
@@ -432,31 +567,33 @@ function Debts() {
         </section>
 
         <section className="debt-period-section" aria-label="Filtro de parcelas">
-          <div className="debt-filter-group">
-            <span className="debt-filter-label">Status</span>
-            <div className="debt-filter-row" aria-label="Filtrar por status">
-              {[
-                ["all", "Todas"],
-                ["pending", "Em aberto"],
-                ["overdue", "Atrasadas"],
-                ["paid", "Pagas"],
-              ].map(([value, label]) => (
-                <button className={statusFilter === value ? "active" : ""} key={value} onClick={() => setStatusFilter(value)} type="button">{label}</button>
-              ))}
+          <div className="debt-filter-layout">
+            <div className="debt-filter-group">
+              <span className="debt-filter-label">Status</span>
+              <div className="debt-filter-row" aria-label="Filtrar por status">
+                {[
+                  ["all", "Todas"],
+                  ["pending", "Em aberto"],
+                  ["overdue", "Atrasadas"],
+                  ["paid", "Pagas"],
+                ].map(([value, label]) => (
+                  <button aria-pressed={statusFilter === value} className={statusFilter === value ? "active" : ""} data-filter={value} key={value} onClick={() => setStatusFilter(value)} type="button">{label}</button>
+                ))}
+              </div>
             </div>
-          </div>
 
-          <div className="debt-filter-group">
-            <span className="debt-filter-label">Período</span>
-            <div className="debt-filter-row" aria-label="Filtrar por período">
-              {[
-                ["month", "Este mês"],
-                ["week", "Próximos 7 dias"],
-                ["overdue", "Vencidas"],
-                ["all", "Todas"],
-              ].map(([value, label]) => (
-                <button className={timeFilter === value ? "active" : ""} key={value} onClick={() => setTimeFilter(value)} type="button">{label}</button>
-              ))}
+            <div className="debt-filter-group">
+              <span className="debt-filter-label">Período</span>
+              <div className="debt-filter-row" aria-label="Filtrar por período">
+                {[
+                  ["month", "Este mês"],
+                  ["week", "Próximos 7 dias"],
+                  ["overdue", "Vencidas"],
+                  ["all", "Todas"],
+                ].map(([value, label]) => (
+                  <button aria-pressed={timeFilter === value} className={timeFilter === value ? "active" : ""} data-filter={value} key={value} onClick={() => setTimeFilter(value)} type="button">{label}</button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -465,13 +602,13 @@ function Debts() {
               <div className="debt-month-navigation">
                 <div className="debt-month-stepper">
                   <button aria-label="Mês anterior" className="debts-icon-button" onClick={() => setSelectedMonth((month) => shiftMonth(month, -1))} type="button"><FiChevronLeft /></button>
-                  <div className="debt-month-title"><strong>{formatMonth(selectedMonth)}</strong>{selectedMonth === localDateString().slice(0, 7) && <span>Este mês</span>}</div>
+                  <div aria-live="polite" className="debt-month-title"><strong>{formatMonth(selectedMonth)}</strong>{selectedMonth === localDateString().slice(0, 7) && <span>Este mês</span>}</div>
                   <button aria-label="Próximo mês" className="debts-icon-button" onClick={() => setSelectedMonth((month) => shiftMonth(month, 1))} type="button"><FiChevronRight /></button>
                 </div>
                 {selectedMonth !== localDateString().slice(0, 7) && (
                   <button className="debt-current-month-button" onClick={() => setSelectedMonth(localDateString().slice(0, 7))} type="button">Ir para este mês</button>
                 )}
-                <label className="debt-month-picker"><span className="sr-only">Selecionar mês</span><input aria-label="Selecionar mês" onChange={(event) => event.target.value && setSelectedMonth(event.target.value)} type="month" value={selectedMonth} /></label>
+                <label className="debt-month-picker"><span><FiCalendar />Selecionar mês</span><input aria-label="Selecionar mês" onChange={(event) => event.target.value && setSelectedMonth(event.target.value)} type="month" value={selectedMonth} /></label>
               </div>
               <div className="debt-month-summary">
                 <div><span>Total previsto</span><strong>{formatCurrency(monthlySummary.total)}</strong><small>{monthlyInstallments.length} parcelas</small></div>
@@ -535,6 +672,48 @@ function Debts() {
               </div>
             </form>
           </section>
+          </div>
+        )}
+
+        {paymentDialog && (
+          <div className="debt-modal-backdrop" onClick={() => setPaymentDialog(null)}>
+            <section
+              aria-labelledby="installment-payment-title"
+              aria-modal="true"
+              className="debt-form-section debt-modal debt-payment-modal"
+              onClick={(event) => event.stopPropagation()}
+              role="dialog"
+            >
+              <div className="debt-section-heading">
+                <div className="debt-payment-heading">
+                  <span className="debt-payment-heading-icon"><FiCheck /></span>
+                  <span>
+                  <h2 id="installment-payment-title">Registrar pagamento</h2>
+                  <p>Confirme a data em que você pagou esta parcela.</p>
+                  </span>
+                </div>
+                <button aria-label="Fechar registro de pagamento" className="debts-icon-button" onClick={() => setPaymentDialog(null)} type="button"><FiX /></button>
+              </div>
+              <div className="debt-payment-summary">
+                <span className="debt-payment-summary-label">DÍVIDA</span>
+                <strong>{paymentDialog.debt.name}</strong>
+                <span className="debt-payment-sequence">Parcela {paymentDialog.installment.installment_number} de {paymentDialog.debt.installment_count}</span>
+                <b>{formatCurrency(paymentDialog.installment.amount)}</b>
+              </div>
+              <form className="debt-form debt-payment-form" onSubmit={payInstallment}>
+                <label className="debt-field">
+                  <span>Data do pagamento</span>
+                  <div className="debt-input-with-icon"><FiCalendar /><input autoFocus max={localDateString()} required type="date" value={paymentDialog.paymentDate} onChange={(event) => setPaymentDialog({ ...paymentDialog, paymentDate: event.target.value })} /></div>
+                </label>
+                <p className="debt-payment-helper">A data escolhida será usada no histórico de despesas e no saldo da dashboard.</p>
+                <div className="debt-form-actions">
+                  <button className="debts-secondary-button" onClick={() => setPaymentDialog(null)} type="button">Cancelar</button>
+                  <button className="debts-primary-button" disabled={busyInstallment === paymentDialog.installment.id} type="submit">
+                    {busyInstallment === paymentDialog.installment.id ? "Registrando..." : "Confirmar pagamento"}
+                  </button>
+                </div>
+              </form>
+            </section>
           </div>
         )}
 
@@ -638,57 +817,114 @@ function Debts() {
             <div className="debts-empty-state"><FiDollarSign /><strong>{debts.length === 0 ? "Nenhuma dívida cadastrada" : "Nenhuma parcela neste período"}</strong><span>{debts.length === 0 ? "Adicione uma dívida para acompanhar suas parcelas." : "Experimente outro mês ou altere o filtro selecionado."}</span></div>
           ) : (
             <div className="debt-list">
-              {visibleDebts.map((debt) => {
-                const installments = [...(debt.visibleInstallments || [])].sort((a, b) => a.installment_number - b.installment_number);
-                const nextInstallment = installments.find((installment) => installment.status === "pending");
-                const paidCount = (debt.installments || []).filter((installment) => installment.status === "paid").length;
-                return (
-                  <article className="debt-card" key={debt.id}>
-                    <div className="debt-card-main">
-                      <div className="debt-card-title">
-                        <span className="debt-card-icon"><FiDollarSign /></span>
-                        <div><h3>{debt.name}</h3><p>{debt.creditor || (debt.recurring ? "Recorrente" : "Parcela única")}</p></div>
-                      </div>
-                      <div className="debt-card-amount"><strong>{formatCurrency(debt.amount)}</strong><span>por parcela</span></div>
+              {debtStatusGroups.map((group) => (
+                <section className={`debt-status-group ${group.status}`} key={group.status}>
+                  <div className="debt-status-group-heading">
+                    <h3>{group.title}</h3>
+                    <span>{group.debts.length}</span>
+                  </div>
+                  <div className="debt-status-group-list">
+                    <div aria-hidden="true" className="debt-record-columns">
+                      <span>Dívida</span>
+                      <span>Valor no período</span>
+                      <span>Próximo vencimento</span>
+                      <span>Situação</span>
                     </div>
-                    <div className="debt-card-meta">
-                      <span><FiCalendar />{nextInstallment ? `Vencimento ${formatDate(nextInstallment.due_date)}` : "Nenhuma parcela pendente nesta visualização"}</span>
-                      <span>{paidCount} de {(debt.installments || []).length} pagas no total</span>
-                    </div>
-                    <div className="debt-card-status-row">
-                      <span className={`debt-status-badge ${getDebtStatus(debt)}`}>{getDebtStatus(debt) === "overdue" ? "Vencida" : getDebtStatus(debt) === "dueSoon" ? "Próxima" : getDebtStatus(debt) === "paid" ? "Paga" : "Em dia"}</span>
-                    </div>
-                    <div className="debt-card-actions">
-                      <button className="debt-edit-button" onClick={() => openDebtEditor(debt)} type="button"><FiEdit3 />Editar dívida</button>
-                      {(debt.installments || []).some((installment) => installment.status === "pending") && (
-                        <button className="debt-settle-button" disabled={busyInstallment === debt.id} onClick={() => settleDebt(debt)} type="button">{busyInstallment === debt.id ? "Liquidando..." : "Liquidar dívida"}</button>
-                      )}
-                    </div>
-                    <details className="debt-installments-details" open={periodView !== "all"}>
-                      <summary>Parcelas neste período <span>{installments.length}</span></summary>
-                      <div className="debt-installment-list">
-                        {installments.map((installment) => (
-                          <div className="debt-installment" key={installment.id}>
-                            <div className="debt-installment-date"><strong>{installment.installment_number}/{installments.length}</strong><span>{formatDate(installment.due_date)}</span></div>
-                            <strong className="debt-installment-amount">{formatCurrency(installment.amount)}</strong>
-                            {installment.status === "paid" ? (
-                              <span className="debt-paid-label"><FiCheck />Paga</span>
-                            ) : (
-                              <div className="debt-installment-actions">
-                                <button className="debt-pay-button" disabled={busyInstallment === installment.id} onClick={() => payInstallment(installment)} type="button">{busyInstallment === installment.id ? "Registrando..." : "Registrar pagamento"}</button>
-                                <button className="debt-edit-button compact" onClick={() => openInstallmentEditor(installment)} type="button">Editar</button>
+                    {group.debts.map((debt) => {
+                      const installments = [...(debt.visibleInstallments || [])].sort((a, b) => a.installment_number - b.installment_number);
+                      const nextInstallment = [...(debt.periodInstallments || installments)]
+                        .filter((installment) => installment.status === "pending")
+                        .sort((a, b) => a.due_date.localeCompare(b.due_date))[0];
+                      const paidCount = (debt.installments || []).filter((installment) => installment.status === "paid").length;
+                      const debtStatus = getDebtStatus(debt, installments);
+                      const allInstallments = debt.installments || [];
+                      const periodInstallments = debt.periodInstallments || installments;
+                      const periodAmounts = [...new Set(periodInstallments.map((item) => Math.round(Number(item.amount) * 100)))];
+                      const installmentAmountLabel = periodAmounts.length > 1
+                        ? "Valores variáveis"
+                        : formatCurrency(periodInstallments[0]?.amount ?? debt.amount);
+                      const totalDebtAmount = allInstallments.reduce((total, item) => total + Number(item.amount || 0), 0);
+                      return (
+                        <details
+                          className="debt-record"
+                          key={debt.id}
+                          onToggle={(event) => setExpandedDebtId(event.currentTarget.open ? debt.id : null)}
+                          open={expandedDebtId === debt.id}
+                        >
+                          <summary className="debt-record-summary">
+                            <div className="debt-record-name">
+                              <span className="debt-card-icon"><FiDollarSign /></span>
+                              <span><strong>{debt.name}</strong><small>{debt.creditor || (debt.recurring ? "Recorrente" : "Parcela única")}</small></span>
+                            </div>
+                            <span className="debt-record-amount">
+                              <strong>{installmentAmountLabel}</strong>
+                              <small>Total {formatCurrency(totalDebtAmount)}</small>
+                            </span>
+                            <span className="debt-record-due">{nextInstallment ? <><FiCalendar />{formatDate(nextInstallment.due_date)}</> : "Sem parcelas em aberto neste período"}</span>
+                            <span className={`debt-status-badge ${debtStatus}`}>{debtStatus === "overdue" ? "Vencida" : debtStatus === "dueToday" ? "Vence hoje" : debtStatus === "dueSoon" ? "Próxima" : debtStatus === "paidInPeriod" ? "Paga neste período" : debtStatus === "paid" ? "Quitada" : "Em dia"}</span>
+                            <span aria-hidden="true" className="debt-record-chevron"><FiChevronRight /></span>
+                          </summary>
+                          <div className="debt-record-content">
+                            <div className="debt-record-meta">
+                              <span>{debt.installment_count} {debt.installment_count === 1 ? "parcela" : "parcelas"}</span>
+                              <span>{paidCount} de {(debt.installments || []).length} pagas</span>
+                              <span>Total da dívida: {formatCurrency(totalDebtAmount)}</span>
+                            </div>
+                            <div className="debt-card-actions">
+                              <button className="debt-edit-button" onClick={() => openDebtEditor(debt)} type="button"><FiEdit3 />Editar dívida</button>
+                              {(debt.installments || []).some((installment) => installment.status === "pending") && (
+                                <button className="debt-settle-button" disabled={busyInstallment === debt.id} onClick={() => settleDebt(debt)} type="button">{busyInstallment === debt.id ? "Liquidando..." : "Liquidar dívida"}</button>
+                              )}
+                              <button
+                                aria-label={paidCount > 0 ? "Desfaça os pagamentos antes de excluir esta dívida" : `Excluir dívida ${debt.name}`}
+                                className="debt-delete-button"
+                                disabled={paidCount > 0}
+                                onClick={() => deleteDebt(debt)}
+                                title={paidCount > 0 ? "Desfaça os pagamentos registrados antes de excluir a dívida." : "Excluir dívida"}
+                                type="button"
+                              >
+                                <FiTrash2 /><span>Excluir dívida</span>
+                              </button>
+                            </div>
+                            <div className="debt-record-installments-heading">
+                              <h4>Parcelas neste período</h4>
+                              <span>{installments.length}</span>
+                            </div>
+                            {installments.length > 0 ? (
+                              <div className="debt-installment-list">
+                                {installments.map((installment) => (
+                                  <div className="debt-installment" key={installment.id}>
+                                    <div className="debt-installment-date">
+                                      {debt.recurring && <span className="debt-installment-sequence">{installment.installment_number}/{debt.installment_count}</span>}
+                                      <span>{formatDate(installment.due_date)}</span>
+                                    </div>
+                                    <strong className="debt-installment-amount">{formatCurrency(installment.amount)}</strong>
+                                    {installment.status === "paid" ? (
+                                      <div className="debt-installment-actions">
+                                        <span className="debt-paid-label"><FiCheck />Paga</span>
+                                        <button className="debt-edit-button compact" disabled={busyInstallment === installment.id} onClick={() => unpayInstallment(installment)} type="button">
+                                          {busyInstallment === installment.id ? "Desfazendo..." : "Desfazer pagamento"}
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <div className="debt-installment-actions">
+                                        <button className="debt-pay-button" disabled={busyInstallment === installment.id} onClick={() => openPaymentDialog(installment, debt)} type="button">Registrar pagamento</button>
+                                        <button className="debt-edit-button compact" onClick={() => openInstallmentEditor(installment)} type="button">Editar</button>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
                               </div>
+                            ) : (
+                              <p className="debt-record-no-installments">Não há parcelas neste período com os filtros selecionados.</p>
                             )}
                           </div>
-                        ))}
-                      </div>
-                    </details>
-                    {paidCount === 0 && (
-                      <button className="debt-delete-button" onClick={() => deleteDebt(debt)} title="Excluir dívida" type="button"><FiTrash2 /><span>Excluir</span></button>
-                    )}
-                  </article>
-                );
-              })}
+                        </details>
+                      );
+                    })}
+                  </div>
+                </section>
+              ))}
             </div>
           )}
         </section>

@@ -21,10 +21,13 @@ const getToday = () => {
   return `${values.year}-${values.month}-${values.day}`;
 };
 
-const settleInstallment = async (installmentId, paymentDate = getToday()) => {
+const settleInstallment = async (installmentId, paymentDate = getToday(), automatic = false) => {
   return sequelize.transaction(async (transaction) => {
+    const where = { id: installmentId, status: "pending" };
+    if (automatic) where.auto_settle = true;
+
     const installment = await DebtInstallment.findOne({
-      where: { id: installmentId, status: "pending" },
+      where,
       include: [{ model: Debt, as: "debt" }],
       transaction,
       lock: transaction.LOCK.UPDATE,
@@ -47,6 +50,7 @@ const settleInstallment = async (installmentId, paymentDate = getToday()) => {
     installment.status = "paid";
     installment.transaction_id = expense.id;
     installment.paid_at = new Date();
+    installment.auto_settle = true;
     await installment.save({ transaction });
     return true;
   });
@@ -55,6 +59,7 @@ const settleInstallment = async (installmentId, paymentDate = getToday()) => {
 const settleDueInstallments = async (userId = null) => {
   const where = {
     status: "pending",
+    auto_settle: true,
     due_date: { [Op.lte]: getToday() },
   };
   const include = [{ model: Debt, as: "debt", required: true }];
@@ -71,7 +76,7 @@ const settleDueInstallments = async (userId = null) => {
   });
 
   for (const installment of dueInstallments) {
-    await settleInstallment(installment.id, installment.due_date);
+    await settleInstallment(installment.id, installment.due_date, true);
   }
 };
 
@@ -89,6 +94,7 @@ const buildDebtInstallments = (firstDueDate, amount, count) => Array.from({ leng
   due_date: getInstallmentDate(firstDueDate, index),
   amount: Number(amount).toFixed(2),
   status: "pending",
+  auto_settle: false,
 }));
 
 const validateDebtInput = (input, options = {}) => {
@@ -208,6 +214,7 @@ const updateDebt = async (userId, debtId, input) => {
       due_date: installment.due_date,
       amount: installment.amount,
       status: "pending",
+      auto_settle: false,
     }));
     await DebtInstallment.bulkCreate(installments, { transaction });
   });
@@ -273,7 +280,19 @@ const settleDebt = async (userId, debtId) => {
   return { data: true };
 };
 
-const payInstallment = async (userId, installmentId) => {
+const payInstallment = async (userId, installmentId, paymentDate) => {
+  if (!paymentDate || !/^\d{4}-\d{2}-\d{2}$/.test(paymentDate)) {
+    return { error: "Informe a data em que a parcela foi paga.", status: 400 };
+  }
+
+  const parsedPaymentDate = new Date(`${paymentDate}T00:00:00Z`);
+  if (Number.isNaN(parsedPaymentDate.getTime()) || formatDate(parsedPaymentDate) !== paymentDate) {
+    return { error: "Informe uma data de pagamento válida.", status: 400 };
+  }
+  if (paymentDate > getToday()) {
+    return { error: "A data do pagamento não pode ser futura.", status: 400 };
+  }
+
   const installment = await DebtInstallment.findOne({
     where: { id: installmentId },
     include: [{ model: Debt, as: "debt", where: { user_id: Number(userId) } }],
@@ -282,8 +301,43 @@ const payInstallment = async (userId, installmentId) => {
   if (!installment) return { error: "Parcela não encontrada.", status: 404 };
   if (installment.status === "paid") return { error: "Esta parcela já foi paga.", status: 409 };
 
-  await settleInstallment(installment.id);
+  const settled = await settleInstallment(installment.id, paymentDate);
+  if (!settled) {
+    return { error: "Esta parcela já foi paga.", status: 409 };
+  }
+
   return { data: true };
+};
+
+const unpayInstallment = async (userId, installmentId) => {
+  return sequelize.transaction(async (transaction) => {
+    const installment = await DebtInstallment.findOne({
+      where: { id: installmentId },
+      include: [{ model: Debt, as: "debt", where: { user_id: Number(userId) } }],
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+
+    if (!installment) return { error: "Parcela não encontrada.", status: 404 };
+    if (installment.status !== "paid") {
+      return { error: "Esta parcela não está paga.", status: 409 };
+    }
+
+    if (installment.transaction_id) {
+      await Transaction.destroy({
+        where: { id: installment.transaction_id, user_id: Number(userId) },
+        transaction,
+      });
+    }
+
+    installment.status = "pending";
+    installment.transaction_id = null;
+    installment.paid_at = null;
+    installment.auto_settle = false;
+    await installment.save({ transaction });
+
+    return { data: true };
+  });
 };
 
 const deleteDebt = async (userId, debtId) => {
@@ -308,6 +362,7 @@ module.exports = {
   payInstallment,
   settleDebt,
   settleDueInstallments,
+  unpayInstallment,
   updateDebt,
   updateInstallment,
 };

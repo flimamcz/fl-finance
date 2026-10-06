@@ -1,5 +1,7 @@
 // src/app/services/Transaction.service.js - VERSÃO COM CATEGORIAS
-const { Transaction, Category } = require("../../models");
+const { Op } = require("sequelize");
+const { Transaction, Category, Debt, DebtInstallment } = require("../../models");
+const debtService = require("./Debt.service");
 
 const searchTransactions = async (userId = null) => {
   console.log('🔍 Service: Buscando transações para userId:', userId);
@@ -14,6 +16,11 @@ const searchTransactions = async (userId = null) => {
   }
   
   try {
+    // Auto-settlements create the expense entries consumed by every balance view.
+    // Run them before reading the ledger so dashboard/account responses are current
+    // even when the user has not opened the debts page.
+    await debtService.settleDueInstallments(userId);
+
     const transactions = await Transaction.findAll({
       where: whereClause,
       order: [['date', 'DESC']],
@@ -24,6 +31,32 @@ const searchTransactions = async (userId = null) => {
           attributes: ['id', 'name', 'icon', 'color']
         }
       ]
+    });
+
+    const linkedInstallments = transactions.length > 0
+      ? await DebtInstallment.findAll({
+        where: { transaction_id: { [Op.in]: transactions.map(({ id }) => id) } },
+        attributes: ["id", "transaction_id", "installment_number"],
+        include: [{ model: Debt, as: "debt", attributes: ["id", "name", "installment_count"] }],
+      })
+      : [];
+    const linkedInstallmentsByTransaction = new Map(
+      linkedInstallments.map((installment) => [installment.transaction_id, installment])
+    );
+    const transactionsWithDebtInstallments = transactions.map((transaction) => {
+      const linkedInstallment = linkedInstallmentsByTransaction.get(transaction.id);
+      return {
+        ...transaction.toJSON(),
+        debtInstallment: linkedInstallment
+          ? {
+            id: linkedInstallment.id,
+            debt_id: linkedInstallment.debt.id,
+            installment_number: linkedInstallment.installment_number,
+            installment_count: linkedInstallment.debt.installment_count,
+            debt_name: linkedInstallment.debt.name,
+          }
+          : null,
+      };
     });
 
     console.log(`✅ Service: Encontradas ${transactions.length} transações`);
@@ -38,7 +71,7 @@ const searchTransactions = async (userId = null) => {
       });
     }
 
-    return { error: null, message: transactions };
+    return { error: null, message: transactionsWithDebtInstallments };
     
   } catch (error) {
     console.error('❌ Service ERROR:', error.message);
@@ -119,6 +152,16 @@ const updateTransaction = async (dataTransaction) => {
       return { error: "NOT_FOUND", message: "Transação não encontrada ou não pertence ao usuário!" };
     }
 
+    const linkedInstallment = await DebtInstallment.findOne({
+      where: { transaction_id: findTransaction.id },
+    });
+    if (linkedInstallment) {
+      return {
+        error: "CONFLICT",
+        message: "Esta despesa está vinculada ao pagamento de uma parcela. Desfaça o pagamento pela página de dívidas.",
+      };
+    }
+
     // Remove campos que não devem ser atualizados
     const updateData = { ...dataTransaction };
     delete updateData.id;
@@ -173,6 +216,31 @@ const deleteTransaction = async (id, userId = null) => {
     }
     
     console.log('🔍 Deletando com where:', whereClause);
+
+    const transactionToDelete = await Transaction.findOne({ where: whereClause });
+    if (!transactionToDelete) {
+      return {
+        error: "NOT_FOUND",
+        message: "Transação não encontrada ou não pertence ao usuário!",
+      };
+    }
+
+    const linkedInstallment = await DebtInstallment.findOne({
+      where: { transaction_id: transactionToDelete.id },
+    });
+    if (linkedInstallment) {
+      const result = await debtService.unpayInstallment(userId, linkedInstallment.id);
+      if (result.error) {
+        return {
+          error: "CONFLICT",
+          message: result.error,
+        };
+      }
+      return {
+        error: null,
+        message: "Pagamento desfeito. A parcela voltou a ficar em aberto e a despesa foi removida do extrato.",
+      };
+    }
     
     const deletedTransaction = await Transaction.destroy({
       where: whereClause,

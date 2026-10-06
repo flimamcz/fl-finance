@@ -10,6 +10,7 @@ import {
   FiClock,
   FiEdit2,
   FiTrash2,
+  FiRotateCcw,
   FiArrowUp,
   FiArrowDown,
   FiTarget,
@@ -43,6 +44,7 @@ import {
   Line,
 } from "recharts";
 import Moment from "moment";
+import { useNavigate } from "react-router-dom";
 import Header from "../Components/Header";
 import MyContext from "../Context/Context";
 import { API_BASE_URL } from "../Services/request";
@@ -52,10 +54,12 @@ import EditTransactionModal from "../Components/EditTransactionModal";
 import "../Styles/Home.css";
 
 function Home() {
+  const navigate = useNavigate();
   const {
     transactions,
     typesTransactions,
     amounts,
+    initialized,
     getAllTransactions,
     recalculateAmounts,
   } = useContext(MyContext);
@@ -83,6 +87,7 @@ function Home() {
   const [showErrorTooltip, setShowErrorTooltip] = useState(false);
   const [modalMessage, setModalMessage] = useState("");
   const [modalTitle, setModalTitle] = useState("");
+  const [transactionModalMode, setTransactionModalMode] = useState("delete");
 
   // Estados para edição
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -862,14 +867,22 @@ function Home() {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Erro ${response.status}: ${errorText}`);
+        const responseText = await response.text();
+        let errorMessage = "";
+        try {
+          const errorData = JSON.parse(responseText);
+          errorMessage = typeof errorData.message === "string" ? errorData.message : "";
+        } catch {
+          errorMessage = responseText;
+        }
+        throw new Error(errorMessage || `Não foi possível excluir a transação (erro ${response.status}).`);
       }
 
+      const result = await response.json();
       await getAllTransactions();
 
       setModalTitle("Sucesso!");
-      setModalMessage("Transação excluída com sucesso!");
+      setModalMessage(result.message || "Transação excluída com sucesso!");
       setShowSuccessTooltip(true);
       setCountdown(3);
       setIsTooltipClosing(false);
@@ -886,8 +899,11 @@ function Home() {
   // Função para iniciar exclusão
   const startDelete = (transaction) => {
     setSelectedTransaction(transaction);
-    setModalTitle("Confirmar Exclusão");
-    setModalMessage(`Deseja realmente excluir "${transaction.description}"?`);
+    setTransactionModalMode(transaction.debtInstallment ? "undoPayment" : "delete");
+    setModalTitle(transaction.debtInstallment ? "Desfazer pagamento?" : "Confirmar exclusão");
+    setModalMessage(transaction.debtInstallment
+      ? `Desfazer o pagamento de "${transaction.debtInstallment.debt_name}" (${transaction.debtInstallment.installment_number}/${transaction.debtInstallment.installment_count})? A parcela voltará a ficar em aberto e a despesa será removida do extrato.`
+      : `Deseja realmente excluir "${transaction.description}"?`);
     setShowConfirmModal(true);
   };
 
@@ -1072,6 +1088,18 @@ function Home() {
 
   // Função para abrir modal de edição
   const handleEditClick = (transaction) => {
+    if (transaction.debtInstallment) {
+      setViewModalOpen(false);
+      setTransactionToView(null);
+      setSelectedTransaction(transaction);
+      setTransactionModalMode("editDebt");
+      setModalTitle("O que deseja editar?");
+      setModalMessage(
+        `Esta despesa pertence à parcela ${transaction.debtInstallment.installment_number}/${transaction.debtInstallment.installment_count} de "${transaction.debtInstallment.debt_name}". Escolha se deseja alterar apenas esta parcela ou os dados gerais da dívida.`
+      );
+      setShowConfirmModal(true);
+      return;
+    }
     setTransactionToEdit(transaction);
     setEditModalOpen(true);
   };
@@ -1079,6 +1107,22 @@ function Home() {
   const handleViewClick = (transaction) => {
     setTransactionToView(transaction);
     setViewModalOpen(true);
+  };
+
+  const continueDebtEditing = (editDebt) => {
+    if (!selectedTransaction?.debtInstallment) return;
+
+    const installment = selectedTransaction.debtInstallment;
+    navigate("/debts", {
+      state: editDebt
+        ? { editDebtId: selectedTransaction.debtInstallment.debt_id }
+        : {
+          editInstallmentId: installment.id,
+          undoPaymentFirst: true,
+        },
+    });
+    setShowConfirmModal(false);
+    setSelectedTransaction(null);
   };
 
   return (
@@ -1095,6 +1139,47 @@ function Home() {
       </div>
 
       <div className="dashboard-content">
+        {!initialized ? (
+          <section aria-busy="true" aria-label="Carregando dashboard" className="dashboard-skeleton">
+            <div className="skeleton-welcome">
+              <div className="skeleton-block skeleton-title" />
+              <div className="skeleton-block skeleton-subtitle" />
+            </div>
+            <div className="skeleton-summary-grid">
+              {Array.from({ length: 4 }, (_, index) => (
+                <div className="skeleton-summary-card" key={index}>
+                  <div className="skeleton-block skeleton-icon" />
+                  <div className="skeleton-summary-copy">
+                    <div className="skeleton-block skeleton-label" />
+                    <div className="skeleton-block skeleton-value" />
+                    <div className="skeleton-block skeleton-caption" />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="skeleton-dashboard-panel">
+              <div className="skeleton-block skeleton-panel-title" />
+              <div className="skeleton-chart">
+                <span /><span /><span /><span /><span /><span /><span />
+              </div>
+            </div>
+            <div className="skeleton-dashboard-panel">
+              <div className="skeleton-block skeleton-panel-title" />
+              {Array.from({ length: 4 }, (_, index) => (
+                <div className="skeleton-transaction-row" key={index}>
+                  <div className="skeleton-block skeleton-icon" />
+                  <div className="skeleton-transaction-copy">
+                    <div className="skeleton-block skeleton-label" />
+                    <div className="skeleton-block skeleton-caption" />
+                  </div>
+                  <div className="skeleton-block skeleton-value" />
+                </div>
+              ))}
+            </div>
+            <p className="dashboard-skeleton-caption">Preparando seu resumo financeiro...</p>
+          </section>
+        ) : (
+        <>
         {/* Banner Welcome */}
         <div className="welcome-banner">
           <div className="welcome-text">
@@ -1629,9 +1714,17 @@ function Home() {
           </div>
 
           {loading ? (
-            <div className="loading-container">
-              <div className="loader"></div>
-              <p>Carregando transações...</p>
+            <div aria-label="Atualizando transações" aria-live="polite" className="transactions-loading-skeleton">
+              {Array.from({ length: 3 }, (_, index) => (
+                <div className="skeleton-transaction-row" key={index}>
+                  <div className="skeleton-block skeleton-icon" />
+                  <div className="skeleton-transaction-copy">
+                    <div className="skeleton-block skeleton-label" />
+                    <div className="skeleton-block skeleton-caption" />
+                  </div>
+                  <div className="skeleton-block skeleton-value" />
+                </div>
+              ))}
             </div>
           ) : (
             <div className="transactions-container">
@@ -1706,7 +1799,8 @@ function Home() {
                             className="btn-icon"
                             onClick={() => handleEditClick(transaction)}
                             type="button"
-                            aria-label="Editar"
+                            aria-label={transaction.debtInstallment ? "Alterar parcela na página Dívidas" : "Editar"}
+                            title={transaction.debtInstallment ? "Abrir parcela em Dívidas para ajustar os dados com segurança" : "Editar transação"}
                           >
                             <FiEdit2 />
                           </button>
@@ -1714,9 +1808,10 @@ function Home() {
                             className="btn-icon btn-danger"
                             onClick={() => startDelete(transaction)}
                             type="button"
-                            aria-label="Excluir"
+                            aria-label={transaction.debtInstallment ? "Desfazer pagamento da parcela" : "Excluir"}
+                            title={transaction.debtInstallment ? "Desfazer pagamento da parcela" : "Excluir transação"}
                           >
-                            <FiTrash2 />
+                            {transaction.debtInstallment ? <FiRotateCcw /> : <FiTrash2 />}
                           </button>
 
                           <button
@@ -1772,6 +1867,8 @@ function Home() {
             </div>
           )}
         </div>
+        </>
+        )}
       </div>
 
       {/* Modal de Exportação */}
@@ -1797,7 +1894,7 @@ function Home() {
             }
           }}
         >
-          <div className="modal-content modal-sm confirm-modal">
+          <div className={`modal-content modal-sm confirm-modal ${selectedTransaction?.debtInstallment ? "linked-transaction-modal" : ""}`}>
             <div className="modal-header">
               <h2>{modalTitle}</h2>
               <button
@@ -1814,12 +1911,33 @@ function Home() {
             </div>
 
             <div className="modal-body">
-              <div className="confirm-icon">
-                <FiAlertTriangle size={48} color="#f59e0b" />
-              </div>
-              <p className="confirm-message">{modalMessage}</p>
+              {selectedTransaction?.debtInstallment && transactionModalMode === "editDebt" ? (
+                <div className="linked-debt-choice">
+                  <div className="linked-debt-choice-icon"><FiDollarSign /></div>
+                  <p className="linked-debt-choice-description">{modalMessage}</p>
+                  <div className="linked-debt-choice-summary">
+                    <span>Despesa registrada</span>
+                    <strong>{showValues ? formatCurrency(selectedTransaction.value) : "••••••"}</strong>
+                    <small>{Moment(selectedTransaction.date).format("DD/MM/YYYY")}</small>
+                  </div>
+                  <p className="linked-debt-choice-hint">Editar a parcela altera somente este vencimento. Para editar os dados gerais, reabra manualmente as parcelas pagas antes; nenhum pagamento será desfeito automaticamente.</p>
+                </div>
+              ) : selectedTransaction?.debtInstallment ? (
+                <div className="linked-debt-choice">
+                  <div className="linked-debt-choice-icon undo"><FiRotateCcw /></div>
+                  <p className="linked-debt-choice-description">{modalMessage}</p>
+                  <p className="linked-debt-choice-hint">A parcela volta a ficar em aberto e a despesa é removida do extrato. Você pode registrar o pagamento novamente depois.</p>
+                </div>
+              ) : (
+                <>
+                  <div className="confirm-icon">
+                    <FiAlertTriangle size={48} color="#f59e0b" />
+                  </div>
+                  <p className="confirm-message">{modalMessage}</p>
+                </>
+              )}
 
-              {selectedTransaction && (
+              {selectedTransaction && !selectedTransaction.debtInstallment && (
                 <div className="confirm-details">
                   <div className="transaction-preview">
                     <span className="preview-label">Valor:</span>
@@ -1858,29 +1976,50 @@ function Home() {
             </div>
 
             <div className="modal-actions">
-              <button
-                className="btn-secondary"
-                onClick={() => {
-                  setShowConfirmModal(false);
-                  setSelectedTransaction(null);
-                }}
-                type="button"
-              >
-                Cancelar
-              </button>
-              <button
-                className="btn-danger"
-                onClick={() => {
-                  if (selectedTransaction) {
-                    deleteItem("transactions", selectedTransaction.id);
-                  }
-                  setShowConfirmModal(false);
-                  setSelectedTransaction(null);
-                }}
-                type="button"
-              >
-                <FiTrash2 /> Excluir
-              </button>
+              {selectedTransaction?.debtInstallment && transactionModalMode === "editDebt" ? (
+                <>
+                  <button className="linked-debt-choice-option primary" onClick={() => continueDebtEditing(false)} type="button">
+                    <span className="linked-debt-choice-option-icon"><FiEdit2 /></span>
+                    <span><strong>Editar parcela</strong><small>Alterar somente o valor ou vencimento desta parcela</small></span>
+                  </button>
+                  <button className="linked-debt-choice-option" onClick={() => continueDebtEditing(true)} type="button">
+                    <span className="linked-debt-choice-option-icon"><FiExternalLink /></span>
+                    <span><strong>Editar dívida</strong><small>Alterar os dados gerais da dívida</small></span>
+                  </button>
+                  <button className="linked-debt-choice-cancel" onClick={() => {
+                    setShowConfirmModal(false);
+                    setSelectedTransaction(null);
+                  }} type="button">Cancelar</button>
+                </>
+              ) : selectedTransaction?.debtInstallment ? (
+                <>
+                  <button className="btn-secondary" onClick={() => {
+                    setShowConfirmModal(false);
+                    setSelectedTransaction(null);
+                  }} type="button">Cancelar</button>
+                  <button className="btn-primary" onClick={() => continueDebtEditing(false)} type="button">
+                    <FiRotateCcw /> Desfazer pagamento
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button className="btn-secondary" onClick={() => {
+                    setShowConfirmModal(false);
+                    setSelectedTransaction(null);
+                  }} type="button">Cancelar</button>
+                  <button
+                    className="btn-danger"
+                    onClick={() => {
+                      if (selectedTransaction) deleteItem("transactions", selectedTransaction.id);
+                      setShowConfirmModal(false);
+                      setSelectedTransaction(null);
+                    }}
+                    type="button"
+                  >
+                    <FiTrash2 /> Excluir
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

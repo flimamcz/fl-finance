@@ -31,13 +31,29 @@ const createDebt = async (req, res) => {
 
 const payInstallment = async (req, res) => {
   try {
-    const result = await debtService.payInstallment(req.user.id, req.params.installmentId);
+    const result = await debtService.payInstallment(
+      req.user.id,
+      req.params.installmentId,
+      req.body.paymentDate
+    );
     if (result.error) return sendServiceResult(res, result);
     const data = await debtService.listDebts(req.user.id);
     return res.status(200).json({ error: false, data });
   } catch (error) {
     console.error("Erro ao quitar parcela:", error);
     return res.status(500).json({ error: true, message: "Não foi possível quitar a parcela." });
+  }
+};
+
+const unpayInstallment = async (req, res) => {
+  try {
+    const result = await debtService.unpayInstallment(req.user.id, req.params.installmentId);
+    if (result.error) return sendServiceResult(res, result);
+    const data = await debtService.listDebts(req.user.id);
+    return res.status(200).json({ error: false, data });
+  } catch (error) {
+    console.error("Erro ao desfazer pagamento da parcela:", error);
+    return res.status(500).json({ error: true, message: "Não foi possível desfazer o pagamento da parcela." });
   }
 };
 
@@ -87,4 +103,4 @@ const deleteDebt = async (req, res) => {
   }
 };
 
-module.exports = { createDebt, deleteDebt, listDebts, payInstallment, settleDebt, updateDebt, updateInstallment };
+module.exports = { createDebt, deleteDebt, listDebts, payInstallment, settleDebt, unpayInstallment, updateDebt, updateInstallment };
