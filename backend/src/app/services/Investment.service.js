@@ -119,7 +119,7 @@ const createMovement = async (userId, movementData) => {
     const ledgerTransaction = await Transaction.create(
       {
         value: movementData.amount,
-        typeId: isContribution ? 2 : 1,
+        typeId: isContribution ? 3 : 1,
         user_id: userId,
         description: toTransactionDescription(movementData.type, movementData.description),
         date: movementData.date,
@@ -189,7 +189,7 @@ const updateMovement = async (userId, movementId, movementData) => {
     await transactionRecord.update(
       {
         value: movementData.amount,
-        typeId: isContribution ? 2 : 1,
+        typeId: isContribution ? 3 : 1,
         description: toTransactionDescription(movementData.type, movementData.description),
         date: movementData.date,
         status: true,

@@ -267,12 +267,8 @@ body.dark-mode .more-avatar {
     font-size: 19px;
   }
 
-  .primary-navigation,
+  .app-navigation > .primary-navigation,
   .app-navigation > .more-navigation {
-    display: contents;
-  }
-
-  .app-navigation > .more-navigation > .more-trigger {
     display: none;
   }
 

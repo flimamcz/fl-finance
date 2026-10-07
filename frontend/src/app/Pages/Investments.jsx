@@ -1,5 +1,5 @@
-import { useContext, useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   FiArrowDownLeft,
   FiArrowRight,
@@ -121,6 +121,8 @@ function projectMonthlyDeposits(monthlyDeposit, annualRate, months) {
 
 function Investments() {
   const { transactions, getAllTransactions } = useContext(MyContext);
+  const location = useLocation();
+  const navigate = useNavigate();
   const [movements, setMovements] = useState([]);
   const [movementType, setMovementType] = useState("contribution");
   const [movementAmount, setMovementAmount] = useState("");
@@ -138,6 +140,7 @@ function Investments() {
   const [savingsRate, setSavingsRate] = useState(20);
   const [projectionYears, setProjectionYears] = useState(5);
   const requestIdRef = useRef(null);
+  const handledDashboardAction = useRef(null);
 
   useEffect(() => {
     const storedTheme = localStorage.getItem("darkMode");
@@ -342,7 +345,7 @@ function Investments() {
     }
   };
 
-  const beginMovementEdit = (movement) => {
+  const beginMovementEdit = useCallback((movement) => {
     setEditingMovement(movement);
     setMovementType(movement.type);
     setMovementAmount(String(movement.amount));
@@ -356,9 +359,9 @@ function Investments() {
         : "smooth",
       block: "center",
     });
-  };
+  }, []);
 
-  const cancelMovementEdit = () => {
+  const cancelMovementEdit = useCallback(() => {
     setEditingMovement(null);
     setMovementType("contribution");
     setMovementAmount("");
@@ -366,9 +369,9 @@ function Investments() {
     setMovementDescription("");
     setMovementError("");
     setMovementSuccess("");
-  };
+  }, []);
 
-  const removeMovement = async (movement) => {
+  const removeMovement = useCallback(async (movement) => {
     const kind = movement.type === "contribution" ? "aporte" : "saque";
     if (!window.confirm(`Excluir este ${kind}? A transação correspondente também será removida do saldo e do extrato.`)) {
       return;
@@ -397,7 +400,7 @@ function Investments() {
     } finally {
       setDeletingMovementId(null);
     }
-  };
+  }, [cancelMovementEdit, editingMovement, getAllTransactions]);
 
   const toggleMovementSelection = (movementId) => {
     const id = String(movementId);
@@ -455,6 +458,42 @@ function Investments() {
       setDeletingSelectedMovements(false);
     }
   };
+
+  useEffect(() => {
+    if (movementLoading) return;
+    const editId = location.state?.editInvestmentMovementId;
+    const deleteId = location.state?.deleteInvestmentMovementId;
+    const actionId = editId || deleteId;
+    if (!actionId) {
+      handledDashboardAction.current = null;
+      return;
+    }
+
+    const actionKey = `${editId ? "edit" : "delete"}:${actionId}`;
+    if (handledDashboardAction.current === actionKey) return;
+    handledDashboardAction.current = actionKey;
+    navigate(location.pathname, { replace: true, state: null });
+
+    const movement = movements.find(
+      (item) => String(item.id) === String(actionId),
+    );
+    if (!movement) {
+      setMovementError("A movimentação vinculada não foi encontrada no histórico de investimentos.");
+      return;
+    }
+
+    const movementMonth = getLocalDateKey(movement.date)?.slice(0, 7);
+    if (movementMonth) setSelectedMonth(movementMonth);
+    if (editId) beginMovementEdit(movement);
+    else removeMovement(movement);
+  }, [
+    beginMovementEdit,
+    location,
+    movementLoading,
+    movements,
+    navigate,
+    removeMovement,
+  ]);
 
   const monthlySalary = useMemo(
     () =>

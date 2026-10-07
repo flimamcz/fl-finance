@@ -40,11 +40,21 @@ const searchTransactions = async (userId = null) => {
         include: [{ model: Debt, as: "debt", attributes: ["id", "name", "installment_count"] }],
       })
       : [];
+    const linkedInvestmentMovements = transactions.length > 0
+      ? await InvestmentMovement.findAll({
+        where: { transaction_id: { [Op.in]: transactions.map(({ id }) => id) } },
+        attributes: ["id", "transaction_id", "type", "amount", "date", "description"],
+      })
+      : [];
     const linkedInstallmentsByTransaction = new Map(
       linkedInstallments.map((installment) => [installment.transaction_id, installment])
     );
+    const linkedInvestmentMovementsByTransaction = new Map(
+      linkedInvestmentMovements.map((movement) => [movement.transaction_id, movement])
+    );
     const transactionsWithDebtInstallments = transactions.map((transaction) => {
       const linkedInstallment = linkedInstallmentsByTransaction.get(transaction.id);
+      const linkedInvestmentMovement = linkedInvestmentMovementsByTransaction.get(transaction.id);
       return {
         ...transaction.toJSON(),
         debtInstallment: linkedInstallment
@@ -54,6 +64,15 @@ const searchTransactions = async (userId = null) => {
             installment_number: linkedInstallment.installment_number,
             installment_count: linkedInstallment.debt.installment_count,
             debt_name: linkedInstallment.debt.name,
+          }
+          : null,
+        investmentMovement: linkedInvestmentMovement
+          ? {
+            id: linkedInvestmentMovement.id,
+            type: linkedInvestmentMovement.type,
+            amount: linkedInvestmentMovement.amount,
+            date: linkedInvestmentMovement.date,
+            description: linkedInvestmentMovement.description,
           }
           : null,
       };

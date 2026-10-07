@@ -280,8 +280,8 @@ function Home() {
               break;
             case 3:
               dayData.investment += value;
-              dayData.total += value;
-              dayData.balance += value;
+              dayData.total -= value;
+              dayData.balance -= value;
               break;
           }
         }
@@ -341,8 +341,8 @@ function Home() {
               break;
             case 3:
               weekData.investment += value;
-              weekData.total += value;
-              weekData.balance += value;
+              weekData.total -= value;
+              weekData.balance -= value;
               break;
           }
         }
@@ -411,8 +411,8 @@ function Home() {
               break;
             case 3:
               monthData.investment += value;
-              monthData.total += value;
-              monthData.balance += value;
+              monthData.total -= value;
+              monthData.balance -= value;
               break;
           }
         }
@@ -477,8 +477,8 @@ function Home() {
               break;
             case 3:
               dayData.data.investment += value;
-              dayData.data.total += value;
-              dayData.data.balance += value;
+              dayData.data.total -= value;
+              dayData.data.balance -= value;
               break;
           }
         }
@@ -661,7 +661,7 @@ function Home() {
         const value = parseFloat(t.value) || 0;
         if (t.typeId === 1) return acc + value;
         if (t.typeId === 2) return acc - value;
-        if (t.typeId === 3) return acc + value;
+        if (t.typeId === 3) return acc - value;
         return acc;
       }, 0);
     };
@@ -811,7 +811,7 @@ function Home() {
     const income = amounts.length > 0 ? parseAmount(amounts[0]) : 0;
     const expense = amounts.length > 1 ? parseAmount(amounts[1]) : 0;
     const investment = amounts.length > 2 ? parseAmount(amounts[2]) : 0;
-    const balance = income - expense + investment;
+    const balance = income - expense - investment;
 
     return { income, expense, investment, balance };
   }, [amounts]);
@@ -845,7 +845,7 @@ function Home() {
         total -= value;
       } else if (t.typeId === 3) {
         investmentTotal += value;
-        total += value;
+        total -= value;
       }
     });
 
@@ -899,6 +899,12 @@ function Home() {
 
   // Função para iniciar exclusão
   const startDelete = (transaction) => {
+    if (transaction.investmentMovement) {
+      navigate("/investments", {
+        state: { deleteInvestmentMovementId: transaction.investmentMovement.id },
+      });
+      return;
+    }
     setSelectedTransaction(transaction);
     setTransactionModalMode(transaction.debtInstallment ? "undoPayment" : "delete");
     setModalTitle(transaction.debtInstallment ? "Desfazer pagamento?" : "Confirmar exclusão");
@@ -1090,6 +1096,14 @@ function Home() {
 
   // Função para abrir modal de edição
   const handleEditClick = (transaction) => {
+    if (transaction.investmentMovement) {
+      setViewModalOpen(false);
+      setTransactionToView(null);
+      navigate("/investments", {
+        state: { editInvestmentMovementId: transaction.investmentMovement.id },
+      });
+      return;
+    }
     if (transaction.debtInstallment) {
       setViewModalOpen(false);
       setTransactionToView(null);
@@ -1804,8 +1818,8 @@ function Home() {
                             className="btn-icon"
                             onClick={() => handleEditClick(transaction)}
                             type="button"
-                            aria-label={transaction.debtInstallment ? "Alterar parcela na página Dívidas" : "Editar"}
-                            title={transaction.debtInstallment ? "Abrir parcela em Dívidas para ajustar os dados com segurança" : "Editar transação"}
+                            aria-label={transaction.investmentMovement ? "Editar movimentação na página Investimentos" : transaction.debtInstallment ? "Alterar parcela na página Dívidas" : "Editar"}
+                            title={transaction.investmentMovement ? "Abrir Investimentos para editar a movimentação vinculada" : transaction.debtInstallment ? "Abrir parcela em Dívidas para ajustar os dados com segurança" : "Editar transação"}
                           >
                             <FiEdit2 />
                           </button>
@@ -1813,8 +1827,8 @@ function Home() {
                             className="btn-icon btn-danger"
                             onClick={() => startDelete(transaction)}
                             type="button"
-                            aria-label={transaction.debtInstallment ? "Desfazer pagamento da parcela" : "Excluir"}
-                            title={transaction.debtInstallment ? "Desfazer pagamento da parcela" : "Excluir transação"}
+                            aria-label={transaction.investmentMovement ? "Excluir movimentação na página Investimentos" : transaction.debtInstallment ? "Desfazer pagamento da parcela" : "Excluir"}
+                            title={transaction.investmentMovement ? "Abrir Investimentos para excluir a movimentação vinculada" : transaction.debtInstallment ? "Desfazer pagamento da parcela" : "Excluir transação"}
                           >
                             {transaction.debtInstallment ? <FiRotateCcw /> : <FiTrash2 />}
                           </button>
