@@ -202,7 +202,7 @@ body.dark-mode .more-avatar {
 }
 
 @media (min-width: 1025px) {
-  body {
+  body.app-shell {
     padding-left: 248px;
   }
 
@@ -241,7 +241,7 @@ body.dark-mode .more-avatar {
 }
 
 @media (max-width: 1024px) {
-  body {
+  body.app-shell {
     padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
   }
 

@@ -7,6 +7,9 @@ import {
   FiInfo,
   FiShield,
   FiTrendingUp,
+  FiEdit2,
+  FiTrash2,
+  FiX,
 } from "react-icons/fi";
 import {
   CartesianGrid,
@@ -19,7 +22,13 @@ import {
 } from "recharts";
 import Header from "../Components/Header";
 import MyContext from "../Context/Context";
-import { requestGet, requestPost, setToken } from "../Services/request";
+import {
+  requestDelete,
+  requestGet,
+  requestPost,
+  requestUpdate,
+  setToken,
+} from "../Services/request";
 import "../Styles/Investments.css";
 
 const currentLocalMonth = () => {
@@ -44,12 +53,59 @@ const formatDate = (date) => {
   return new Intl.DateTimeFormat("pt-BR").format(new Date(year, month - 1, day));
 };
 
+const getLocalDateKey = (value) => {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
+  }
+
+  // Finance dates are calendar dates. Preserve their YYYY-MM-DD component
+  // instead of letting UTC parsing shift them across a local month boundary.
+  const datePrefix = String(value ?? "").match(/^(\d{4})-(\d{2})-(\d{2})(?:$|T)/);
+  if (datePrefix) {
+    const [, year, month, day] = datePrefix;
+    const date = new Date(0);
+    date.setUTCFullYear(Number(year), Number(month) - 1, Number(day));
+    if (
+      date.getUTCFullYear() === Number(year) &&
+      date.getUTCMonth() + 1 === Number(month) &&
+      date.getUTCDate() === Number(day)
+    ) {
+      return `${year}-${month}-${day}`;
+    }
+    return null;
+  }
+
+  const parsedDate = new Date(value);
+  if (Number.isNaN(parsedDate.getTime())) return null;
+  return `${parsedDate.getFullYear()}-${String(parsedDate.getMonth() + 1).padStart(2, "0")}-${String(parsedDate.getDate()).padStart(2, "0")}`;
+};
+
+const getMonthRange = (month) => {
+  const match = String(month ?? "").match(/^(\d{4})-(0[1-9]|1[0-2])$/);
+  if (!match) return null;
+  const [, year, monthNumber] = match;
+  const nextMonthNumber = Number(monthNumber) === 12 ? 1 : Number(monthNumber) + 1;
+  const nextYear = Number(monthNumber) === 12
+    ? String(Number(year) + 1).padStart(4, "0")
+    : year;
+  const nextMonthKey = `${nextYear}-${String(nextMonthNumber).padStart(2, "0")}-01`;
+  return { start: `${year}-${monthNumber}-01`, end: nextMonthKey };
+};
+
 const formatCurrency = (value) =>
   new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: "BRL",
     maximumFractionDigits: 2,
   }).format(value);
+
+const formatMonth = (month) => {
+  const [year, monthNumber] = month.split("-").map(Number);
+  return new Intl.DateTimeFormat("pt-BR", {
+    month: "long",
+    year: "numeric",
+  }).format(new Date(year, monthNumber - 1, 1));
+};
 
 const annualScenarios = [
   { label: "Sem rendimento (0% a.a.)", rate: 0 },
@@ -74,6 +130,8 @@ function Investments() {
   const [savingMovement, setSavingMovement] = useState(false);
   const [movementError, setMovementError] = useState("");
   const [movementSuccess, setMovementSuccess] = useState("");
+  const [editingMovement, setEditingMovement] = useState(null);
+  const [deletingMovementId, setDeletingMovementId] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(currentLocalMonth);
   const [savingsRate, setSavingsRate] = useState(20);
   const [projectionYears, setProjectionYears] = useState(5);
@@ -113,9 +171,20 @@ function Investments() {
     };
   }, []);
 
-  const movementTotals = useMemo(
+  const monthRange = useMemo(() => getMonthRange(selectedMonth), [selectedMonth]);
+  const periodMovements = useMemo(
     () =>
-      movements.reduce(
+      monthRange
+        ? movements.filter((movement) => {
+            const dateKey = getLocalDateKey(movement.date);
+            return dateKey && dateKey >= monthRange.start && dateKey < monthRange.end;
+          })
+        : [],
+    [movements, monthRange],
+  );
+  const periodMovementTotals = useMemo(
+    () =>
+      periodMovements.reduce(
         (totals, movement) => {
           const amount = toCents(movement.amount);
           if (movement.type === "contribution") totals.contributions += amount;
@@ -124,46 +193,55 @@ function Investments() {
         },
         { contributions: 0, withdrawals: 0 },
       ),
-    [movements],
+    [periodMovements],
   );
-  const investmentBalanceCents =
-    movementTotals.contributions - movementTotals.withdrawals;
+  const openingBalanceCents = movements.reduce((balance, movement) => {
+    const dateKey = getLocalDateKey(movement.date);
+    if (!monthRange || !dateKey || dateKey >= monthRange.start) return balance;
+    const amount = toCents(movement.amount);
+    return balance + (movement.type === "contribution" ? amount : -amount);
+  }, 0);
+  const closingBalanceCents =
+    openingBalanceCents +
+    periodMovementTotals.contributions -
+    periodMovementTotals.withdrawals;
   const availableAtMovementDateCents = movements.reduce((balance, movement) => {
-    if (movement.date > movementDate) return balance;
+    const dateKey = getLocalDateKey(movement.date);
+    if (
+      !dateKey ||
+      dateKey > movementDate ||
+      (editingMovement && Number(movement.id) === Number(editingMovement.id))
+    ) return balance;
     const amount = toCents(movement.amount);
     return balance + (movement.type === "contribution" ? amount : -amount);
   }, 0);
   const investmentChart = useMemo(() => {
-    const chronologicalMovements = [...movements].sort(
-      (a, b) => a.date.localeCompare(b.date) || a.id - b.id,
-    );
-    if (!chronologicalMovements.length) return [];
+    if (!monthRange) return [];
+    const relevantMovements = movements.filter((movement) => {
+      const dateKey = getLocalDateKey(movement.date);
+      return dateKey && dateKey < monthRange.end;
+    });
+    if (!relevantMovements.length) return [];
 
-    const byDate = new Map();
+    const chronologicalMovements = [...periodMovements].sort((a, b) => {
+      const dateDifference =
+        getLocalDateKey(a.date).localeCompare(getLocalDateKey(b.date));
+      return dateDifference || Number(a.id) - Number(b.id);
+    });
+
+    const history = [{
+      date: "Abertura do mês",
+      balance: openingBalanceCents / 100,
+    }];
+    let balance = openingBalanceCents;
     chronologicalMovements.forEach((movement) => {
-      const current = byDate.get(movement.date) || 0;
+      const dateKey = getLocalDateKey(movement.date);
       const amount = toCents(movement.amount);
-      byDate.set(
-        movement.date,
-        current + (movement.type === "contribution" ? amount : -amount),
-      );
-    });
-
-    let balance = 0;
-    const history = [...byDate.entries()].map(([date, dailyChange]) => {
-      balance += dailyChange;
-      return { date: formatDate(date), balance: balance / 100 };
-    });
-    const [firstYear, firstMonth, firstDay] = chronologicalMovements[0].date
-      .split("-")
-      .map(Number);
-    const previousDay = new Date(firstYear, firstMonth - 1, firstDay - 1);
-    history.unshift({
-      date: new Intl.DateTimeFormat("pt-BR").format(previousDay),
-      balance: 0,
+      balance += movement.type === "contribution" ? amount : -amount;
+      history.push({ date: formatDate(dateKey), balance: balance / 100 });
     });
     return history;
-  }, [movements]);
+  }, [movements, monthRange, periodMovements, openingBalanceCents]);
 
   const submitMovement = async (event) => {
     event.preventDefault();
@@ -187,46 +265,57 @@ function Investments() {
       return;
     }
 
-    const requestSignature = JSON.stringify([
-      movementType,
-      Number(amount.toFixed(2)).toFixed(2),
-      movementDate,
-      movementDescription.trim(),
-    ]);
-    if (!requestIdRef.current || requestIdRef.current.signature !== requestSignature) {
-      requestIdRef.current = {
-        signature: requestSignature,
-        id: window.crypto?.randomUUID
-          ? window.crypto.randomUUID()
-          : `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      };
-    }
-
     try {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("Sua sessão não foi encontrada. Entre novamente.");
       setToken(`Bearer ${token}`);
       setSavingMovement(true);
-      const response = await requestPost("/investments", {
+      const movementData = {
         type: movementType,
         amount: Number(amount.toFixed(2)).toFixed(2),
         date: movementDate,
         description: movementDescription.trim(),
-        requestId: requestIdRef.current.id,
-      });
-      requestIdRef.current = null;
+      };
+      const wasEditing = Boolean(editingMovement);
+      let response;
+      if (editingMovement) {
+        response = await requestUpdate(`/investments/${editingMovement.id}`, movementData);
+      } else {
+        const requestSignature = JSON.stringify([
+          movementType,
+          movementData.amount,
+          movementDate,
+          movementDescription.trim(),
+        ]);
+        if (!requestIdRef.current || requestIdRef.current.signature !== requestSignature) {
+          requestIdRef.current = {
+            signature: requestSignature,
+            id: window.crypto?.randomUUID
+              ? window.crypto.randomUUID()
+              : `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          };
+        }
+        response = await requestPost("/investments", {
+          ...movementData,
+          requestId: requestIdRef.current.id,
+        });
+        requestIdRef.current = null;
+      }
       setMovements(Array.isArray(response.data) ? response.data : []);
+      setEditingMovement(null);
       setMovementAmount("");
       setMovementDescription("");
       setMovementSuccess(
-        movementType === "contribution"
-          ? "Aporte registrado com sucesso."
-          : "Saque registrado com sucesso.",
+        wasEditing
+          ? "Movimentação atualizada com sucesso."
+          : movementType === "contribution"
+            ? "Aporte registrado com sucesso."
+            : "Saque registrado com sucesso.",
       );
       try {
         await getAllTransactions();
       } catch {
-        setMovementError("A movimentação foi registrada, mas o extrato não pôde ser atualizado. Atualize a página para sincronizá-lo.");
+        setMovementError("A movimentação foi salva, mas o extrato não pôde ser atualizado. Atualize a página para sincronizá-lo.");
       }
     } catch (error) {
       setMovementError(
@@ -234,6 +323,63 @@ function Investments() {
       );
     } finally {
       setSavingMovement(false);
+    }
+  };
+
+  const beginMovementEdit = (movement) => {
+    setEditingMovement(movement);
+    setMovementType(movement.type);
+    setMovementAmount(String(movement.amount));
+    setMovementDate(getLocalDateKey(movement.date) || currentLocalDate());
+    setMovementDescription(movement.description || "");
+    setMovementError("");
+    setMovementSuccess("");
+    document.querySelector(".movement-form")?.scrollIntoView({
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "auto"
+        : "smooth",
+      block: "center",
+    });
+  };
+
+  const cancelMovementEdit = () => {
+    setEditingMovement(null);
+    setMovementType("contribution");
+    setMovementAmount("");
+    setMovementDate(currentLocalDate());
+    setMovementDescription("");
+    setMovementError("");
+    setMovementSuccess("");
+  };
+
+  const removeMovement = async (movement) => {
+    const kind = movement.type === "contribution" ? "aporte" : "saque";
+    if (!window.confirm(`Excluir este ${kind}? A transação correspondente também será removida do saldo e do extrato.`)) {
+      return;
+    }
+
+    setMovementError("");
+    setMovementSuccess("");
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("Sua sessão não foi encontrada. Entre novamente.");
+      setToken(`Bearer ${token}`);
+      setDeletingMovementId(movement.id);
+      const response = await requestDelete(`/investments/${movement.id}`);
+      setMovements(Array.isArray(response.data) ? response.data : []);
+      if (Number(editingMovement?.id) === Number(movement.id)) cancelMovementEdit();
+      setMovementSuccess("Movimentação excluída e saldo sincronizado.");
+      try {
+        await getAllTransactions();
+      } catch {
+        setMovementError("A movimentação foi excluída, mas o extrato não pôde ser atualizado. Atualize a página para sincronizá-lo.");
+      }
+    } catch (error) {
+      setMovementError(
+        error.response?.data?.message || error.message || "Não foi possível excluir a movimentação.",
+      );
+    } finally {
+      setDeletingMovementId(null);
     }
   };
 
@@ -245,10 +391,14 @@ function Investments() {
             Number(transaction.typeId) === 1 &&
             transaction.isSalary === true &&
             transaction.status === true &&
-            String(transaction.date || "").slice(0, 7) === selectedMonth,
+            monthRange &&
+            (() => {
+              const dateKey = getLocalDateKey(transaction.date);
+              return dateKey && dateKey >= monthRange.start && dateKey < monthRange.end;
+            })(),
         )
         .reduce((total, transaction) => total + parseAmount(transaction.value), 0),
-    [transactions, selectedMonth],
+    [transactions, monthRange],
   );
 
   const hasMarkedSalary = monthlySalary > 0;
@@ -256,6 +406,7 @@ function Investments() {
     ? (monthlySalary * savingsRate) / 100
     : 0;
   const projectionMonths = Number(projectionYears) * 12;
+  const selectedMonthLabel = monthRange ? formatMonth(selectedMonth) : "mês selecionado";
 
   return (
     <div className="investment-page">
@@ -275,34 +426,62 @@ function Investments() {
           </span>
         </header>
 
+        <div className="investment-period-filter">
+          <p>
+            O período selecionado atualiza o saldo, o histórico e a estimativa
+            salarial.
+          </p>
+          <label className="investment-month">
+            <span>Mês de referência</span>
+            <input
+              type="month"
+              required
+              value={selectedMonth}
+              onChange={(event) => setSelectedMonth(event.target.value)}
+            />
+          </label>
+        </div>
+
         <section className="investment-panel movement-panel" aria-labelledby="movement-heading">
           <div className="investment-panel-heading">
             <div>
               <h2 id="movement-heading">Saldo investido e movimentações</h2>
               <p>
-                Acompanhe aportes e saques registrados. O saldo é o total aportado
-                menos os saques, sem considerar rendimento ou valor de mercado.
+                Movimentações de {selectedMonthLabel}. O saldo líquido considera
+                aportes menos saques, sem valorização ou valor de mercado.
               </p>
             </div>
           </div>
 
           <div className="investment-summary-grid movement-summary-grid">
-            <article className="investment-summary-card highlighted">
-              <span>Saldo investido (aportes líquidos)</span>
-              <strong>{formatCurrency(investmentBalanceCents / 100)}</strong>
-              <small>Não representa cotação, rentabilidade nem valor de resgate.</small>
+            <article className="investment-summary-card">
+              <span>Saldo líquido de abertura</span>
+              <strong>{formatCurrency(openingBalanceCents / 100)}</strong>
+              <small>Saldo acumulado até o início do mês selecionado.</small>
             </article>
             <article className="investment-summary-card">
-              <span>Total aportado</span>
-              <strong>{formatCurrency(movementTotals.contributions / 100)}</strong>
+              <span>Aportes no mês</span>
+              <strong>{formatCurrency(periodMovementTotals.contributions / 100)}</strong>
               <small>
-                Saques registrados: {formatCurrency(movementTotals.withdrawals / 100)}
+                Saques no período: {formatCurrency(periodMovementTotals.withdrawals / 100)}
+              </small>
+            </article>
+            <article className="investment-summary-card highlighted">
+              <span>Saldo líquido ao fim do mês</span>
+              <strong>{formatCurrency(closingBalanceCents / 100)}</strong>
+              <small>
+                Abertura + aportes − saques. Não representa cotação ou rentabilidade.
               </small>
             </article>
           </div>
 
           <form className="movement-form" onSubmit={submitMovement}>
-            <h3>Registrar movimentação</h3>
+            <h3>{editingMovement ? "Editar movimentação" : "Registrar movimentação"}</h3>
+            {editingMovement && (
+              <p className="movement-editing-note">
+                A edição também atualiza a transação correspondente no saldo e no extrato.
+              </p>
+            )}
             <div className="movement-form-grid">
               <label>
                 Tipo
@@ -347,13 +526,33 @@ function Investments() {
                   placeholder="Ex.: aporte mensal"
                 />
               </label>
-              <button className="movement-submit" type="submit" disabled={savingMovement}>
-                {savingMovement
-                  ? "Salvando..."
-                  : movementType === "contribution"
-                    ? "Registrar aporte"
-                    : "Registrar saque"}
-              </button>
+              <div className="movement-form-actions">
+                <button
+                  className="movement-submit"
+                  type="submit"
+                  disabled={savingMovement || deletingMovementId !== null}
+                >
+                  {deletingMovementId !== null
+                    ? "Excluindo..."
+                    : savingMovement
+                    ? "Salvando..."
+                    : editingMovement
+                      ? "Salvar alterações"
+                      : movementType === "contribution"
+                        ? "Registrar aporte"
+                        : "Registrar saque"}
+                </button>
+                {editingMovement && (
+                  <button
+                    className="movement-cancel"
+                    type="button"
+                    onClick={cancelMovementEdit}
+                    disabled={savingMovement || deletingMovementId !== null}
+                  >
+                    <FiX aria-hidden="true" /> Cancelar
+                  </button>
+                )}
+              </div>
             </div>
             {movementType === "withdrawal" && (
               <p className="movement-available">
@@ -372,8 +571,9 @@ function Investments() {
           <div className="movement-history">
             <h3>Histórico do saldo investido</h3>
             <p className="movement-chart-note">
-              Evolução por data dos aportes líquidos registrados; não inclui valorização
-              ou desvalorização dos ativos.
+              Saldo acumulado na abertura e após as movimentações de {selectedMonthLabel}.
+              Aportes elevam o saldo e saques reduzem; não inclui valorização ou
+              desvalorização dos ativos.
             </p>
             {movementLoading ? (
               <p role="status">Carregando movimentações...</p>
@@ -382,7 +582,7 @@ function Investments() {
                 O histórico não pôde ser carregado. {movementError}
               </p>
             ) : investmentChart.length ? (
-              <div className="movement-chart" role="img" aria-label="Gráfico do saldo investido ao longo do tempo">
+              <div className="movement-chart" role="img" aria-label={`Gráfico do saldo investido em ${selectedMonthLabel}`}>
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={investmentChart} margin={{ top: 12, right: 20, left: 8, bottom: 4 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid, #e2e8f0)" />
@@ -393,8 +593,8 @@ function Investments() {
                       tickFormatter={(value) => formatCurrency(value)}
                     />
                     <Tooltip
-                      formatter={(value) => [formatCurrency(value), "Saldo investido"]}
-                      labelFormatter={(label) => `Data: ${label}`}
+                      formatter={(value) => [formatCurrency(value), "Saldo líquido"]}
+                      labelFormatter={(label) => label === "Abertura do mês" ? label : `Data: ${label}`}
                       contentStyle={{
                         backgroundColor: "var(--bg-card, #fff)",
                         borderColor: "var(--border, #e2e8f0)",
@@ -415,15 +615,15 @@ function Investments() {
               </div>
             ) : (
               <p className="movement-empty">
-                Ainda não há movimentações. Registre seu primeiro aporte para iniciar
-                o histórico.
+                Não há saldo nem movimentações até {selectedMonthLabel}. Registre um
+                aporte para iniciar o histórico.
               </p>
             )}
 
             <h3 className="movement-list-heading">Movimentações registradas</h3>
             {movementLoading ? (
               <p>Carregando histórico...</p>
-            ) : movements.length ? (
+            ) : periodMovements.length ? (
               <div className="movement-table-wrap">
                 <table className="movement-table">
                   <thead>
@@ -432,10 +632,11 @@ function Investments() {
                       <th scope="col">Movimentação</th>
                       <th scope="col">Descrição</th>
                       <th scope="col">Valor</th>
+                      <th scope="col"><span className="sr-only">Ações</span></th>
                     </tr>
                   </thead>
                   <tbody>
-                    {movements.map((movement) => (
+                    {periodMovements.map((movement) => (
                       <tr key={movement.id}>
                         <td>{formatDate(movement.date)}</td>
                         <td>
@@ -453,12 +654,38 @@ function Investments() {
                           {movement.type === "withdrawal" ? "− " : "+ "}
                           {formatCurrency(movement.amount)}
                         </td>
+                        <td className="movement-actions-cell">
+                          <button
+                            className="movement-row-action"
+                            type="button"
+                            aria-label={`Editar ${movement.type === "contribution" ? "aporte" : "saque"} de ${formatCurrency(movement.amount)}`}
+                            title="Editar movimentação"
+                            onClick={() => beginMovementEdit(movement)}
+                            disabled={savingMovement || deletingMovementId !== null}
+                          >
+                            <FiEdit2 aria-hidden="true" />
+                          </button>
+                          <button
+                            className="movement-row-action danger"
+                            type="button"
+                            aria-label={`Excluir ${movement.type === "contribution" ? "aporte" : "saque"} de ${formatCurrency(movement.amount)}`}
+                            title="Excluir movimentação"
+                            onClick={() => removeMovement(movement)}
+                            disabled={savingMovement || deletingMovementId !== null}
+                          >
+                            <FiTrash2 aria-hidden="true" />
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-            ) : null}
+            ) : (
+              <p className="movement-empty">
+                Nenhuma movimentação registrada em {selectedMonthLabel}.
+              </p>
+            )}
           </div>
         </section>
 
@@ -466,16 +693,11 @@ function Investments() {
           <div className="investment-panel-heading">
             <div>
               <h2 id="salary-heading">Estimativa mensal</h2>
-              <p>Selecione o mês para consultar as entradas marcadas como salário.</p>
+              <p>
+                Baseada exclusivamente em salários marcados e confirmados em{" "}
+                {selectedMonthLabel}.
+              </p>
             </div>
-            <label className="investment-month">
-              <span>Mês de referência</span>
-              <input
-                type="month"
-                value={selectedMonth}
-                onChange={(event) => setSelectedMonth(event.target.value)}
-              />
-            </label>
           </div>
 
           {hasMarkedSalary ? (
@@ -541,7 +763,8 @@ function Investments() {
                 <table className="projection-table">
                   <caption>
                     Valores estimados após {projectionYears}{" "}
-                    {Number(projectionYears) === 1 ? "ano" : "anos"} ({projectionMonths} aportes mensais)
+                    {Number(projectionYears) === 1 ? "ano" : "anos"} ({projectionMonths} aportes mensais),
+                    a partir de {selectedMonthLabel}
                   </caption>
                   <thead>
                     <tr>

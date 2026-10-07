@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import {
   FiCreditCard,
@@ -26,6 +26,11 @@ function Header() {
   const isProfilePage = location.pathname === "/profile";
   const isTransactionsPage =
     location.pathname === "/home" && location.hash === "#transactions";
+
+  useLayoutEffect(() => {
+    document.body.classList.add("app-shell");
+    return () => document.body.classList.remove("app-shell");
+  }, []);
 
   useEffect(() => {
     setMoreOpen(false);

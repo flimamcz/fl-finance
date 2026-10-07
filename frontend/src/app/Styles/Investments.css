@@ -58,8 +58,27 @@
   box-shadow: var(--shadow, 0 2px 8px rgba(0, 0, 0, 0.05));
 }
 
+.investment-period-filter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 18px;
+  padding: 15px 18px;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 14px;
+  background: var(--bg-card, #fff);
+  box-shadow: var(--shadow, 0 2px 8px rgba(0, 0, 0, 0.05));
+}
+
+.investment-period-filter p {
+  color: var(--text-secondary, #64748b);
+  font-size: 14px;
+}
+
 .movement-summary-grid {
   margin-top: 18px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .movement-form {
@@ -72,6 +91,12 @@
 .movement-history h3 {
   margin-bottom: 12px;
   font-size: 17px;
+}
+
+.movement-editing-note {
+  margin: -5px 0 14px;
+  color: var(--text-secondary, #64748b);
+  font-size: 13px;
 }
 
 .movement-form-grid {
@@ -133,6 +158,37 @@
 
 .movement-submit:hover:not(:disabled) {
   background: #4338ca;
+}
+
+.movement-form-actions {
+  display: flex;
+  grid-column: 1 / -1;
+  gap: 9px;
+}
+
+.movement-form-actions > button {
+  flex: 1 1 0;
+}
+
+.movement-cancel {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 14px;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 9px;
+  background: var(--bg-card, #fff);
+  color: var(--text-primary, #1e293b);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.movement-cancel:hover:not(:disabled) {
+  background: var(--bg-primary, #f8fafc);
 }
 
 .movement-submit:disabled {
@@ -203,6 +259,60 @@
   padding: 12px 14px;
   border-bottom: 1px solid var(--border, #e2e8f0);
   white-space: nowrap;
+}
+
+.movement-table th:last-child,
+.movement-actions-cell {
+  text-align: right;
+}
+
+.movement-table td.movement-actions-cell {
+  white-space: nowrap;
+}
+
+.movement-actions-cell .movement-row-action + .movement-row-action {
+  margin-left: 5px;
+}
+
+.movement-row-action {
+  display: inline-grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 8px;
+  background: var(--bg-card, #fff);
+  color: #4f46e5;
+  cursor: pointer;
+}
+
+.movement-row-action:hover:not(:disabled) {
+  background: rgba(99, 102, 241, 0.1);
+}
+
+.movement-row-action.danger {
+  color: #b91c1c;
+}
+
+.movement-row-action.danger:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.movement-row-action:disabled,
+.movement-cancel:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.movement-table .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
 }
 
 .movement-table tr:last-child td {
@@ -279,6 +389,7 @@
 
 .investment-month input:focus-visible,
 .investment-horizon select:focus-visible,
+.investment-period-filter input:focus-visible,
 .investment-control input:focus-visible,
 .investment-action-link:focus-visible {
   outline: 3px solid #818cf8;
@@ -518,6 +629,25 @@ body.dark-mode .movement-submit:hover:not(:disabled) {
   background: #818cf8;
 }
 
+body.dark-mode .movement-cancel,
+body.dark-mode .movement-row-action {
+  background: #1e293b;
+  border-color: #475569;
+  color: #c7d2fe;
+}
+
+body.dark-mode .movement-row-action:hover:not(:disabled) {
+  background: rgba(129, 140, 248, 0.16);
+}
+
+body.dark-mode .movement-row-action.danger {
+  color: #fca5a5;
+}
+
+body.dark-mode .movement-row-action.danger:hover:not(:disabled) {
+  background: rgba(248, 113, 113, 0.14);
+}
+
 body.dark-mode .movement-feedback.error,
 body.dark-mode .movement-kind.withdrawal,
 body.dark-mode .withdrawal-value {
@@ -559,6 +689,13 @@ body.dark-mode .movement-chart {
     flex-direction: column;
   }
 
+  .investment-period-filter {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px;
+  }
+
   .investment-month,
   .investment-horizon {
     width: 100%;
@@ -568,6 +705,10 @@ body.dark-mode .movement-chart {
     grid-template-columns: 1fr;
     gap: 10px;
     margin-top: 16px;
+  }
+
+  .movement-summary-grid {
+    grid-template-columns: 1fr;
   }
 
   .investment-summary-card {
@@ -586,12 +727,16 @@ body.dark-mode .movement-chart {
     width: 100%;
   }
 
+  .movement-form-actions {
+    flex-direction: column;
+  }
+
   .movement-chart {
     height: 245px;
   }
 
   .movement-table {
-    min-width: 520px;
+    min-width: 570px;
   }
 
   .projection-table {

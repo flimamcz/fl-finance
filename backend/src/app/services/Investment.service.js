@@ -1,6 +1,29 @@
 const { InvestmentMovement, Transaction, User, sequelize } = require("../../models");
 
 const amountToCents = (amount) => Math.round(Number(amount) * 100);
+const toTransactionDescription = (type, description) =>
+  `${type === "contribution" ? "Aporte" : "Resgate"} em investimentos${description ? `: ${description}` : ""}`.slice(0, 255);
+
+const validateMovementSequence = (movements) => {
+  let balanceCents = 0;
+  const orderedMovements = [...movements].sort((a, b) => {
+    const dateOrder = String(a.date).localeCompare(String(b.date));
+    return dateOrder || Number(a.id) - Number(b.id);
+  });
+
+  for (const movement of orderedMovements) {
+    const amountCents = amountToCents(movement.amount);
+    balanceCents += movement.type === "contribution" ? amountCents : -amountCents;
+    if (balanceCents < 0) {
+      return {
+        error: "Esta alteração deixaria o saldo investido negativo em uma movimentação posterior.",
+        status: 409,
+      };
+    }
+  }
+
+  return null;
+};
 
 const listMovements = async (userId) => {
   const movements = await InvestmentMovement.findAll({
@@ -50,6 +73,7 @@ const createMovement = async (userId, movementData) => {
       attributes: ["type", "amount", "date", "id"],
       order: [["date", "ASC"], ["id", "ASC"]],
       transaction,
+      lock: transaction.LOCK.UPDATE,
     });
     const amountCents = amountToCents(movementData.amount);
     const movementDelta = movementData.type === "contribution" ? amountCents : -amountCents;
@@ -97,7 +121,7 @@ const createMovement = async (userId, movementData) => {
         value: movementData.amount,
         typeId: isContribution ? 2 : 1,
         user_id: userId,
-        description: `${isContribution ? "Aporte" : "Resgate"} em investimentos${movementData.description ? `: ${movementData.description}` : ""}`.slice(0, 255),
+        description: toTransactionDescription(movementData.type, movementData.description),
         date: movementData.date,
         status: true,
         isSalary: false,
@@ -120,4 +144,111 @@ const createMovement = async (userId, movementData) => {
   });
 };
 
-module.exports = { createMovement, listMovements };
+const updateMovement = async (userId, movementId, movementData) => {
+  return sequelize.transaction(async (transaction) => {
+    const user = await User.findByPk(userId, {
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+    if (!user) return { error: "Usuário não encontrado.", status: 404 };
+
+    const movement = await InvestmentMovement.findOne({
+      where: { id: movementId, user_id: userId },
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+    if (!movement) return { error: "Movimentação não encontrada.", status: 404 };
+
+    const transactionRecord = await Transaction.findOne({
+      where: { id: movement.transaction_id, user_id: userId },
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+    if (!transactionRecord) {
+      return {
+        error: "A transação vinculada não foi encontrada; a movimentação não foi alterada.",
+        status: 409,
+      };
+    }
+
+    const allMovements = await InvestmentMovement.findAll({
+      where: { user_id: userId },
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+    const updatedMovements = allMovements.map((entry) =>
+      Number(entry.id) === Number(movementId)
+        ? { ...entry.toJSON(), ...movementData }
+        : entry.toJSON()
+    );
+    const invalidSequence = validateMovementSequence(updatedMovements);
+    if (invalidSequence) return invalidSequence;
+
+    const isContribution = movementData.type === "contribution";
+    await movement.update(movementData, { transaction });
+    await transactionRecord.update(
+      {
+        value: movementData.amount,
+        typeId: isContribution ? 2 : 1,
+        description: toTransactionDescription(movementData.type, movementData.description),
+        date: movementData.date,
+        status: true,
+        isSalary: false,
+      },
+      { transaction }
+    );
+    return { movement };
+  });
+};
+
+const deleteMovement = async (userId, movementId) => {
+  return sequelize.transaction(async (transaction) => {
+    const user = await User.findByPk(userId, {
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+    if (!user) return { error: "Usuário não encontrado.", status: 404 };
+
+    const movement = await InvestmentMovement.findOne({
+      where: { id: movementId, user_id: userId },
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+    if (!movement) return { error: "Movimentação não encontrada.", status: 404 };
+
+    const transactionRecord = await Transaction.findOne({
+      where: { id: movement.transaction_id, user_id: userId },
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+    if (!transactionRecord) {
+      return {
+        error: "A transação vinculada não foi encontrada; a movimentação não foi excluída.",
+        status: 409,
+      };
+    }
+
+    const remainingMovements = await InvestmentMovement.findAll({
+      where: { user_id: userId },
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+    const invalidSequence = validateMovementSequence(
+      remainingMovements
+        .filter((entry) => Number(entry.id) !== Number(movementId))
+        .map((entry) => entry.toJSON())
+    );
+    if (invalidSequence) {
+      return {
+        error: "Não é possível excluir este aporte porque há saques posteriores que dependem dele. Edite ou exclua primeiro esses saques.",
+        status: 409,
+      };
+    }
+
+    await movement.destroy({ transaction });
+    await transactionRecord.destroy({ transaction });
+    return { deleted: true };
+  });
+};
+
+module.exports = { createMovement, deleteMovement, listMovements, updateMovement };

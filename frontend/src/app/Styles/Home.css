@@ -255,6 +255,9 @@ body.dark-mode .theme-toggle .moon-icon {
 }
 
 .summary-card {
+  --card-accent: var(--gradient-primary);
+  --card-tint: rgba(99, 102, 241, 0.1);
+  --card-color: var(--primary);
   background: var(--bg-card);
   border-radius: 16px;
   padding: 24px;
@@ -279,22 +282,52 @@ body.dark-mode .theme-toggle .moon-icon {
   left: 0;
   right: 0;
   height: 4px;
+  background: var(--card-accent);
+  border-radius: 16px 16px 0 0;
 }
 
-.total-balance::before {
-  background: var(--gradient-primary);
+.summary-card::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  top: 42px;
+  right: 18px;
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: var(--card-tint);
+  filter: blur(1px);
+  opacity: 0.9;
+  pointer-events: none;
 }
 
-.income-card::before {
-  background: var(--gradient-income);
+.summary-card > * {
+  position: relative;
+  z-index: 1;
 }
 
-.expense-card::before {
-  background: var(--gradient-expense);
+.total-balance {
+  --card-accent: var(--gradient-primary);
+  --card-tint: rgba(99, 102, 241, 0.12);
+  --card-color: #4f46e5;
 }
 
-.investment-card::before {
-  background: var(--gradient-investment);
+.income-card {
+  --card-accent: var(--gradient-income);
+  --card-tint: rgba(16, 185, 129, 0.12);
+  --card-color: #059669;
+}
+
+.expense-card {
+  --card-accent: var(--gradient-expense);
+  --card-tint: rgba(239, 68, 68, 0.1);
+  --card-color: #dc2626;
+}
+
+.investment-card {
+  --card-accent: var(--gradient-investment);
+  --card-tint: rgba(245, 158, 11, 0.13);
+  --card-color: #b45309;
 }
 
 .card-header {
@@ -327,25 +360,48 @@ body.dark-mode .theme-toggle .moon-icon {
   font-size: 20px;
   padding: 10px;
   border-radius: 10px;
-  background: rgba(99, 102, 241, 0.1);
-  color: var(--primary);
+  background: var(--card-tint);
+  color: var(--card-color);
   transition: all 0.3s ease;
   flex-shrink: 0;
 }
 
 .income-card .card-icon {
-  background: rgba(16, 185, 129, 0.1);
-  color: var(--income);
+  background: var(--card-tint);
+  color: var(--card-color);
 }
 
 .expense-card .card-icon {
-  background: rgba(239, 68, 68, 0.1);
-  color: var(--expense);
+  background: var(--card-tint);
+  color: var(--card-color);
 }
 
 .investment-card .card-icon {
-  background: rgba(245, 158, 11, 0.1);
-  color: var(--investment);
+  background: var(--card-tint);
+  color: var(--card-color);
+}
+
+body.dark-mode .summary-card::after {
+  opacity: 0.2;
+}
+
+body.dark-mode .total-balance,
+body.dark-mode .income-card,
+body.dark-mode .expense-card,
+body.dark-mode .investment-card {
+  --card-color: #c7d2fe;
+}
+
+body.dark-mode .income-card {
+  --card-color: #6ee7b7;
+}
+
+body.dark-mode .expense-card {
+  --card-color: #fca5a5;
+}
+
+body.dark-mode .investment-card {
+  --card-color: #fcd34d;
 }
 
 .card-value {
