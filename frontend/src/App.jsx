@@ -7,6 +7,7 @@ import ForgotPassword from "./app/Pages/ForgotPassword";
 import Home from "./app/Pages/Home";
 import Profile from "./app/Pages/Profile";
 import Debts from "./app/Pages/Debts";
+import Investments from "./app/Pages/Investments";
 import ProtectedRoute from "./app/Components/ProtectedRoute";
 
 function App() {
@@ -31,6 +32,11 @@ function App() {
         <Route path="/debts" element={
           <ProtectedRoute>
             <Debts />
+          </ProtectedRoute>
+        } />
+        <Route path="/investments" element={
+          <ProtectedRoute>
+            <Investments />
           </ProtectedRoute>
         } />
       </Routes>

@@ -664,6 +664,7 @@ body.dark-mode .theme-toggle .moon-icon {
   box-shadow: var(--shadow);
   border: 1px solid var(--border);
   margin-bottom: 20px;
+  scroll-margin-top: 76px;
 }
 
 .section-header {
@@ -1096,6 +1097,45 @@ body.dark-mode .theme-toggle .moon-icon {
 .pagination {
   font-size: 13px;
   color: var(--text-muted);
+}
+
+.salary-checkbox-group {
+  align-self: center;
+}
+
+.salary-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--text-primary);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.salary-checkbox-label input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+}
+
+.salary-tag {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  margin-top: 5px;
+  padding: 2px 8px;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.1);
+  color: #047857;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+body.dark-mode .salary-tag {
+  border-color: rgba(52, 211, 153, 0.3);
+  background: rgba(16, 185, 129, 0.16);
+  color: #6ee7b7;
 }
 
 /* ===== LOADING ===== */

@@ -74,6 +74,8 @@
 /* ===== BACKGROUND ANIMADO ===== */
 .login-container {
   min-height: 100vh;
+  min-height: 100dvh;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -88,7 +90,8 @@
   background-size: 400% 400%;
   animation: gradientShift 15s ease infinite;
   position: relative;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 @keyframes gradientShift {

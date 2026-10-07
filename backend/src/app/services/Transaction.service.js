@@ -1,6 +1,6 @@
 // src/app/services/Transaction.service.js - VERSÃO COM CATEGORIAS
 const { Op } = require("sequelize");
-const { Transaction, Category, Debt, DebtInstallment } = require("../../models");
+const { Transaction, Category, Debt, DebtInstallment, InvestmentMovement } = require("../../models");
 const debtService = require("./Debt.service");
 
 const searchTransactions = async (userId = null) => {
@@ -162,6 +162,16 @@ const updateTransaction = async (dataTransaction) => {
       };
     }
 
+    const linkedInvestmentMovement = await InvestmentMovement.findOne({
+      where: { transaction_id: findTransaction.id },
+    });
+    if (linkedInvestmentMovement) {
+      return {
+        error: "CONFLICT",
+        message: "Esta transação está vinculada ao histórico de investimentos e não pode ser editada aqui.",
+      };
+    }
+
     // Remove campos que não devem ser atualizados
     const updateData = { ...dataTransaction };
     delete updateData.id;
@@ -228,6 +238,16 @@ const deleteTransaction = async (id, userId = null) => {
     const linkedInstallment = await DebtInstallment.findOne({
       where: { transaction_id: transactionToDelete.id },
     });
+    const linkedInvestmentMovement = await InvestmentMovement.findOne({
+      where: { transaction_id: transactionToDelete.id },
+    });
+    if (linkedInvestmentMovement) {
+      return {
+        error: "CONFLICT",
+        message: "Esta transação está vinculada ao histórico de investimentos e não pode ser excluída do extrato.",
+      };
+    }
+
     if (linkedInstallment) {
       const result = await debtService.unpayInstallment(userId, linkedInstallment.id);
       if (result.error) {
@@ -236,6 +256,7 @@ const deleteTransaction = async (id, userId = null) => {
           message: result.error,
         };
       }
+
       return {
         error: null,
         message: "Pagamento desfeito. A parcela voltou a ficar em aberto e a despesa foi removida do extrato.",

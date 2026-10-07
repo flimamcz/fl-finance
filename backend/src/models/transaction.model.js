@@ -18,6 +18,12 @@ const transactionModel = (sequelize, DataTypes) => {
         foreignKey: true,
         field: "type_id",
       },
+      isSalary: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+        field: "is_salary",
+      },
       category_id: {
         type: DataTypes.INTEGER,
         allowNull: true,
@@ -52,6 +58,10 @@ const transactionModel = (sequelize, DataTypes) => {
     Transaction.belongsTo(models.Category, {
       foreignKey: 'category_id',
       as: 'category'
+    });
+    Transaction.hasOne(models.InvestmentMovement, {
+      foreignKey: "transaction_id",
+      as: "investmentMovement",
     });
   };
 

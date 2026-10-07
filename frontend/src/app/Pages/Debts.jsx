@@ -93,6 +93,7 @@ function Debts() {
   const navigate = useNavigate();
   const { getAllTransactions } = useContext(MyContext);
   const [debts, setDebts] = useState([]);
+  const [selectedDebtIds, setSelectedDebtIds] = useState([]);
   const [form, setForm] = useState(initialForm);
   const [formOpen, setFormOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(() => localDateString().slice(0, 7));
@@ -102,6 +103,7 @@ function Debts() {
   const [timeFilter, setTimeFilter] = useState("month");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   const [busyInstallment, setBusyInstallment] = useState(null);
   const [expandedDebtId, setExpandedDebtId] = useState(null);
   const [paymentDialog, setPaymentDialog] = useState(null);
@@ -150,6 +152,12 @@ function Debts() {
     try {
       const result = await apiRequest("/debts");
       setDebts(result.data || []);
+      const existingIds = new Set(
+        (result.data || [])
+          .filter((debt) => !(debt.installments || []).some((item) => item.status === "paid"))
+          .map((debt) => String(debt.id)),
+      );
+      setSelectedDebtIds((selected) => selected.filter((id) => existingIds.has(String(id))));
       await getAllTransactions();
     } catch (requestError) {
       setError(requestError.message);
@@ -371,11 +379,97 @@ function Debts() {
     setNotice("");
     try {
       await apiRequest(`/debts/${debt.id}`, { method: "DELETE" });
+      setSelectedDebtIds((selected) => selected.filter((id) => String(id) !== String(debt.id)));
       await loadDebts();
       setNotice("Dívida excluída.");
     } catch (requestError) {
       setError(requestError.message);
     }
+  };
+
+  const deletableVisibleDebts = visibleDebts.filter(
+    (debt) => !(debt.installments || []).some((installment) => installment.status === "paid"),
+  );
+  const selectedDeletableDebts = debts.filter(
+    (debt) =>
+      !(debt.installments || []).some((installment) => installment.status === "paid") &&
+      selectedDebtIds.includes(String(debt.id)),
+  );
+  const allVisibleDebtsSelected =
+    deletableVisibleDebts.length > 0 &&
+    deletableVisibleDebts.every((debt) => selectedDebtIds.includes(String(debt.id)));
+
+  const toggleDebtSelection = (debtId) => {
+    const id = String(debtId);
+    setSelectedDebtIds((selected) =>
+      selected.includes(id) ? selected.filter((item) => item !== id) : [...selected, id],
+    );
+  };
+
+  const toggleAllVisibleDebts = (checked) => {
+    const visibleIds = new Set(deletableVisibleDebts.map((debt) => String(debt.id)));
+    setSelectedDebtIds((selected) => {
+      const retained = selected.filter((id) => !visibleIds.has(id));
+      return checked ? [...retained, ...visibleIds] : retained;
+    });
+  };
+
+  const deleteSelectedDebts = async () => {
+    if (selectedDeletableDebts.length === 0 || bulkDeleting) return;
+    const confirmed = window.confirm(
+      `Excluir ${selectedDeletableDebts.length} dívida(s) selecionada(s)? Dívidas com parcelas pagas não podem ser excluídas.`,
+    );
+    if (!confirmed) return;
+
+    setBulkDeleting(true);
+    setError("");
+    setNotice("");
+    const deletedIds = [];
+    const failures = [];
+
+    for (const debt of selectedDeletableDebts) {
+      try {
+        await apiRequest(`/debts/${debt.id}`, { method: "DELETE" });
+        deletedIds.push(String(debt.id));
+      } catch (requestError) {
+        failures.push({ id: String(debt.id), message: `${debt.name}: ${requestError.message}` });
+      }
+    }
+
+    let confirmedDeletedCount = deletedIds.length;
+    try {
+      const result = await apiRequest("/debts");
+      const refreshedDebts = result.data || [];
+      const refreshedIds = new Set(refreshedDebts.map((debt) => String(debt.id)));
+      confirmedDeletedCount = selectedDeletableDebts.filter(
+        (debt) => !refreshedIds.has(String(debt.id)),
+      ).length;
+      setDebts(refreshedDebts);
+      const eligibleIds = new Set(
+        refreshedDebts
+          .filter((debt) => !(debt.installments || []).some((item) => item.status === "paid"))
+          .map((debt) => String(debt.id)),
+      );
+      setSelectedDebtIds((selected) =>
+        selected.filter((id) => eligibleIds.has(id) && refreshedIds.has(id)),
+      );
+      for (let index = failures.length - 1; index >= 0; index -= 1) {
+        if (!refreshedIds.has(failures[index].id)) failures.splice(index, 1);
+      }
+      await getAllTransactions();
+    } catch (refreshError) {
+      failures.push({ message: `Não foi possível atualizar a lista ou o extrato: ${refreshError.message}` });
+    }
+
+    if (failures.length > 0) {
+      setError(failures.map((failure) => failure.message).join("\n"));
+      if (confirmedDeletedCount > 0) {
+        setNotice(`${confirmedDeletedCount} dívida(s) excluída(s); ${failures.length} operação(ões) precisam de atenção.`);
+      }
+    } else {
+      setNotice(`${confirmedDeletedCount} dívida(s) excluída(s) com sucesso.`);
+    }
+    setBulkDeleting(false);
   };
 
   const openDebtEditor = (debt) => {
@@ -781,6 +875,30 @@ function Debts() {
             <div><span>Pagas</span><strong>{formatCurrency(smartSummary.paidAmount)}</strong><small>{smartSummary.paidCount} parcelas</small></div>
           </div>
 
+          {(deletableVisibleDebts.length > 0 || selectedDeletableDebts.length > 0) && (
+            <div className="debt-bulk-toolbar">
+              <label className="debt-bulk-select">
+                <input
+                  checked={allVisibleDebtsSelected}
+                  disabled={bulkDeleting}
+                  onChange={(event) => toggleAllVisibleDebts(event.target.checked)}
+                  type="checkbox"
+                />
+                <span>Selecionar dívidas visíveis</span>
+              </label>
+              <span className="debt-bulk-count">{selectedDeletableDebts.length} selecionada(s)</span>
+              <button
+                className="debt-delete-button"
+                disabled={selectedDeletableDebts.length === 0 || bulkDeleting}
+                onClick={deleteSelectedDebts}
+                type="button"
+              >
+                <FiTrash2 />
+                <span>{bulkDeleting ? "Excluindo..." : "Excluir selecionadas"}</span>
+              </button>
+            </div>
+          )}
+
           {historyOpen && (
             <div className="debt-modal-backdrop" onClick={() => setHistoryOpen(false)}>
               <section className="debt-form-section debt-modal debt-history-modal" onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="debt-history-title">
@@ -853,6 +971,18 @@ function Debts() {
                         >
                           <summary className="debt-record-summary">
                             <div className="debt-record-name">
+                              <input
+                                aria-label={`Selecionar dívida ${debt.name}`}
+                                checked={selectedDebtIds.includes(String(debt.id))}
+                                disabled={paidCount > 0 || bulkDeleting}
+                                onClick={(event) => {
+                                  event.preventDefault();
+                                  event.stopPropagation();
+                                  toggleDebtSelection(debt.id);
+                                }}
+                                title={paidCount > 0 ? "Não é possível excluir dívidas com parcelas pagas." : "Selecionar dívida para exclusão"}
+                                type="checkbox"
+                              />
                               <span className="debt-card-icon"><FiDollarSign /></span>
                               <span><strong>{debt.name}</strong><small>{debt.creditor || (debt.recurring ? "Recorrente" : "Parcela única")}</small></span>
                             </div>

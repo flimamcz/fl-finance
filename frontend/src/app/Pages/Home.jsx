@@ -116,6 +116,7 @@ function Home() {
     date: new Date().toISOString().split("T")[0],
     status: true,
     typeId: 1,
+    isSalary: false,
   });
 
   // Efeito para tema
@@ -980,6 +981,7 @@ function Home() {
         date: new Date().toISOString().split("T")[0],
         status: true,
         typeId: 1,
+        isSalary: false,
       });
 
       setModalTitle("Sucesso!");
@@ -1638,7 +1640,7 @@ function Home() {
         </div>
 
         {/* Seção de Transações */}
-        <div className="transactions-section">
+        <div className="transactions-section" id="transactions" tabIndex="-1">
           <div className="section-header">
             <div>
               <h2>Transações Recentes</h2>
@@ -1784,6 +1786,9 @@ function Home() {
                               ? "Despesa"
                               : "Investimento"}
                           </span>
+                          {transaction.typeId === 1 && transaction.isSalary && (
+                            <span className="salary-tag">Salário</span>
+                          )}
                         </div>
                       </div>
 
@@ -1971,6 +1976,12 @@ function Home() {
                         : "Investimento"}
                     </span>
                   </div>
+                  {selectedTransaction.typeId === 1 && selectedTransaction.isSalary && (
+                    <div className="transaction-preview">
+                      <span className="preview-label">Identificação:</span>
+                      <span className="preview-value">Salário</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -2174,6 +2185,9 @@ function Home() {
                       setTransactionData({
                         ...transactionData,
                         typeId: parseInt(e.target.value),
+                        isSalary: parseInt(e.target.value) === 1
+                          ? transactionData.isSalary
+                          : false,
                       })
                     }
                     required
@@ -2185,6 +2199,29 @@ function Home() {
                     ))}
                   </select>
                 </div>
+
+                {Number(transactionData.typeId) === 1 && (
+                  <div className="form-group salary-checkbox-group">
+                    <label className="salary-checkbox-label" htmlFor="transaction-is-salary">
+                      <input
+                        id="transaction-is-salary"
+                        type="checkbox"
+                        checked={transactionData.isSalary}
+                        aria-describedby="transaction-is-salary-help"
+                        onChange={(e) =>
+                          setTransactionData({
+                            ...transactionData,
+                            isSalary: e.target.checked,
+                          })
+                        }
+                      />
+                      <span>Esta entrada é salário</span>
+                    </label>
+                    <span className="form-hint" id="transaction-is-salary-help">
+                      Marque apenas recebimentos de salário. Esta identificação alimenta seu planejamento de investimentos.
+                    </span>
+                  </div>
+                )}
 
                 <div className="form-group">
                   <label>Status*</label>
@@ -2367,6 +2404,15 @@ function Home() {
                     {transactionToView.status ? " Confirmado" : " Pendente"}
                   </span>
                 </div>
+
+                {transactionToView.typeId === 1 && (
+                  <div className="detail-item">
+                    <span className="detail-label">Identificação da entrada</span>
+                    <span className="detail-value">
+                      {transactionToView.isSalary ? "Salário" : "Não marcada como salário"}
+                    </span>
+                  </div>
+                )}
 
                 <div className="detail-item">
                   <span className="detail-label">ID</span>

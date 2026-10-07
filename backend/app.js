@@ -7,6 +7,7 @@ const userRouter = require("./src/app/routes/user.routes");
 const typesRouter = require("./src/app/routes/type.routes");
 const authRouter = require("./src/app/routes/auth.routes");
 const debtsRouter = require("./src/app/routes/debts.routes");
+const investmentsRouter = require("./src/app/routes/investments.routes");
 
 const app = express();
 
@@ -64,6 +65,7 @@ app.use("/transactions", (req, res, next) => {
 }, transactionsRouter);
 
 app.use("/debts", debtsRouter);
+app.use("/investments", investmentsRouter);
 
 app.use("/types", (req, res, next) => {
   console.log('🛣️  Rota /types acessada');

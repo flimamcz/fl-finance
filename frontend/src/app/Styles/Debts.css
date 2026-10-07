@@ -907,6 +907,54 @@ body.dark-mode .debt-payment-summary .debt-payment-sequence {
   gap: 10px;
 }
 
+.debt-record-name > input[type="checkbox"],
+.debt-bulk-select input {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  margin: 0;
+  accent-color: var(--debt-green);
+  cursor: pointer;
+}
+
+.debt-record-name > input[type="checkbox"]:disabled {
+  cursor: not-allowed;
+}
+
+.debt-bulk-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--debt-border);
+  border-radius: 8px;
+  background: var(--debt-surface);
+}
+
+.debt-bulk-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--debt-text);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.debt-bulk-count {
+  margin-left: auto;
+  color: var(--debt-muted);
+  font-size: 12px;
+}
+
+.debt-bulk-toolbar .debt-delete-button {
+  min-height: 36px;
+  margin-top: 0;
+  padding: 0 12px;
+}
+
 .debt-record-name > span:last-child {
   display: grid;
   min-width: 0;
@@ -1398,6 +1446,7 @@ body.dark-mode .debt-installment-date .debt-installment-sequence {
   padding: 11px 13px;
   border-radius: 5px;
   font-size: 13px;
+  white-space: pre-line;
 }
 
 .debts-error {

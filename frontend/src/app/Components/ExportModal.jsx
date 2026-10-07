@@ -105,19 +105,21 @@ function ExportModal({ isOpen, onClose, transactions, amounts, filters = {} }) {
           formatDate(t.date),
           t.description || 'Sem descrição',
           t.typeId === 1 ? 'Receita' : t.typeId === 2 ? 'Despesa' : 'Investimento',
+          t.isSalary ? 'Sim' : 'Não',
           t.status ? 'Confirmado' : 'Pendente',
           `R$ ${parseAmount(t.value).toFixed(2)}`,
         ]);
 
         autoTable(doc, {
           startY: doc.lastAutoTable.finalY + 20,
-          head: [['Data', 'Descrição', 'Tipo', 'Status', 'Valor']],
+          head: [['Data', 'Descrição', 'Tipo', 'Salário', 'Status', 'Valor']],
           body: tableData,
           theme: 'grid',
           headStyles: { fillColor: [99, 102, 241] },
           columnStyles: {
-            0: { cellWidth: 25 },
-            4: { cellWidth: 30, halign: 'right' },
+            0: { cellWidth: 22 },
+            3: { cellWidth: 17 },
+            5: { cellWidth: 27, halign: 'right' },
           },
           styles: { fontSize: 10, cellPadding: 3 },
         });
@@ -201,6 +203,7 @@ function ExportModal({ isOpen, onClose, transactions, amounts, filters = {} }) {
         Data: formatDate(t.date),
         Descrição: t.description || 'Sem descrição',
         Tipo: t.typeId === 1 ? 'Receita' : t.typeId === 2 ? 'Despesa' : 'Investimento',
+        Salário: t.isSalary ? 'Sim' : 'Não',
         Status: t.status ? 'Confirmado' : 'Pendente',
         Valor: parseAmount(t.value),
       }));
@@ -269,18 +272,20 @@ function ExportModal({ isOpen, onClose, transactions, amounts, filters = {} }) {
         Data: formatDate(t.date),
         Descrição: t.description || 'Sem descrição',
         Tipo: t.typeId === 1 ? 'Receita' : t.typeId === 2 ? 'Despesa' : 'Investimento',
+        Salário: t.isSalary ? 'Sim' : 'Não',
         Status: t.status ? 'Confirmado' : 'Pendente',
         Valor: parseAmount(t.value).toFixed(2),
       }));
 
       // Converter para CSV
-      const headers = ['Data', 'Descrição', 'Tipo', 'Status', 'Valor'];
+      const headers = ['Data', 'Descrição', 'Tipo', 'Salário', 'Status', 'Valor'];
       const csvRows = [
         headers.join(','),
         ...csvData.map(row => [
           `"${row.Data}"`,
           `"${row.Descrição}"`,
           `"${row.Tipo}"`,
+          `"${row.Salário}"`,
           `"${row.Status}"`,
           `"${row.Valor}"`
         ].join(','))

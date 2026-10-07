@@ -71,7 +71,7 @@ const createTrasaction = async (req, res) => {
       });
     }
     
-    const { value, typeId, categoryId, description, date, status } = req.body;
+    const { value, typeId, categoryId, description, date, status, isSalary } = req.body;
     
     // Validar campos obrigatórios
     if (!value || !description || !date) {
@@ -88,6 +88,20 @@ const createTrasaction = async (req, res) => {
         message: "categoryId deve ser um número" 
       });
     }
+
+    if (isSalary !== undefined && typeof isSalary !== "boolean") {
+      return res.status(400).json({
+        error: true,
+        message: "isSalary deve ser verdadeiro ou falso"
+      });
+    }
+
+    if (isSalary === true && Number(typeId) !== 1) {
+      return res.status(400).json({
+        error: true,
+        message: "Somente uma receita pode ser marcada como salário"
+      });
+    }
     
     const transactionData = { 
       value, 
@@ -95,6 +109,7 @@ const createTrasaction = async (req, res) => {
       description, 
       date, 
       status: status !== undefined ? status : true,
+      isSalary: Number(typeId) === 1 && isSalary === true,
       user_id: req.user.id
     };
     
@@ -156,6 +171,23 @@ const updateTransaction = async (req, res) => {
       ...req.body,
       user_id: req.user.id
     };
+
+    if (updateData.isSalary !== undefined && typeof updateData.isSalary !== "boolean") {
+      return res.status(400).json({
+        error: true,
+        message: "isSalary deve ser verdadeiro ou falso"
+      });
+    }
+
+    if (updateData.isSalary === true && Number(updateData.typeId) !== 1) {
+      return res.status(400).json({
+        error: true,
+        message: "Somente uma receita pode ser marcada como salário"
+      });
+    }
+    if (updateData.typeId !== undefined && Number(updateData.typeId) !== 1 && updateData.isSalary === undefined) {
+      updateData.isSalary = false;
+    }
     
     // ✅ NOVO: Valida categoryId se fornecido
     if (updateData.categoryId && typeof updateData.categoryId !== 'number') {

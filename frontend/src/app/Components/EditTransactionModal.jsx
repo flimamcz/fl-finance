@@ -19,6 +19,7 @@ function EditTransactionModal({
     date: "",
     status: true,
     typeId: 1,
+    isSalary: false,
   });
   const [error, setError] = useState("");
 
@@ -31,6 +32,7 @@ function EditTransactionModal({
         date: transaction.date.split('T')[0], // Formato YYYY-MM-DD
         status: transaction.status,
         typeId: transaction.typeId,
+        isSalary: transaction.isSalary === true,
       });
       setError("");
     }
@@ -41,6 +43,7 @@ function EditTransactionModal({
     
     setFormData(prev => ({
       ...prev,
+      ...(name === "typeId" && parseInt(value, 10) !== 1 ? { isSalary: false } : {}),
       [name]: type === 'radio' ? value === 'true' : 
               type === 'select-one' ? parseInt(value) : 
               name === 'value' ? parseFloat(value) || '' : 
@@ -67,6 +70,7 @@ function EditTransactionModal({
         description: formData.description,
         date: formData.date,
         status: formData.status,
+        isSalary: Number(formData.typeId) === 1 && formData.isSalary,
       };
 
       console.log("🔄 Enviando atualização:", updateData);
@@ -177,6 +181,29 @@ function EditTransactionModal({
                 ))}
               </select>
             </div>
+            {Number(formData.typeId) === 1 && (
+              <div className="form-group salary-checkbox-group">
+                <label className="salary-checkbox-label" htmlFor="edit-is-salary">
+                  <input
+                    id="edit-is-salary"
+                    name="isSalary"
+                    type="checkbox"
+                    checked={formData.isSalary}
+                    aria-describedby="edit-is-salary-help"
+                    onChange={(event) =>
+                      setFormData((previous) => ({
+                        ...previous,
+                        isSalary: event.target.checked,
+                      }))
+                    }
+                  />
+                  <span>Esta entrada é salário</span>
+                </label>
+                <span className="form-hint" id="edit-is-salary-help">
+                  Marque apenas recebimentos de salário; a descrição da transação não é usada para inferir isso.
+                </span>
+              </div>
+            )}
 
             <div className="form-group">
               <label>Status*</label>
