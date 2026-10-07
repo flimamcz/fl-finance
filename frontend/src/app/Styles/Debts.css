@@ -850,6 +850,7 @@ body.dark-mode .debt-payment-summary .debt-payment-sequence {
 }
 
 .debt-record {
+  position: relative;
   overflow: hidden;
   border: 1px solid var(--debt-border);
   border-bottom-width: 0;
@@ -907,8 +908,16 @@ body.dark-mode .debt-payment-summary .debt-payment-sequence {
   gap: 10px;
 }
 
-.debt-record-name > input[type="checkbox"],
 .debt-bulk-select input {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  margin: 0;
+  accent-color: var(--debt-green);
+  cursor: pointer;
+}
+
+.debt-record-name > input[type="checkbox"] {
   width: 16px;
   height: 16px;
   flex: 0 0 16px;

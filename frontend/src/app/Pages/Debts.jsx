@@ -975,11 +975,8 @@ function Debts() {
                                 aria-label={`Selecionar dívida ${debt.name}`}
                                 checked={selectedDebtIds.includes(String(debt.id))}
                                 disabled={paidCount > 0 || bulkDeleting}
-                                onClick={(event) => {
-                                  event.preventDefault();
-                                  event.stopPropagation();
-                                  toggleDebtSelection(debt.id);
-                                }}
+                                onClick={(event) => event.stopPropagation()}
+                                onChange={() => toggleDebtSelection(debt.id)}
                                 title={paidCount > 0 ? "Não é possível excluir dívidas com parcelas pagas." : "Selecionar dívida para exclusão"}
                                 type="checkbox"
                               />

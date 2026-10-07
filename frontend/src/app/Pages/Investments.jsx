@@ -132,6 +132,8 @@ function Investments() {
   const [movementSuccess, setMovementSuccess] = useState("");
   const [editingMovement, setEditingMovement] = useState(null);
   const [deletingMovementId, setDeletingMovementId] = useState(null);
+  const [selectedMovementIds, setSelectedMovementIds] = useState([]);
+  const [deletingSelectedMovements, setDeletingSelectedMovements] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(currentLocalMonth);
   const [savingsRate, setSavingsRate] = useState(20);
   const [projectionYears, setProjectionYears] = useState(5);
@@ -182,6 +184,20 @@ function Investments() {
         : [],
     [movements, monthRange],
   );
+  const periodMovementIds = useMemo(
+    () => periodMovements.map((movement) => String(movement.id)),
+    [periodMovements],
+  );
+  const allPeriodMovementsSelected =
+    periodMovementIds.length > 0 &&
+    periodMovementIds.every((id) => selectedMovementIds.includes(id));
+
+  useEffect(() => {
+    const visibleIds = new Set(periodMovementIds);
+    setSelectedMovementIds((selectedIds) =>
+      selectedIds.filter((id) => visibleIds.has(id)),
+    );
+  }, [periodMovementIds]);
   const periodMovementTotals = useMemo(
     () =>
       periodMovements.reduce(
@@ -383,6 +399,63 @@ function Investments() {
     }
   };
 
+  const toggleMovementSelection = (movementId) => {
+    const id = String(movementId);
+    setSelectedMovementIds((selectedIds) =>
+      selectedIds.includes(id)
+        ? selectedIds.filter((selectedId) => selectedId !== id)
+        : [...selectedIds, id],
+    );
+  };
+
+  const toggleAllPeriodMovements = () => {
+    setSelectedMovementIds((selectedIds) =>
+      allPeriodMovementsSelected
+        ? selectedIds.filter((id) => !periodMovementIds.includes(id))
+        : [...new Set([...selectedIds, ...periodMovementIds])],
+    );
+  };
+
+  const removeSelectedMovements = async () => {
+    const selectedCount = selectedMovementIds.length;
+    if (!selectedCount) return;
+    if (!window.confirm(
+      `Excluir ${selectedCount} movimentação(ões) selecionada(s)? As transações correspondentes também serão removidas do saldo e do extrato. Essa ação não pode ser desfeita.`,
+    )) return;
+
+    setMovementError("");
+    setMovementSuccess("");
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("Sua sessão não foi encontrada. Entre novamente.");
+      setToken("Bearer " + token);
+      setDeletingSelectedMovements(true);
+      const response = await requestPost("/investments/bulk-delete", {
+        ids: selectedMovementIds.map(Number),
+      });
+      setMovements(Array.isArray(response.data) ? response.data : []);
+      setSelectedMovementIds([]);
+      if (
+        editingMovement &&
+        selectedMovementIds.includes(String(editingMovement.id))
+      ) cancelMovementEdit();
+      setMovementSuccess(
+        `${response.deleted ?? selectedCount} movimentação(ões) excluída(s); saldo e extrato sincronizados.`,
+      );
+      try {
+        await getAllTransactions();
+      } catch {
+        setMovementError("As movimentações foram excluídas, mas o extrato não pôde ser atualizado. Atualize a página para sincronizá-lo.");
+      }
+    } catch (error) {
+      setMovementError(
+        error.response?.data?.message || error.message || "Não foi possível excluir as movimentações selecionadas.",
+      );
+    } finally {
+      setDeletingSelectedMovements(false);
+    }
+  };
+
   const monthlySalary = useMemo(
     () =>
       transactions
@@ -530,9 +603,15 @@ function Investments() {
                 <button
                   className="movement-submit"
                   type="submit"
-                  disabled={savingMovement || deletingMovementId !== null}
+                  disabled={
+                    savingMovement ||
+                    deletingMovementId !== null ||
+                    deletingSelectedMovements
+                  }
                 >
-                  {deletingMovementId !== null
+                  {deletingSelectedMovements
+                    ? "Excluindo..."
+                    : deletingMovementId !== null
                     ? "Excluindo..."
                     : savingMovement
                     ? "Salvando..."
@@ -547,7 +626,11 @@ function Investments() {
                     className="movement-cancel"
                     type="button"
                     onClick={cancelMovementEdit}
-                    disabled={savingMovement || deletingMovementId !== null}
+                    disabled={
+                      savingMovement ||
+                      deletingMovementId !== null ||
+                      deletingSelectedMovements
+                    }
                   >
                     <FiX aria-hidden="true" /> Cancelar
                   </button>
@@ -624,10 +707,51 @@ function Investments() {
             {movementLoading ? (
               <p>Carregando histórico...</p>
             ) : periodMovements.length ? (
-              <div className="movement-table-wrap">
+              <>
+                <div className="movement-selection-toolbar">
+                  <label className="movement-select-all">
+                    <input
+                      type="checkbox"
+                      checked={allPeriodMovementsSelected}
+                      onChange={toggleAllPeriodMovements}
+                      aria-label={`Selecionar todas as movimentações de ${selectedMonthLabel}`}
+                    />
+                    <span>
+                      {allPeriodMovementsSelected
+                        ? "Desmarcar todas"
+                        : "Selecionar todas do mês"}
+                    </span>
+                  </label>
+                  {selectedMovementIds.length > 0 && (
+                    <div className="movement-bulk-actions">
+                      <span>
+                        {selectedMovementIds.length} selecionada(s)
+                      </span>
+                      <button
+                        className="movement-bulk-delete"
+                        type="button"
+                        onClick={removeSelectedMovements}
+                        disabled={
+                          deletingSelectedMovements ||
+                          deletingMovementId !== null ||
+                          savingMovement
+                        }
+                      >
+                        <FiTrash2 aria-hidden="true" />
+                        {deletingSelectedMovements
+                          ? "Excluindo..."
+                          : "Excluir selecionadas"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <div className="movement-table-wrap">
                 <table className="movement-table">
                   <thead>
                     <tr>
+                      <th scope="col" className="movement-checkbox-cell">
+                        <span className="sr-only">Selecionar</span>
+                      </th>
                       <th scope="col">Data</th>
                       <th scope="col">Movimentação</th>
                       <th scope="col">Descrição</th>
@@ -638,6 +762,15 @@ function Investments() {
                   <tbody>
                     {periodMovements.map((movement) => (
                       <tr key={movement.id}>
+                        <td className="movement-checkbox-cell">
+                          <input
+                            type="checkbox"
+                            checked={selectedMovementIds.includes(String(movement.id))}
+                            onChange={() => toggleMovementSelection(movement.id)}
+                            aria-label={`Selecionar ${movement.type === "contribution" ? "aporte" : "saque"} de ${formatCurrency(movement.amount)} em ${formatDate(movement.date)}`}
+                            disabled={savingMovement || deletingSelectedMovements || deletingMovementId !== null}
+                          />
+                        </td>
                         <td>{formatDate(movement.date)}</td>
                         <td>
                           <span className={`movement-kind ${movement.type}`}>
@@ -661,7 +794,7 @@ function Investments() {
                             aria-label={`Editar ${movement.type === "contribution" ? "aporte" : "saque"} de ${formatCurrency(movement.amount)}`}
                             title="Editar movimentação"
                             onClick={() => beginMovementEdit(movement)}
-                            disabled={savingMovement || deletingMovementId !== null}
+                            disabled={savingMovement || deletingMovementId !== null || deletingSelectedMovements}
                           >
                             <FiEdit2 aria-hidden="true" />
                           </button>
@@ -671,7 +804,7 @@ function Investments() {
                             aria-label={`Excluir ${movement.type === "contribution" ? "aporte" : "saque"} de ${formatCurrency(movement.amount)}`}
                             title="Excluir movimentação"
                             onClick={() => removeMovement(movement)}
-                            disabled={savingMovement || deletingMovementId !== null}
+                            disabled={savingMovement || deletingMovementId !== null || deletingSelectedMovements}
                           >
                             <FiTrash2 aria-hidden="true" />
                           </button>
@@ -680,7 +813,8 @@ function Investments() {
                     ))}
                   </tbody>
                 </table>
-              </div>
+                </div>
+              </>
             ) : (
               <p className="movement-empty">
                 Nenhuma movimentação registrada em {selectedMonthLabel}.

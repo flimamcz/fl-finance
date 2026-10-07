@@ -251,4 +251,72 @@ const deleteMovement = async (userId, movementId) => {
   });
 };
 
-module.exports = { createMovement, deleteMovement, listMovements, updateMovement };
+const deleteMovements = async (userId, movementIds) => {
+  return sequelize.transaction(async (transaction) => {
+    const user = await User.findByPk(userId, {
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+    if (!user) return { error: "Usuário não encontrado.", status: 404 };
+
+    const movements = await InvestmentMovement.findAll({
+      where: { id: movementIds, user_id: userId },
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+    if (movements.length !== movementIds.length) {
+      return {
+        error: "Uma ou mais movimentações selecionadas não foram encontradas.",
+        status: 404,
+      };
+    }
+
+    const allMovements = await InvestmentMovement.findAll({
+      where: { user_id: userId },
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+    const selectedIds = new Set(movementIds.map(Number));
+    const remainingMovements = allMovements
+      .filter((movement) => !selectedIds.has(Number(movement.id)))
+      .map((movement) => movement.toJSON());
+    const invalidSequence = validateMovementSequence(remainingMovements);
+    if (invalidSequence) {
+      return {
+        error: "Não é possível excluir essa seleção: saques posteriores dependem de um ou mais aportes selecionados. Ajuste também esses saques ou altere a seleção.",
+        status: 409,
+      };
+    }
+
+    const transactionIds = movements.map((movement) => movement.transaction_id);
+    const linkedTransactions = await Transaction.findAll({
+      where: { id: transactionIds, user_id: userId },
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+    if (linkedTransactions.length !== movements.length) {
+      return {
+        error: "Uma ou mais transações vinculadas não foram encontradas; nada foi excluído.",
+        status: 409,
+      };
+    }
+
+    await InvestmentMovement.destroy({
+      where: { id: movementIds, user_id: userId },
+      transaction,
+    });
+    await Transaction.destroy({
+      where: { id: transactionIds, user_id: userId },
+      transaction,
+    });
+    return { deleted: movements.length };
+  });
+};
+
+module.exports = {
+  createMovement,
+  deleteMovement,
+  deleteMovements,
+  listMovements,
+  updateMovement,
+};

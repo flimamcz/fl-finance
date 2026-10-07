@@ -153,4 +153,49 @@ const deleteMovement = async (req, res) => {
   }
 };
 
-module.exports = { createMovement, deleteMovement, listMovements, updateMovement };
+const deleteMovements = async (req, res) => {
+  const movementIds = req.body?.ids;
+  if (
+    !Array.isArray(movementIds) ||
+    movementIds.length < 1 ||
+    movementIds.length > 500 ||
+    movementIds.some((id) => !Number.isSafeInteger(Number(id)) || Number(id) < 1) ||
+    new Set(movementIds.map(Number)).size !== movementIds.length
+  ) {
+    return res.status(400).json({
+      error: true,
+      message: "Selecione de 1 a 500 movimentações válidas, sem repetição.",
+    });
+  }
+
+  try {
+    const result = await investmentService.deleteMovements(
+      req.user.id,
+      movementIds.map(Number)
+    );
+    if (result.error) {
+      return res.status(result.status).json({ error: true, message: result.error });
+    }
+    const latest = await investmentService.listMovements(req.user.id);
+    return res.status(200).json({
+      error: false,
+      deleted: result.deleted,
+      data: latest.movements,
+      balance: latest.balance,
+    });
+  } catch (error) {
+    console.error("Erro ao excluir movimentações de investimento:", error);
+    return res.status(500).json({
+      error: true,
+      message: "Não foi possível excluir as movimentações selecionadas.",
+    });
+  }
+};
+
+module.exports = {
+  createMovement,
+  deleteMovement,
+  deleteMovements,
+  listMovements,
+  updateMovement,
+};
