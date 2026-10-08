@@ -2140,9 +2140,21 @@ function Home() {
             if (e.target === e.currentTarget) setModalActive(false);
           }}
         >
-          <div className="modal-content">
+          <div
+            className="modal-content transaction-entry-modal transaction-modal-new"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="new-transaction-title"
+          >
             <div className="modal-header">
-              <h2>Nova Transação</h2>
+              <div className="transaction-modal-heading">
+                <span className="transaction-modal-icon"><FiPlus aria-hidden="true" /></span>
+                <div>
+                  <span className="transaction-modal-eyebrow">Lançamento financeiro</span>
+                  <h2 id="new-transaction-title">Nova transação</h2>
+                  <p>Registre uma entrada, saída ou investimento.</p>
+                </div>
+              </div>
               <button
                 className="btn-close"
                 onClick={() => setModalActive(false)}

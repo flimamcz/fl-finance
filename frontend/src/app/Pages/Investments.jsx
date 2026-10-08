@@ -136,6 +136,7 @@ function Investments() {
   const [deletingMovementId, setDeletingMovementId] = useState(null);
   const [selectedMovementIds, setSelectedMovementIds] = useState([]);
   const [deletingSelectedMovements, setDeletingSelectedMovements] = useState(false);
+  const [movementDeleteConfirmation, setMovementDeleteConfirmation] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(currentLocalMonth);
   const [savingsRate, setSavingsRate] = useState(20);
   const [projectionYears, setProjectionYears] = useState(5);
@@ -371,36 +372,11 @@ function Investments() {
     setMovementSuccess("");
   }, []);
 
-  const removeMovement = useCallback(async (movement) => {
-    const kind = movement.type === "contribution" ? "aporte" : "saque";
-    if (!window.confirm(`Excluir este ${kind}? A transação correspondente também será removida do saldo e do extrato.`)) {
-      return;
-    }
-
+  const removeMovement = useCallback((movement) => {
+    setMovementDeleteConfirmation({ type: "single", movement });
     setMovementError("");
     setMovementSuccess("");
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) throw new Error("Sua sessão não foi encontrada. Entre novamente.");
-      setToken(`Bearer ${token}`);
-      setDeletingMovementId(movement.id);
-      const response = await requestDelete(`/investments/${movement.id}`);
-      setMovements(Array.isArray(response.data) ? response.data : []);
-      if (Number(editingMovement?.id) === Number(movement.id)) cancelMovementEdit();
-      setMovementSuccess("Movimentação excluída e saldo sincronizado.");
-      try {
-        await getAllTransactions();
-      } catch {
-        setMovementError("A movimentação foi excluída, mas o extrato não pôde ser atualizado. Atualize a página para sincronizá-lo.");
-      }
-    } catch (error) {
-      setMovementError(
-        error.response?.data?.message || error.message || "Não foi possível excluir a movimentação.",
-      );
-    } finally {
-      setDeletingMovementId(null);
-    }
-  }, [cancelMovementEdit, editingMovement, getAllTransactions]);
+  }, []);
 
   const toggleMovementSelection = (movementId) => {
     const id = String(movementId);
@@ -422,42 +398,69 @@ function Investments() {
   const removeSelectedMovements = async () => {
     const selectedCount = selectedMovementIds.length;
     if (!selectedCount) return;
-    if (!window.confirm(
-      `Excluir ${selectedCount} movimentação(ões) selecionada(s)? As transações correspondentes também serão removidas do saldo e do extrato. Essa ação não pode ser desfeita.`,
-    )) return;
+    setMovementError("");
+    setMovementSuccess("");
+    setMovementDeleteConfirmation({
+      type: "bulk",
+      ids: [...selectedMovementIds],
+    });
+  };
 
+  const confirmMovementDeletion = async () => {
+    if (!movementDeleteConfirmation) return;
+    const confirmation = movementDeleteConfirmation;
     setMovementError("");
     setMovementSuccess("");
     try {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("Sua sessão não foi encontrada. Entre novamente.");
-      setToken("Bearer " + token);
-      setDeletingSelectedMovements(true);
-      const response = await requestPost("/investments/bulk-delete", {
-        ids: selectedMovementIds.map(Number),
-      });
+      setToken(`Bearer ${token}`);
+      if (confirmation.type === "single") setDeletingMovementId(confirmation.movement.id);
+      else setDeletingSelectedMovements(true);
+      const response = confirmation.type === "single"
+        ? await requestDelete(`/investments/${confirmation.movement.id}`)
+        : await requestPost("/investments/bulk-delete", {
+          ids: confirmation.ids.map(Number),
+        });
       setMovements(Array.isArray(response.data) ? response.data : []);
-      setSelectedMovementIds([]);
-      if (
-        editingMovement &&
-        selectedMovementIds.includes(String(editingMovement.id))
-      ) cancelMovementEdit();
-      setMovementSuccess(
-        `${response.deleted ?? selectedCount} movimentação(ões) excluída(s); saldo e extrato sincronizados.`,
-      );
+      if (confirmation.type === "bulk") {
+        setSelectedMovementIds([]);
+        if (
+          editingMovement &&
+          confirmation.ids.includes(String(editingMovement.id))
+        ) cancelMovementEdit();
+      } else if (Number(editingMovement?.id) === Number(confirmation.movement.id)) {
+        cancelMovementEdit();
+      }
+      setMovementDeleteConfirmation(null);
+      setMovementSuccess(confirmation.type === "single"
+        ? "Movimentação excluída e saldo sincronizado."
+        : `${response.deleted ?? confirmation.ids.length} movimentação(ões) excluída(s); saldo e extrato sincronizados.`);
       try {
         await getAllTransactions();
       } catch {
-        setMovementError("As movimentações foram excluídas, mas o extrato não pôde ser atualizado. Atualize a página para sincronizá-lo.");
+        setMovementError("A movimentação foi excluída, mas o extrato não pôde ser atualizado. Atualize a página para sincronizá-lo.");
       }
     } catch (error) {
       setMovementError(
-        error.response?.data?.message || error.message || "Não foi possível excluir as movimentações selecionadas.",
+        error.response?.data?.message || error.message || "Não foi possível excluir a movimentação.",
       );
     } finally {
+      setDeletingMovementId(null);
       setDeletingSelectedMovements(false);
     }
   };
+
+  useEffect(() => {
+    if (!movementDeleteConfirmation) return undefined;
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape" && !deletingMovementId && !deletingSelectedMovements) {
+        setMovementDeleteConfirmation(null);
+      }
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [movementDeleteConfirmation, deletingMovementId, deletingSelectedMovements]);
 
   useEffect(() => {
     if (movementLoading) return;
@@ -524,6 +527,76 @@ function Investments() {
     <div className="investment-page">
       <Header />
       <main className="investment-content" id="main-content">
+        {movementDeleteConfirmation && (
+          <div
+            className="movement-delete-overlay"
+            onMouseDown={(event) => {
+              if (
+                event.target === event.currentTarget &&
+                !deletingMovementId &&
+                !deletingSelectedMovements
+              ) setMovementDeleteConfirmation(null);
+            }}
+          >
+            <section
+              className="movement-delete-dialog"
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby="movement-delete-title"
+              aria-describedby="movement-delete-description"
+            >
+              <div className="movement-delete-icon">
+                <FiTrash2 aria-hidden="true" />
+              </div>
+              <p className="movement-delete-eyebrow">Confirme a exclusão</p>
+              <h2 id="movement-delete-title">
+                {movementDeleteConfirmation.type === "single"
+                  ? "Excluir movimentação?"
+                  : `Excluir ${movementDeleteConfirmation.ids.length} movimentações?`}
+              </h2>
+              <p id="movement-delete-description" className="movement-delete-description">
+                {movementDeleteConfirmation.type === "single"
+                  ? `O ${movementDeleteConfirmation.movement.type === "contribution" ? "aporte" : "saque"} de ${formatCurrency(movementDeleteConfirmation.movement.amount)} será removido do histórico.`
+                  : "As movimentações selecionadas serão removidas do histórico."}
+                {" "}A transação correspondente também será removida do saldo e do extrato.
+              </p>
+              {movementDeleteConfirmation.type === "single" && (
+                <div className="movement-delete-summary">
+                  <span>
+                    {movementDeleteConfirmation.movement.type === "contribution" ? "Aporte" : "Saque"}
+                  </span>
+                  <strong>{formatCurrency(movementDeleteConfirmation.movement.amount)}</strong>
+                  <small>{formatDate(getLocalDateKey(movementDeleteConfirmation.movement.date))}</small>
+                </div>
+              )}
+              {movementError && (
+                <p className="movement-delete-error" role="alert">{movementError}</p>
+              )}
+              <div className="movement-delete-actions">
+                <button
+                  type="button"
+                  className="movement-delete-cancel"
+                  onClick={() => {
+                    setMovementDeleteConfirmation(null);
+                    setMovementError("");
+                  }}
+                  disabled={Boolean(deletingMovementId) || deletingSelectedMovements}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="movement-delete-confirm"
+                  onClick={confirmMovementDeletion}
+                  disabled={Boolean(deletingMovementId) || deletingSelectedMovements}
+                >
+                  <FiTrash2 aria-hidden="true" />
+                  {deletingMovementId || deletingSelectedMovements ? "Excluindo..." : "Excluir movimentação"}
+                </button>
+              </div>
+            </section>
+          </div>
+        )}
         <header className="investment-heading">
           <div>
             <p className="investment-eyebrow">Planejamento educativo</p>

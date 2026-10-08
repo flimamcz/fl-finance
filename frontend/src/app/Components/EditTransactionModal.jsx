@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from "react";
-import { FiX, FiCheckCircle, FiClock, FiAlertCircle } from "react-icons/fi";
+import { FiX, FiCheckCircle, FiClock, FiAlertCircle, FiEdit2 } from "react-icons/fi";
 import MyContext from "../Context/Context";
 import { API_BASE_URL } from "../Services/request";
 
@@ -119,9 +119,22 @@ function EditTransactionModal({
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="modal-content transaction-entry-modal transaction-modal-edit"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="edit-transaction-title"
+      >
         <div className="modal-header">
-          <h2>Editar Transação</h2>
+          <div className="transaction-modal-heading">
+            <span className="transaction-modal-icon"><FiEdit2 aria-hidden="true" /></span>
+            <div>
+              <span className="transaction-modal-eyebrow">Atualizar lançamento</span>
+              <h2 id="edit-transaction-title">Editar transação</h2>
+              <p>Revise os dados antes de salvar as alterações.</p>
+            </div>
+          </div>
           <button className="btn-close" onClick={onClose} aria-label="Fechar">
             <FiX />
           </button>

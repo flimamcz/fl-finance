@@ -303,6 +303,155 @@
   line-height: 1.5;
 }
 
+.movement-delete-overlay {
+  position: fixed;
+  z-index: 2100;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.58);
+  backdrop-filter: blur(5px);
+  animation: movement-delete-fade 160ms ease-out;
+}
+
+.movement-delete-dialog {
+  width: min(440px, 100%);
+  padding: 28px;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 20px;
+  background: var(--bg-card, #fff);
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.28);
+  color: var(--text-primary, #1e293b);
+  animation: movement-delete-enter 180ms ease-out;
+}
+
+.movement-delete-icon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  margin-bottom: 18px;
+  border: 1px solid rgba(220, 38, 38, 0.13);
+  border-radius: 15px;
+  background: #fff1f2;
+  color: #dc2626;
+  font-size: 21px;
+}
+
+.movement-delete-eyebrow {
+  margin-bottom: 5px;
+  color: #b91c1c;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.movement-delete-dialog h2 {
+  margin: 0 0 9px;
+  font-size: 22px;
+  letter-spacing: -0.025em;
+}
+
+.movement-delete-description {
+  color: var(--text-secondary, #64748b);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.movement-delete-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 5px 12px;
+  margin-top: 18px;
+  padding: 14px 15px;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 12px;
+  background: var(--bg-primary, #f8fafc);
+}
+
+.movement-delete-summary span {
+  grid-column: 1 / -1;
+  color: var(--text-secondary, #64748b);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.movement-delete-summary strong {
+  font-size: 17px;
+}
+
+.movement-delete-summary small {
+  align-self: center;
+  color: var(--text-secondary, #64748b);
+  font-size: 12px;
+}
+
+.movement-delete-error {
+  margin-top: 14px;
+  padding: 11px 12px;
+  border: 1px solid rgba(220, 38, 38, 0.18);
+  border-radius: 10px;
+  background: rgba(254, 242, 242, 0.9);
+  color: #b91c1c;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.movement-delete-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: 10px;
+  margin-top: 23px;
+}
+
+.movement-delete-actions button {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 13px;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.movement-delete-cancel {
+  border: 1px solid var(--border, #e2e8f0);
+  background: var(--bg-card, #fff);
+  color: var(--text-primary, #1e293b);
+}
+
+.movement-delete-confirm {
+  border: 1px solid #b91c1c;
+  background: #dc2626;
+  color: #fff;
+}
+
+.movement-delete-confirm:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+.movement-delete-actions button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+@keyframes movement-delete-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes movement-delete-enter {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 .movement-table-wrap {
   overflow-x: auto;
   border: 1px solid var(--border, #e2e8f0);
@@ -710,6 +859,43 @@ body.dark-mode .movement-row-action {
   color: #c7d2fe;
 }
 
+body.dark-mode .movement-delete-dialog {
+  border-color: #334155;
+  background: #1e293b;
+  color: #f1f5f9;
+}
+
+body.dark-mode .movement-delete-icon {
+  border-color: rgba(248, 113, 113, 0.2);
+  background: rgba(248, 113, 113, 0.12);
+  color: #fca5a5;
+}
+
+body.dark-mode .movement-delete-eyebrow,
+body.dark-mode .movement-delete-confirm {
+  color: #fca5a5;
+}
+
+body.dark-mode .movement-delete-confirm {
+  border-color: #991b1b;
+  background: #991b1b;
+}
+
+body.dark-mode .movement-delete-confirm:hover:not(:disabled) {
+  background: #7f1d1d;
+}
+
+body.dark-mode .movement-delete-summary {
+  border-color: #334155;
+  background: #0f172a;
+}
+
+body.dark-mode .movement-delete-error {
+  border-color: rgba(248, 113, 113, 0.25);
+  background: rgba(127, 29, 29, 0.25);
+  color: #fecaca;
+}
+
 body.dark-mode .movement-row-action:hover:not(:disabled) {
   background: rgba(129, 140, 248, 0.16);
 }
@@ -749,6 +935,20 @@ body.dark-mode .movement-chart {
 }
 
 @media (max-width: 640px) {
+  .movement-delete-overlay {
+    align-items: end;
+    padding: 12px;
+  }
+
+  .movement-delete-dialog {
+    padding: 23px 19px 19px;
+    border-radius: 20px 20px 14px 14px;
+  }
+
+  .movement-delete-actions {
+    grid-template-columns: 1fr;
+  }
+
   .investment-content {
     padding: 20px 14px 34px;
   }
