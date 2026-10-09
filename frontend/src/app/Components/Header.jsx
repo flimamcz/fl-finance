@@ -20,7 +20,7 @@ const navItems = [
   { path: "/expenses", label: "Despesas", Icon: FiTrendingDown },
   { path: "/debts", label: "Dívidas", Icon: FiCreditCard },
   { path: "/investments", label: "Investimentos", Icon: FiPieChart },
-  { path: "/home#transactions", label: "Transações", Icon: FiList, transactions: true },
+  { path: "/transactions", label: "Transações", Icon: FiList, transactions: true },
 ];
 
 function Header() {
@@ -28,8 +28,7 @@ function Header() {
   const location = useLocation();
   const { user, logout } = useAuth();
   const isProfilePage = location.pathname === "/profile";
-  const isTransactionsPage =
-    location.pathname === "/home" && location.hash === "#transactions";
+  const isTransactionsPage = location.pathname === "/transactions";
 
   useLayoutEffect(() => {
     document.body.classList.add("app-shell");

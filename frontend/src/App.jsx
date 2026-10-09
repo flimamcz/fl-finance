@@ -10,6 +10,7 @@ import Debts from "./app/Pages/Debts";
 import Investments from "./app/Pages/Investments";
 import Revenues from "./app/Pages/Revenues";
 import Expenses from "./app/Pages/Expenses";
+import TransactionAnalytics from "./app/Pages/TransactionAnalytics";
 import ProtectedRoute from "./app/Components/ProtectedRoute";
 
 function App() {
@@ -44,6 +45,11 @@ function App() {
         <Route path="/expenses" element={
           <ProtectedRoute>
             <Expenses />
+          </ProtectedRoute>
+        } />
+        <Route path="/transactions" element={
+          <ProtectedRoute>
+            <TransactionAnalytics />
           </ProtectedRoute>
         } />
         <Route path="/investments" element={

@@ -280,18 +280,25 @@ body.dark-mode .more-avatar {
     left: 0;
     display: flex;
     align-items: stretch;
-    justify-content: space-around;
+    justify-content: flex-start;
     gap: 3px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
     padding: 7px 8px calc(7px + env(safe-area-inset-bottom, 0px));
     border-top: 1px solid var(--border, #e2e8f0);
     background: var(--bg-secondary, #fff);
     box-shadow: 0 -4px 18px rgba(15, 23, 42, 0.08);
   }
 
+  .mobile-navigation::-webkit-scrollbar {
+    display: none;
+  }
+
   .mobile-navigation .app-nav-link {
     display: flex;
-    flex: 1 1 0;
-    min-width: 0;
+    flex: 0 0 56px;
+    min-width: 56px;
     min-height: 52px;
     flex-direction: column;
     justify-content: center;
