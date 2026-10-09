@@ -229,9 +229,7 @@ function EditTransactionModal({
                     checked={formData.status === true}
                     onChange={handleChange}
                   />
-                  <span className="radio-label">
-                    <FiCheckCircle /> Confirmado
-                  </span>
+                  <span className="radio-label"><FiCheckCircle /> Confirmado</span>
                 </label>
                 <label className="radio-option">
                   <input
@@ -241,9 +239,7 @@ function EditTransactionModal({
                     checked={formData.status === false}
                     onChange={handleChange}
                   />
-                  <span className="radio-label">
-                    <FiClock /> Pendente
-                  </span>
+                  <span className="radio-label"><FiClock /> Pendente</span>
                 </label>
               </div>
             </div>
@@ -266,14 +262,26 @@ function EditTransactionModal({
           </div>
 
           <div className="transaction-preview">
-            <h4>Pré-visualização:</h4>
-            <div className="preview-content">
-              <p><strong>Valor:</strong> {formatCurrency(formData.value)}</p>
-              <p><strong>Tipo:</strong> {
-                typesTransactions.find(t => t.id === formData.typeId)?.type || "Desconhecido"
-              }</p>
-              <p><strong>Data:</strong> {new Date(formData.date).toLocaleDateString('pt-BR')}</p>
-              <p><strong>Status:</strong> {formData.status ? "Confirmado" : "Pendente"}</p>
+            <div className="preview-heading">
+              <span>Resumo do lançamento</span>
+              <span className={`preview-status ${formData.status ? "is-confirmed" : "is-pending"}`}>
+                {formData.status ? <FiCheckCircle /> : <FiClock />}
+                {formData.status ? "Confirmado" : "Pendente"}
+              </span>
+            </div>
+            <div className="preview-main">
+              <span>Valor da transação</span>
+              <strong>{formatCurrency(formData.value)}</strong>
+            </div>
+            <div className="preview-meta">
+              <div>
+                <span>Tipo</span>
+                <strong>{typesTransactions.find((type) => Number(type.id) === Number(formData.typeId))?.type || "Selecione"}</strong>
+              </div>
+              <div>
+                <span>Data</span>
+                <strong>{formData.date ? new Date(`${formData.date}T12:00:00`).toLocaleDateString("pt-BR") : "Selecione"}</strong>
+              </div>
             </div>
           </div>
 

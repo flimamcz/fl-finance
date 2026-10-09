@@ -133,10 +133,11 @@ function Home() {
 
   // Função para formatar moeda
   const formatCurrency = useCallback((value) => {
-    const numValue =
+    const parsedValue =
       typeof value === "string"
         ? parseFloat(value.replace(/[^\d.-]/g, ""))
-        : Number(value) || 0;
+        : Number(value);
+    const numValue = Number.isFinite(parsedValue) ? parsedValue : 0;
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
       currency: "BRL",
@@ -2184,6 +2185,7 @@ function Home() {
                     }
                     required
                   />
+                  <span className="form-hint">Informe o valor em reais.</span>
                 </div>
 
                 <div className="form-group">
@@ -2265,7 +2267,7 @@ function Home() {
                           })
                         }
                       />
-                      <span className="radio-label">Confirmado</span>
+                      <span className="radio-label"><FiCheckCircle /> Confirmado</span>
                     </label>
                     <label className="radio-option">
                       <input
@@ -2280,7 +2282,7 @@ function Home() {
                           })
                         }
                       />
-                      <span className="radio-label">Pendente</span>
+                      <span className="radio-label"><FiClock /> Pendente</span>
                     </label>
                   </div>
                 </div>
@@ -2301,7 +2303,32 @@ function Home() {
                   rows="3"
                   required
                 />
+                <span className="form-hint">{transactionData.description.length} caracteres</span>
               </div>
+
+              <section className="transaction-preview" aria-live="polite">
+                <div className="preview-heading">
+                  <span>Resumo do lançamento</span>
+                  <span className={`preview-status ${transactionData.status ? "is-confirmed" : "is-pending"}`}>
+                    {transactionData.status ? <FiCheckCircle /> : <FiClock />}
+                    {transactionData.status ? "Confirmado" : "Pendente"}
+                  </span>
+                </div>
+                <div className="preview-main">
+                  <span>Valor da transação</span>
+                  <strong>{formatCurrency(transactionData.value)}</strong>
+                </div>
+                <div className="preview-meta">
+                  <div>
+                    <span>Tipo</span>
+                    <strong>{typesTransactions.find((type) => Number(type.id) === Number(transactionData.typeId))?.type || "Selecione"}</strong>
+                  </div>
+                  <div>
+                    <span>Data</span>
+                    <strong>{transactionData.date ? new Date(`${transactionData.date}T12:00:00`).toLocaleDateString("pt-BR") : "Selecione"}</strong>
+                  </div>
+                </div>
+              </section>
 
               <div className="modal-actions">
                 <button

@@ -1519,14 +1519,65 @@ body.dark-mode .salary-tag {
 }
 
 /* ===== MODAL NOVA TRANSAÇÃO ===== */
+.transaction-entry-modal {
+  width: min(100%, 680px);
+  max-width: 680px;
+  border-radius: 12px;
+}
+
+.transaction-entry-modal .modal-header {
+  align-items: flex-start;
+  padding: 24px 28px 20px;
+}
+
+.transaction-modal-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  min-width: 0;
+}
+
+.transaction-modal-icon {
+  display: grid;
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--primary) 12%, var(--bg-card));
+  color: var(--primary);
+  font-size: 19px;
+}
+
+.transaction-modal-eyebrow {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.transaction-modal-heading h2 {
+  color: var(--text-primary);
+  font-size: 21px;
+  line-height: 1.25;
+}
+
+.transaction-modal-heading p {
+  margin-top: 5px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
 .transaction-form {
-  padding: 24px;
+  padding: 22px 28px 26px;
 }
 
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px 20px;
   margin-bottom: 20px;
 }
 
@@ -1590,10 +1641,16 @@ body.dark-mode .salary-tag {
   border-radius: 8px;
   transition: background 0.3s ease;
   flex: 1;
+  border: 1px solid var(--border);
 }
 
 .radio-option:hover {
   background: var(--border-light);
+}
+
+.radio-option:has(input:checked) {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 8%, var(--bg-card));
 }
 
 .radio-option input[type="radio"] {
@@ -1604,8 +1661,65 @@ body.dark-mode .salary-tag {
 }
 
 .radio-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   font-size: 14px;
   color: var(--text-primary);
+}
+
+.radio-label svg {
+  color: var(--text-secondary);
+  flex: 0 0 auto;
+}
+
+.radio-option:has(input[value="true"]:checked) .radio-label svg {
+  color: var(--success);
+}
+
+.radio-option:has(input[value="false"]:checked) .radio-label svg {
+  color: var(--warning);
+}
+
+.salary-checkbox-group {
+  justify-content: center;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-primary);
+}
+
+.salary-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  cursor: pointer;
+}
+
+.salary-checkbox-label input {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--primary);
+}
+
+.form-hint {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.transaction-entry-modal #value,
+.transaction-entry-modal #edit-value {
+  min-height: 48px;
+  font-size: 19px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.transaction-entry-modal .modal-actions {
+  align-items: center;
+  padding: 18px 0 0;
+  margin-top: 22px;
 }
 
 .modal-actions {
@@ -1645,15 +1759,85 @@ body.dark-mode .salary-tag {
   text-align: left;
 }
 
-.transaction-preview {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
+.transaction-entry-modal .transaction-preview {
+  display: grid;
+  gap: 14px;
+  margin: 4px 0 0;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-primary);
 }
 
-.transaction-preview:last-child {
-  margin-bottom: 0;
+.preview-heading,
+.preview-main,
+.preview-meta,
+.preview-status {
+  display: flex;
+  align-items: center;
+}
+
+.preview-heading,
+.preview-main {
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.preview-heading {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.preview-status {
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.preview-status.is-confirmed {
+  color: var(--success);
+}
+
+.preview-status.is-pending {
+  color: var(--warning);
+}
+
+.preview-main {
+  align-items: baseline;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.preview-main span,
+.preview-meta span {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.preview-main strong {
+  color: var(--text-primary);
+  font-size: 21px;
+  font-variant-numeric: tabular-nums;
+}
+
+.preview-meta {
+  gap: 24px;
+}
+
+.preview-meta > div {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.preview-meta strong {
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .preview-label {
