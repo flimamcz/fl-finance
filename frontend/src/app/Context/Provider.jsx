@@ -276,6 +276,36 @@ function Provider({ children }) {
     [API_BASE_URL, getAllTransactions]
   );
 
+  const importTransactions = useCallback(
+    async (transactionsBatch) => {
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("Token não encontrado. Faça login novamente.");
+
+      const response = await fetch(`${API_BASE_URL}/transactions/import`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ transactions: transactionsBatch }),
+      });
+      const result = await response.json().catch(() => ({}));
+
+      if (response.status === 401) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        throw new Error("Sessão expirada. Faça login novamente.");
+      }
+      if (!response.ok) {
+        throw new Error(result.message || `Erro ${response.status} ao importar transações.`);
+      }
+
+      await getAllTransactions();
+      return result;
+    },
+    [getAllTransactions]
+  );
+
   // ✅ 6. FUNÇÃO PARA DELETAR TRANSAÇÃO
   const deleteTransaction = useCallback(
     async (id) => {
@@ -364,6 +394,7 @@ function Provider({ children }) {
       setTransactions,
       getAllTransactions,
       createTransaction,
+      importTransactions,
       deleteTransaction,
       typesTransactions,
       amounts,
@@ -377,6 +408,7 @@ function Provider({ children }) {
       transactions,
       getAllTransactions,
       createTransaction,
+      importTransactions,
       deleteTransaction,
       typesTransactions,
       amounts,

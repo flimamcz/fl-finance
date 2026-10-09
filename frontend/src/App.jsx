@@ -1,4 +1,5 @@
 // src/App.js
+import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./app/Context/AuthContext"; // NOVO IMPORT
 import Login from "./app/Pages/Login";
@@ -12,6 +13,8 @@ import Revenues from "./app/Pages/Revenues";
 import Expenses from "./app/Pages/Expenses";
 import TransactionAnalytics from "./app/Pages/TransactionAnalytics";
 import ProtectedRoute from "./app/Components/ProtectedRoute";
+
+const ImportTransactions = lazy(() => import("./app/Pages/ImportTransactions"));
 
 function App() {
   return (
@@ -50,6 +53,13 @@ function App() {
         <Route path="/transactions" element={
           <ProtectedRoute>
             <TransactionAnalytics />
+          </ProtectedRoute>
+        } />
+        <Route path="/import-transactions" element={
+          <ProtectedRoute>
+            <Suspense fallback={<div className="page-loading" role="status">Carregando importação...</div>}>
+              <ImportTransactions />
+            </Suspense>
           </ProtectedRoute>
         } />
         <Route path="/investments" element={

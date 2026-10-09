@@ -146,6 +146,74 @@ const createTrasaction = async (req, res) => {
   }
 };
 
+const importTransactions = async (req, res) => {
+  try {
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ error: true, message: "Usuário não autenticado" });
+    }
+
+    const { transactions } = req.body || {};
+    if (!Array.isArray(transactions) || transactions.length === 0) {
+      return res.status(400).json({ error: true, message: "Envie ao menos uma transação para importar." });
+    }
+    if (transactions.length > 500) {
+      return res.status(413).json({ error: true, message: "Importe no máximo 500 transações por vez." });
+    }
+
+    const normalizedTransactions = [];
+    for (const [index, transaction] of transactions.entries()) {
+      const rowNumber = index + 1;
+      const value = Number(transaction?.value);
+      const typeId = Number(transaction?.typeId);
+      const description = typeof transaction?.description === "string"
+        ? transaction.description.trim()
+        : "";
+      const date = String(transaction?.date || "");
+      const parsedDate = /^\d{4}-\d{2}-\d{2}$/.test(date)
+        ? new Date(`${date}T00:00:00.000Z`)
+        : null;
+
+      if (!Number.isFinite(value) || value <= 0) {
+        return res.status(400).json({ error: true, message: `Linha ${rowNumber}: o valor precisa ser maior que zero.` });
+      }
+      if (![1, 2, 3].includes(typeId)) {
+        return res.status(400).json({ error: true, message: `Linha ${rowNumber}: selecione receita, despesa ou investimento.` });
+      }
+      if (!description || description.length > 255) {
+        return res.status(400).json({ error: true, message: `Linha ${rowNumber}: descrição obrigatória com até 255 caracteres.` });
+      }
+      if (!parsedDate || Number.isNaN(parsedDate.getTime()) || parsedDate.toISOString().slice(0, 10) !== date) {
+        return res.status(400).json({ error: true, message: `Linha ${rowNumber}: data inválida.` });
+      }
+      if (typeof transaction.status !== "boolean" || typeof transaction.isSalary !== "boolean") {
+        return res.status(400).json({ error: true, message: `Linha ${rowNumber}: status ou identificação de salário inválidos.` });
+      }
+      if (typeId !== 1 && transaction.isSalary) {
+        return res.status(400).json({ error: true, message: `Linha ${rowNumber}: somente receitas podem ser marcadas como salário.` });
+      }
+
+      normalizedTransactions.push({
+        value,
+        typeId,
+        description,
+        date,
+        status: transaction.status,
+        isSalary: transaction.isSalary,
+      });
+    }
+
+    const result = await transactionService.createTransactionsBatch(req.user.id, normalizedTransactions);
+    if (result.error) {
+      return res.status(500).json({ error: true, message: result.message });
+    }
+
+    return res.status(201).json({ error: false, count: result.count });
+  } catch (error) {
+    console.error("Erro ao importar transações:", error);
+    return res.status(500).json({ error: true, message: "Erro interno ao importar transações." });
+  }
+};
+
 const updateTransaction = async (req, res) => {
   try {
     console.log('🔄 Controller: Atualizando transação...');
@@ -408,6 +476,7 @@ const validateCategory = async (req, res) => {
 module.exports = {
   searchTrasctions,
   createTrasaction,
+  importTransactions,
   deleteTransaction,
   updateTransaction,
   getCategoriesByType,    // ✅ NOVO

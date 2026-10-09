@@ -9,6 +9,7 @@ import {
   FiMoreHorizontal,
   FiPieChart,
   FiTrendingDown,
+  FiUploadCloud,
   FiUser,
 } from "react-icons/fi";
 import { useAuth } from "../Context/AuthContext";
@@ -20,6 +21,7 @@ const navItems = [
   { path: "/expenses", label: "Despesas", Icon: FiTrendingDown },
   { path: "/debts", label: "Dívidas", Icon: FiCreditCard },
   { path: "/investments", label: "Investimentos", Icon: FiPieChart },
+  { path: "/import-transactions", label: "Importar", Icon: FiUploadCloud },
   { path: "/transactions", label: "Transações", Icon: FiList, transactions: true },
 ];
 

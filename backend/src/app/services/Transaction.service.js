@@ -147,6 +147,31 @@ const createTransaction = async (dataTransaction) => {
   }
 };
 
+const createTransactionsBatch = async (userId, transactions) => {
+  try {
+    await Transaction.sequelize.transaction(async (databaseTransaction) => {
+      await Transaction.bulkCreate(
+        transactions.map((transaction) => ({
+          value: String(transaction.value),
+          typeId: transaction.typeId,
+          category_id: null,
+          description: transaction.description.trim(),
+          date: transaction.date,
+          status: transaction.status,
+          isSalary: transaction.typeId === 1 && transaction.isSalary,
+          user_id: userId,
+        })),
+        { transaction: databaseTransaction, validate: true },
+      );
+    });
+
+    return { error: null, count: transactions.length };
+  } catch (error) {
+    console.error("Erro ao importar lote de transações:", error);
+    return { error: "IMPORT_FAILED", message: "Não foi possível importar as transações." };
+  }
+};
+
 const updateTransaction = async (dataTransaction) => {
   console.log('🔄 Service: Atualizando transação:', dataTransaction);
   
@@ -372,6 +397,7 @@ const getAllCategories = async () => {
 module.exports = {
   searchTransactions,
   createTransaction,
+  createTransactionsBatch,
   deleteTransaction,
   updateTransaction,
   getCategoriesByType,    // ✅ NOVO

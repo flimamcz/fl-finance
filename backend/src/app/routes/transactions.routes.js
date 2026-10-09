@@ -4,6 +4,7 @@ const { authenticate } = require('../middlewares/auth.middleware');
 const {
   searchTrasctions,
   createTrasaction,
+  importTransactions,
   deleteTransaction,
   updateTransaction,
   getCategoriesByType,    // ✅ NOVO
@@ -32,6 +33,8 @@ router.post('/', authenticate, (req, res, next) => {
   console.log('📦 Body:', req.body);
   next();
 }, createTrasaction);
+
+router.post('/import', authenticate, importTransactions);
 
 // PATCH /transactions - Atualizar transação
 router.patch('/', authenticate, (req, res, next) => {
