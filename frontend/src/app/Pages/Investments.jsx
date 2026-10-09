@@ -1059,8 +1059,8 @@ function Investments() {
                   a transação. Também é possível editar uma entrada já existente e
                   marcá-la. A descrição não é usada para identificar salário.
                 </p>
-                <Link to="/home#transactions" className="investment-action-link">
-                  Abrir transações para marcar salário <FiArrowRight aria-hidden="true" />
+                <Link to="/revenues" className="investment-action-link">
+                  Abrir Receitas para registrar ou editar salário <FiArrowRight aria-hidden="true" />
                 </Link>
               </div>
             </div>

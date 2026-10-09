@@ -26,6 +26,8 @@ import {
   FiEyeOff,
   FiInfo,
   FiExternalLink,
+  FiChevronLeft,
+  FiChevronRight,
 } from "react-icons/fi";
 import {
   BarChart,
@@ -72,7 +74,8 @@ function Home() {
   const [loading, setLoading] = useState(false);
   const [activeFilter, setActiveFilter] = useState("all");
   const [modalActive, setModalActive] = useState(false);
-  const [viewMode, setViewMode] = useState("grid");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [timeRange, setTimeRange] = useState("month");
   const [chartView, setChartView] = useState("bar");
@@ -828,6 +831,17 @@ function Home() {
     });
   }, [transactions, activeFilter]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeFilter, timeRange, itemsPerPage]);
+
+  const pageCount = Math.max(1, Math.ceil(filteredTransactions.length / itemsPerPage));
+  const visiblePage = Math.min(currentPage, pageCount);
+  const paginatedTransactions = useMemo(() => {
+    const firstItem = (visiblePage - 1) * itemsPerPage;
+    return filteredTransactions.slice(firstItem, firstItem + itemsPerPage);
+  }, [filteredTransactions, visiblePage, itemsPerPage]);
+
   // Calcular totais filtrados
   const filteredTotals = useMemo(() => {
     let total = 0;
@@ -1313,6 +1327,9 @@ function Home() {
                 />
               </div>
             </div>
+            <button className="income-card-action" type="button" onClick={() => navigate("/revenues")}>
+              Gerenciar receitas
+            </button>
           </div>
 
           {/* Card Despesas - ATUALIZADO */}
@@ -1355,6 +1372,9 @@ function Home() {
                 />
               </div>
             </div>
+            <button className="income-card-action expense-card-action" type="button" onClick={() => navigate("/expenses")}>
+              Gerenciar despesas
+            </button>
           </div>
 
           {/* Card Investimentos - ATUALIZADO */}
@@ -1759,91 +1779,53 @@ function Home() {
                   </button>
                 </div>
               ) : (
-                <div
-                  className={
-                    viewMode === "grid"
-                      ? "transactions-grid"
-                      : "transactions-list"
-                  }
-                >
-                  {filteredTransactions.map((transaction) => (
-                    <div key={transaction.id} className="transaction-card">
-                      <div className="transaction-header">
-                        <div className="transaction-icon">
-                          {getTypeIcon(transaction.typeId)}
-                        </div>
-                        <div className="transaction-info">
-                          <h4>{transaction.description || "Sem descrição"}</h4>
-                          <span className="transaction-date">
-                            <FiCalendar />{" "}
-                            {Moment(transaction.date).format("DD/MM/YYYY")}
+                <div className="transactions-list">
+                  {paginatedTransactions.map((transaction) => (
+                    <div key={transaction.id} className="transaction-card compact-transaction-row">
+                      <button
+                        className="transaction-card-main"
+                        type="button"
+                        onClick={() => handleViewClick(transaction)}
+                        aria-label={`Ver detalhes de ${transaction.description || "transação"}`}
+                      >
+                        <span className="transaction-icon">{getTypeIcon(transaction.typeId)}</span>
+                        <span className="transaction-info">
+                          <span className="transaction-title">{transaction.description || "Sem descrição"}</span>
+                          <span className="transaction-meta-line">
+                            <span className="transaction-date"><FiCalendar aria-hidden="true" />{Moment(transaction.date).format("DD/MM/YYYY")}</span>
+                            <span className="transaction-type">{transaction.typeId === 1 ? "Receita" : transaction.typeId === 2 ? "Despesa" : "Investimento"}</span>
+                            {transaction.typeId === 1 && transaction.isSalary && <span className="salary-tag">Salário</span>}
                           </span>
-                        </div>
-                        <div className="transaction-amount">
-                          <span
-                            className={`amount ${
-                              transaction.typeId === 2
-                                ? "negative"
-                                : transaction.typeId === 3
-                                ? "investment"
-                                : "positive"
-                            }`}
-                          >
-                            {transaction.typeId === 2 ? "- " : "+ "}
-                            {showValues
-                              ? formatCurrency(transaction.value)
-                              : "••••••"}
+                        </span>
+                        <span className="transaction-amount">
+                          <span className={`amount ${transaction.typeId === 2 ? "negative" : transaction.typeId === 3 ? "investment" : "positive"}`}>
+                            {transaction.typeId === 2 ? "- " : "+ "}{showValues ? formatCurrency(transaction.value) : "••••••"}
                           </span>
-                          <span className="transaction-type">
-                            {transaction.typeId === 1
-                              ? "Receita"
-                              : transaction.typeId === 2
-                              ? "Despesa"
-                              : "Investimento"}
+                          <span className="transaction-status">
+                            {getStatusIcon(transaction.status)}
+                            <span>{transaction.status ? "Confirmado" : "Pendente"}</span>
                           </span>
-                          {transaction.typeId === 1 && transaction.isSalary && (
-                            <span className="salary-tag">Salário</span>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="transaction-footer">
-                        <div className="transaction-status">
-                          {getStatusIcon(transaction.status)}
-                          <span>
-                            {transaction.status ? "Confirmado" : "Pendente"}
-                          </span>
-                        </div>
-                        <div className="transaction-actions">
-                          <button
-                            className="btn-icon"
-                            onClick={() => handleEditClick(transaction)}
-                            type="button"
-                            aria-label={transaction.investmentMovement ? "Editar movimentação na página Investimentos" : transaction.debtInstallment ? "Alterar parcela na página Dívidas" : "Editar"}
-                            title={transaction.investmentMovement ? "Abrir Investimentos para editar a movimentação vinculada" : transaction.debtInstallment ? "Abrir parcela em Dívidas para ajustar os dados com segurança" : "Editar transação"}
-                          >
-                            <FiEdit2 />
-                          </button>
-                          <button
-                            className="btn-icon btn-danger"
-                            onClick={() => startDelete(transaction)}
-                            type="button"
-                            aria-label={transaction.investmentMovement ? "Excluir movimentação na página Investimentos" : transaction.debtInstallment ? "Desfazer pagamento da parcela" : "Excluir"}
-                            title={transaction.investmentMovement ? "Abrir Investimentos para excluir a movimentação vinculada" : transaction.debtInstallment ? "Desfazer pagamento da parcela" : "Excluir transação"}
-                          >
-                            {transaction.debtInstallment ? <FiRotateCcw /> : <FiTrash2 />}
-                          </button>
-
-                          <button
-                            className="btn-icon btn-view"
-                            onClick={() => handleViewClick(transaction)}
-                            type="button"
-                            aria-label="Visualizar"
-                            title="Ver detalhes"
-                          >
-                            <FiEye />
-                          </button>
-                        </div>
+                        </span>
+                      </button>
+                      <div className="transaction-actions">
+                        <button
+                          className="btn-icon"
+                          onClick={() => handleEditClick(transaction)}
+                          type="button"
+                          aria-label={transaction.investmentMovement ? "Editar movimentação na página Investimentos" : transaction.debtInstallment ? "Alterar parcela na página Dívidas" : "Editar transação"}
+                          title={transaction.investmentMovement ? "Abrir Investimentos para editar a movimentação vinculada" : transaction.debtInstallment ? "Abrir parcela em Dívidas para ajustar os dados com segurança" : "Editar transação"}
+                        >
+                          <FiEdit2 />
+                        </button>
+                        <button
+                          className="btn-icon btn-danger"
+                          onClick={() => startDelete(transaction)}
+                          type="button"
+                          aria-label={transaction.investmentMovement ? "Excluir movimentação na página Investimentos" : transaction.debtInstallment ? "Desfazer pagamento da parcela" : "Excluir transação"}
+                          title={transaction.investmentMovement ? "Abrir Investimentos para excluir a movimentação vinculada" : transaction.debtInstallment ? "Desfazer pagamento da parcela" : "Excluir transação"}
+                        >
+                          {transaction.debtInstallment ? <FiRotateCcw /> : <FiTrash2 />}
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -1879,10 +1861,26 @@ function Home() {
                 </span>
               </div>
               <div className="pagination">
-                <span>
-                  Mostrando {filteredTransactions.length} de{" "}
-                  {transactions.length} transações
+                <span aria-live="polite">
+                  Exibindo {(visiblePage - 1) * itemsPerPage + 1}–{Math.min(visiblePage * itemsPerPage, filteredTransactions.length)} de {filteredTransactions.length}
                 </span>
+                <div className="pagination-controls">
+                  <label className="pagination-page-size">
+                    <span>Por página</span>
+                    <select value={itemsPerPage} onChange={(event) => setItemsPerPage(Number(event.target.value))} aria-label="Transações por página">
+                      <option value={10}>10</option>
+                      <option value={20}>20</option>
+                      <option value={50}>50</option>
+                    </select>
+                  </label>
+                  <button type="button" className="pagination-button" onClick={() => setCurrentPage(visiblePage - 1)} disabled={visiblePage <= 1} aria-label="Página anterior">
+                    <FiChevronLeft aria-hidden="true" />
+                  </button>
+                  <span className="pagination-page-number">{visiblePage} / {pageCount}</span>
+                  <button type="button" className="pagination-button" onClick={() => setCurrentPage(visiblePage + 1)} disabled={visiblePage >= pageCount} aria-label="Próxima página">
+                    <FiChevronRight aria-hidden="true" />
+                  </button>
+                </div>
               </div>
             </div>
           )}

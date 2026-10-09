@@ -2,11 +2,13 @@ import { useEffect, useLayoutEffect, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import {
   FiCreditCard,
+  FiDollarSign,
   FiHome,
   FiList,
   FiLogOut,
   FiMoreHorizontal,
   FiPieChart,
+  FiTrendingDown,
   FiUser,
 } from "react-icons/fi";
 import { useAuth } from "../Context/AuthContext";
@@ -14,6 +16,8 @@ import "../Styles/Header.css";
 
 const navItems = [
   { path: "/home", label: "Início", Icon: FiHome },
+  { path: "/revenues", label: "Receitas", Icon: FiDollarSign },
+  { path: "/expenses", label: "Despesas", Icon: FiTrendingDown },
   { path: "/debts", label: "Dívidas", Icon: FiCreditCard },
   { path: "/investments", label: "Investimentos", Icon: FiPieChart },
   { path: "/home#transactions", label: "Transações", Icon: FiList, transactions: true },

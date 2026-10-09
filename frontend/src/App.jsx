@@ -8,6 +8,8 @@ import Home from "./app/Pages/Home";
 import Profile from "./app/Pages/Profile";
 import Debts from "./app/Pages/Debts";
 import Investments from "./app/Pages/Investments";
+import Revenues from "./app/Pages/Revenues";
+import Expenses from "./app/Pages/Expenses";
 import ProtectedRoute from "./app/Components/ProtectedRoute";
 
 function App() {
@@ -32,6 +34,16 @@ function App() {
         <Route path="/debts" element={
           <ProtectedRoute>
             <Debts />
+          </ProtectedRoute>
+        } />
+        <Route path="/revenues" element={
+          <ProtectedRoute>
+            <Revenues />
+          </ProtectedRoute>
+        } />
+        <Route path="/expenses" element={
+          <ProtectedRoute>
+            <Expenses />
           </ProtectedRoute>
         } />
         <Route path="/investments" element={

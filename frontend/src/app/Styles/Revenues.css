@@ -1,0 +1,823 @@
+.revenues-page {
+  --revenue-bg: #f3f7f4;
+  --revenue-surface: #fff;
+  --revenue-text: #18312c;
+  --revenue-muted: #667b75;
+  --revenue-border: #dce8e2;
+  --revenue-green: #19745f;
+  --revenue-green-dark: #125846;
+  --revenue-green-pale: #e5f2ec;
+  --revenue-red: #a64842;
+  min-height: calc(100vh - 60px);
+  padding: 32px 24px 64px;
+  background-color: var(--revenue-bg);
+  background-image: radial-gradient(#dce8e2 0.7px, transparent 0.7px);
+  background-size: 18px 18px;
+  color: var(--revenue-text);
+}
+
+.expenses-page {
+  --revenue-bg: #f8f3f2;
+  --revenue-text: #352623;
+  --revenue-muted: #806b67;
+  --revenue-border: #eadedb;
+  --revenue-green: #ad5048;
+  --revenue-green-dark: #913e38;
+  --revenue-green-pale: #f8e9e6;
+  --revenue-red: #a6413a;
+  background-image: radial-gradient(#eadedb 0.7px, transparent 0.7px);
+}
+
+body.dark-mode .revenues-page {
+  --revenue-bg: #12201d;
+  --revenue-surface: #1d302b;
+  --revenue-text: #edf5f1;
+  --revenue-muted: #b4c7bf;
+  --revenue-border: #3b5149;
+  --revenue-green: #67c3a0;
+  --revenue-green-dark: #123f32;
+  --revenue-green-pale: #24453b;
+  --revenue-red: #f08e86;
+  background-image: radial-gradient(#30453e 0.7px, transparent 0.7px);
+}
+
+body.dark-mode .expenses-page {
+  --revenue-bg: #241a19;
+  --revenue-text: #f5eeec;
+  --revenue-muted: #cfbdb8;
+  --revenue-border: #53403c;
+  --revenue-green: #e08479;
+  --revenue-green-dark: #62322d;
+  --revenue-green-pale: #4b2b27;
+  --revenue-red: #f08e86;
+  background-image: radial-gradient(#483532 0.7px, transparent 0.7px);
+}
+
+.revenues-content {
+  width: min(1180px, 100%);
+  margin: 0 auto;
+}
+
+.revenues-heading,
+.revenue-section-heading,
+.revenue-form-heading,
+.revenue-tips-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.revenues-heading {
+  margin: 8px 0 24px;
+}
+
+.revenues-eyebrow {
+  margin-bottom: 6px;
+  color: var(--revenue-green);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.revenues-heading h1 {
+  margin: 0 0 7px;
+  font-size: 32px;
+  line-height: 1.1;
+}
+
+.revenues-subtitle,
+.revenue-section-heading p,
+.revenue-form-heading p {
+  color: var(--revenue-muted);
+  font-size: 14px;
+}
+
+.revenues-heading-mark {
+  display: grid;
+  width: 56px;
+  height: 56px;
+  place-items: center;
+  border: 1px solid var(--revenue-border);
+  border-radius: 8px;
+  background: var(--revenue-surface);
+  color: var(--revenue-green);
+  font-size: 24px;
+}
+
+.revenue-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.revenue-summary-item {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-width: 0;
+  min-height: 92px;
+  padding: 16px;
+  border: 1px solid var(--revenue-border);
+  border-radius: 7px;
+  background: var(--revenue-surface);
+}
+
+.revenue-summary-icon {
+  display: grid;
+  flex: 0 0 38px;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 7px;
+  background: var(--revenue-green-pale);
+  color: var(--revenue-green);
+  font-size: 18px;
+}
+
+.revenue-summary-icon.pending-icon {
+  background: #fff1dc;
+  color: #a76810;
+}
+
+.revenue-summary-item > div {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.revenue-summary-item > div > span {
+  color: var(--revenue-muted);
+  font-size: 12px;
+}
+
+.revenue-summary-item strong {
+  overflow: hidden;
+  font-size: 19px;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.revenues-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  align-items: start;
+  gap: 18px;
+}
+
+.revenue-history,
+.revenue-form-panel,
+.revenue-tips {
+  min-width: 0;
+  border: 1px solid var(--revenue-border);
+  border-radius: 7px;
+  background: var(--revenue-surface);
+}
+
+.revenue-history {
+  overflow: hidden;
+}
+
+.revenue-section-heading {
+  padding: 20px;
+  border-bottom: 1px solid var(--revenue-border);
+}
+
+.revenue-section-heading h2,
+.revenue-form-heading h2,
+.revenue-tips h2 {
+  margin: 0 0 4px;
+  font-size: 17px;
+}
+
+.revenue-section-heading p {
+  font-size: 12px;
+}
+
+.revenue-month-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.revenue-month-control button,
+.revenue-edit-button {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid var(--revenue-border);
+  border-radius: 6px;
+  background: var(--revenue-surface);
+  color: var(--revenue-text);
+  cursor: pointer;
+}
+
+.revenue-month-control button:hover,
+.revenue-edit-button:hover {
+  border-color: var(--revenue-green);
+  color: var(--revenue-green);
+}
+
+.revenue-edit-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.revenue-edit-button.danger:hover:not(:disabled) {
+  border-color: var(--revenue-red);
+  color: var(--revenue-red);
+}
+
+.revenue-month-control span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 130px;
+  justify-content: center;
+  color: var(--revenue-text);
+  font-size: 12px;
+  font-weight: 650;
+  text-transform: capitalize;
+}
+
+.revenue-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 9px;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--revenue-border);
+}
+
+.revenue-filter-tabs {
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 6px;
+  background: var(--revenue-bg);
+}
+
+.revenue-filter-tabs button {
+  min-height: 30px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--revenue-muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.revenue-filter-tabs button.active {
+  background: var(--revenue-surface);
+  color: var(--revenue-green);
+  box-shadow: 0 1px 3px rgba(20, 50, 40, 0.12);
+  font-weight: 700;
+}
+
+.revenue-search {
+  display: flex;
+  flex: 1 1 130px;
+  align-items: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 0 9px;
+  border: 1px solid var(--revenue-border);
+  border-radius: 5px;
+  color: var(--revenue-muted);
+}
+
+.revenue-search input,
+.revenue-filters select {
+  min-width: 0;
+  min-height: 34px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--revenue-text);
+  font: inherit;
+  font-size: 12px;
+}
+
+.revenue-filters select {
+  padding: 0 7px;
+  border: 1px solid var(--revenue-border);
+  border-radius: 5px;
+}
+
+.revenue-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.revenue-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.revenue-table th {
+  padding: 11px 12px;
+  color: var(--revenue-muted);
+  font-size: 10px;
+  font-weight: 750;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.revenue-table td {
+  padding: 13px 12px;
+  border-top: 1px solid var(--revenue-border);
+  color: var(--revenue-text);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.revenue-table td:first-child {
+  min-width: 155px;
+  white-space: normal;
+}
+
+.revenue-description {
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.revenue-salary-tag {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--revenue-green-pale);
+  color: var(--revenue-green);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.revenue-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.revenue-status.confirmed {
+  color: var(--revenue-green);
+}
+
+.revenue-status.pending {
+  color: #a76810;
+}
+
+.revenue-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.revenue-row-actions {
+  display: flex;
+  gap: 5px;
+}
+
+.revenue-side-column {
+  display: grid;
+  gap: 14px;
+}
+
+.revenue-form-panel,
+.revenue-tips {
+  padding: 18px;
+}
+
+.revenue-form-heading {
+  justify-content: flex-start;
+  margin-bottom: 17px;
+}
+
+.revenue-form-heading > span {
+  display: grid;
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: 6px;
+  background: var(--revenue-green-pale);
+  color: var(--revenue-green);
+}
+
+.revenue-form-heading p {
+  font-size: 11px;
+}
+
+.revenue-form {
+  display: grid;
+  gap: 13px;
+}
+
+.revenue-form > label,
+.revenue-form-row > label {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+  color: var(--revenue-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.revenue-form input[type="text"],
+.revenue-form input[type="number"],
+.revenue-form input[type="date"] {
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  padding: 0 10px;
+  border: 1px solid var(--revenue-border);
+  border-radius: 5px;
+  background: var(--revenue-surface);
+  color: var(--revenue-text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.revenue-form input:focus-visible,
+.revenue-filters input:focus-visible,
+.revenue-filters select:focus-visible,
+.revenue-month-control button:focus-visible,
+.revenue-submit:focus-visible,
+.revenue-edit-button:focus-visible {
+  outline: 3px solid #79b7a3;
+  outline-offset: 2px;
+}
+
+.revenue-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+}
+
+.revenue-form-row input {
+  font-size: 12px !important;
+}
+
+.revenue-salary-toggle {
+  display: flex !important;
+  grid-template-columns: auto 1fr;
+  align-items: flex-start;
+  gap: 9px !important;
+  padding: 11px;
+  border: 1px solid var(--revenue-border);
+  border-radius: 5px;
+  background: var(--revenue-bg);
+  cursor: pointer;
+}
+
+.revenue-salary-toggle input {
+  width: 17px;
+  height: 17px;
+  margin: 1px 0 0;
+  accent-color: var(--revenue-green);
+}
+
+.revenue-salary-toggle span {
+  display: grid;
+  gap: 3px;
+}
+
+.revenue-salary-toggle strong {
+  color: var(--revenue-text);
+  font-size: 12px;
+}
+
+.revenue-salary-toggle small {
+  color: var(--revenue-muted);
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.revenue-status-fieldset {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  border: 0;
+}
+
+.revenue-status-fieldset legend {
+  margin-bottom: 7px;
+  color: var(--revenue-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.revenue-status-fieldset label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--revenue-text);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.revenue-status-fieldset input {
+  accent-color: var(--revenue-green);
+}
+
+.revenue-submit {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 5px;
+  background: var(--revenue-green);
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.revenue-submit:hover:not(:disabled) {
+  background: var(--revenue-green-dark);
+}
+
+.revenue-submit:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.revenue-feedback {
+  margin: -6px 0 12px;
+  padding: 9px;
+  border-radius: 5px;
+  font-size: 12px;
+}
+
+.revenue-feedback.error {
+  background: #fff0ef;
+  color: #9d352f;
+}
+
+.revenue-feedback.success {
+  background: var(--revenue-green-pale);
+  color: var(--revenue-green);
+}
+
+.revenue-tips-title {
+  justify-content: flex-start;
+  color: var(--revenue-green);
+}
+
+.revenue-tips-title h2 {
+  color: var(--revenue-text);
+}
+
+.revenue-tips ul {
+  display: grid;
+  gap: 9px;
+  margin: 12px 0;
+  padding-left: 18px;
+  color: var(--revenue-text);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.revenue-tips > p {
+  padding-top: 10px;
+  border-top: 1px solid var(--revenue-border);
+  color: var(--revenue-muted);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.revenue-empty-state {
+  display: grid;
+  min-height: 220px;
+  align-content: center;
+  justify-items: center;
+  padding: 24px;
+  color: var(--revenue-muted);
+  text-align: center;
+}
+
+.revenue-empty-state > svg {
+  margin-bottom: 10px;
+  color: var(--revenue-green);
+  font-size: 25px;
+}
+
+.revenue-empty-state h3 {
+  margin-bottom: 5px;
+  color: var(--revenue-text);
+  font-size: 15px;
+}
+
+.revenue-empty-state p {
+  max-width: 340px;
+  font-size: 12px;
+}
+
+.revenue-dialog-backdrop {
+  position: fixed;
+  z-index: 2200;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(13, 30, 25, 0.55);
+}
+
+.revenue-delete-dialog {
+  position: relative;
+  width: min(100%, 420px);
+  padding: 28px;
+  border: 1px solid var(--revenue-border);
+  border-radius: 8px;
+  background: var(--revenue-surface);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.2);
+  text-align: center;
+}
+
+.revenue-dialog-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--revenue-muted);
+  cursor: pointer;
+}
+
+.revenue-delete-icon {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  margin: 0 auto 13px;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff0ef;
+  color: var(--revenue-red);
+  font-size: 20px;
+}
+
+.revenue-delete-dialog h2 {
+  margin-bottom: 7px;
+  color: var(--revenue-text);
+  font-size: 19px;
+}
+
+.revenue-delete-dialog > p:not(.revenue-feedback) {
+  margin: 0 auto 18px;
+  color: var(--revenue-muted);
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.revenue-delete-actions {
+  display: flex;
+  justify-content: center;
+  gap: 9px;
+}
+
+.revenue-delete-actions button {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--revenue-border);
+  border-radius: 5px;
+  background: var(--revenue-surface);
+  color: var(--revenue-text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.revenue-delete-actions .confirm-delete {
+  border-color: #a64842;
+  background: #a64842;
+  color: #fff;
+}
+
+.revenue-delete-actions button:disabled,
+.revenue-dialog-close:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+@media (max-width: 980px) {
+  .revenues-layout {
+    grid-template-columns: minmax(0, 1fr) 290px;
+  }
+
+  .revenue-summary-item {
+    padding: 13px;
+  }
+}
+
+@media (max-width: 760px) {
+  .revenues-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .revenue-side-column {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+}
+
+@media (max-width: 560px) {
+  .revenues-page {
+    padding: 22px 14px 88px;
+  }
+
+  .revenues-heading h1 {
+    font-size: 27px;
+  }
+
+  .revenues-subtitle {
+    max-width: 330px;
+    font-size: 12px;
+  }
+
+  .revenues-heading-mark {
+    width: 44px;
+    height: 44px;
+    font-size: 19px;
+  }
+
+  .revenue-summary {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .revenue-summary-item {
+    min-height: 68px;
+  }
+
+  .revenue-summary-item strong {
+    font-size: 17px;
+  }
+
+  .revenue-section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 16px;
+  }
+
+  .revenue-filters {
+    padding: 11px;
+  }
+
+  .revenue-filter-tabs {
+    width: 100%;
+  }
+
+  .revenue-filter-tabs button {
+    flex: 1;
+  }
+
+  .revenue-search {
+    flex-basis: 100%;
+  }
+
+  .revenue-filters select {
+    flex: 1;
+  }
+
+  .revenue-table th,
+  .revenue-table td {
+    padding: 11px 9px;
+  }
+
+  .revenue-table th:nth-child(2),
+  .revenue-table td:nth-child(2) {
+    display: none;
+  }
+
+  .revenue-side-column {
+    grid-template-columns: 1fr;
+  }
+}

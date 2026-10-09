@@ -229,7 +229,7 @@ function EditTransactionModal({
                     checked={formData.status === true}
                     onChange={handleChange}
                   />
-                  <span className="radio-label"><FiCheckCircle /> Confirmado</span>
+                  <span className="radio-label"><FiCheckCircle />{Number(formData.typeId) === 2 ? " Paga" : " Confirmado"}</span>
                 </label>
                 <label className="radio-option">
                   <input
@@ -266,7 +266,9 @@ function EditTransactionModal({
               <span>Resumo do lançamento</span>
               <span className={`preview-status ${formData.status ? "is-confirmed" : "is-pending"}`}>
                 {formData.status ? <FiCheckCircle /> : <FiClock />}
-                {formData.status ? "Confirmado" : "Pendente"}
+                {formData.status
+                  ? Number(formData.typeId) === 2 ? "Paga" : "Confirmado"
+                  : "Pendente"}
               </span>
             </div>
             <div className="preview-main">
