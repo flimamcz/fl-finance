@@ -289,6 +289,7 @@ function ImportTransactions() {
                             <span>{formatDate(row.date)}{row.typeWasInferred && <span className="import-review-tag">Revisar tipo</span>}</span>
                             {row.duplicate && <small className="import-duplicate-note"><FiAlertCircle aria-hidden="true" />{row.duplicateReason}; desmarcada por segurança.</small>}
                             {row.typeWasInferred && <small className="import-reason">{row.classificationReason}</small>}
+                            {row.importHint && <small className="import-row-hint"><FiInfo aria-hidden="true" />{row.importHint}</small>}
                           </td>
                           <td className={`import-amount type-${row.typeId}`}>{row.value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</td>
                           <td>

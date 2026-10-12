@@ -29,6 +29,7 @@ import {
   requestUpdate,
   setToken,
 } from "../Services/request";
+import { getStoredToken } from "../Services/authStorage";
 import "../Styles/Investments.css";
 
 const currentLocalMonth = () => {
@@ -144,18 +145,10 @@ function Investments() {
   const handledDashboardAction = useRef(null);
 
   useEffect(() => {
-    const storedTheme = localStorage.getItem("darkMode");
-    document.body.classList.toggle(
-      "dark-mode",
-      storedTheme ? JSON.parse(storedTheme) : false,
-    );
-  }, []);
-
-  useEffect(() => {
     let active = true;
     const loadMovements = async () => {
       try {
-        const token = localStorage.getItem("token");
+        const token = getStoredToken();
         if (!token) throw new Error("Sua sessão não foi encontrada. Entre novamente.");
         setToken(`Bearer ${token}`);
         const response = await requestGet("/investments");
@@ -286,7 +279,7 @@ function Investments() {
     }
 
     try {
-      const token = localStorage.getItem("token");
+      const token = getStoredToken();
       if (!token) throw new Error("Sua sessão não foi encontrada. Entre novamente.");
       setToken(`Bearer ${token}`);
       setSavingMovement(true);
@@ -412,7 +405,7 @@ function Investments() {
     setMovementError("");
     setMovementSuccess("");
     try {
-      const token = localStorage.getItem("token");
+      const token = getStoredToken();
       if (!token) throw new Error("Sua sessão não foi encontrada. Entre novamente.");
       setToken(`Bearer ${token}`);
       if (confirmation.type === "single") setDeletingMovementId(confirmation.movement.id);

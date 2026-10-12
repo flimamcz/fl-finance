@@ -18,8 +18,6 @@ import {
   FiAlertCircle,
   FiX,
   FiCalendar,
-  FiSun,
-  FiMoon,
   FiPrinter,
   FiBarChart2,
   FiEye,
@@ -50,6 +48,7 @@ import { useNavigate } from "react-router-dom";
 import Header from "../Components/Header";
 import MyContext from "../Context/Context";
 import { API_BASE_URL } from "../Services/request";
+import { getStoredToken } from "../Services/authStorage";
 import ExportModal from "../Components/ExportModal";
 import EditTransactionModal from "../Components/EditTransactionModal";
 
@@ -104,12 +103,6 @@ function Home() {
   const [countdown, setCountdown] = useState(3);
   const [isTooltipClosing, setIsTooltipClosing] = useState(false);
 
-  // Tema claro/escuro
-  const [darkMode, setDarkMode] = useState(() => {
-    const saved = localStorage.getItem("darkMode");
-    return saved ? JSON.parse(saved) : false;
-  });
-
   // Estado para mostrar/ocultar valores
   const [showValues, setShowValues] = useState(true);
 
@@ -121,16 +114,6 @@ function Home() {
     typeId: 1,
     isSalary: false,
   });
-
-  // Efeito para tema
-  useEffect(() => {
-    if (darkMode) {
-      document.body.classList.add("dark-mode");
-    } else {
-      document.body.classList.remove("dark-mode");
-    }
-    localStorage.setItem("darkMode", JSON.stringify(darkMode));
-  }, [darkMode]);
 
   // ========== FUNÇÕES AUXILIARES ==========
 
@@ -878,7 +861,7 @@ function Home() {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${getStoredToken()}`,
         },
       });
 
@@ -988,7 +971,7 @@ function Home() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${getStoredToken()}`,
         },
         body: JSON.stringify(dataToSend),
       });
@@ -1159,15 +1142,6 @@ function Home() {
   return (
     <div className="dashboard-container">
       <Header />
-
-      {/* Botão de Tema */}
-      <div className="theme-toggle" onClick={() => setDarkMode(!darkMode)}>
-        {darkMode ? (
-          <FiSun className="sun-icon" />
-        ) : (
-          <FiMoon className="moon-icon" />
-        )}
-      </div>
 
       <div className="dashboard-content">
         {!initialized ? (
@@ -1894,7 +1868,6 @@ function Home() {
         isOpen={exportModalOpen}
         onClose={() => setExportModalOpen(false)}
         transactions={transactions}
-        amounts={amounts}
         filters={{
           activeFilter,
           timeRange,
@@ -2484,9 +2457,9 @@ function Home() {
                 <div className="summary-item">
                   <span>Criada em:</span>
                   <span>
-                    {Moment(
-                      transactionToView.createdAt || transactionToView.date
-                    ).format("DD/MM/YYYY HH:mm")}
+                    {transactionToView.createdAt
+                      ? Moment(transactionToView.createdAt).format("DD/MM/YYYY HH:mm")
+                      : "Horário não registrado para esta transação antiga"}
                   </span>
                 </div>
                 {transactionToView.updatedAt &&

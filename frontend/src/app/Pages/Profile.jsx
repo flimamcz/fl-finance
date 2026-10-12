@@ -10,17 +10,12 @@ import Header from "../Components/Header";
 import { useAuth } from "../Context/AuthContext";
 import MyContext from "../Context/Context";
 import { API_BASE_URL } from "../Services/request";
+import { getStoredToken } from "../Services/authStorage";
 import "../Styles/Profile.css";
 
 function Profile() {
   const { user: authUser, logout } = useAuth();
-  const { getAllTransactions } = useContext(MyContext);
-  
-  // Estados
-  const [darkMode, setDarkMode] = useState(() => {
-    const saved = localStorage.getItem("darkMode");
-    return saved ? JSON.parse(saved) : false;
-  });
+  const { getAllTransactions, darkMode, setDarkMode } = useContext(MyContext);
   
   const [formData, setFormData] = useState({
     name: "",
@@ -67,7 +62,7 @@ function Profile() {
     setIsLoading(true);
     
     try {
-      const token = localStorage.getItem("token");
+      const token = getStoredToken();
       
       if (!token) {
         setMessage({ type: 'error', text: 'Sessão expirada. Faça login novamente.' });
@@ -156,17 +151,6 @@ function Profile() {
       loadUserData();
     }
   }, [authUser]);
-
-  useEffect(() => {
-    if (darkMode) {
-      document.body.classList.add("dark-mode");
-      document.body.setAttribute("data-theme", "dark");
-    } else {
-      document.body.classList.remove("dark-mode");
-      document.body.setAttribute("data-theme", "light");
-    }
-    localStorage.setItem("darkMode", JSON.stringify(darkMode));
-  }, [darkMode]);
 
   // ========== HANDLERS ==========
   const handleChange = (e) => {
@@ -277,7 +261,7 @@ function Profile() {
     setMessage({ type: '', text: '' });
 
     try {
-      const token = localStorage.getItem("token");
+      const token = getStoredToken();
       
       if (!token) {
         throw new Error('Sessão expirada. Faça login novamente.');

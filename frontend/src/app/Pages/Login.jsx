@@ -12,11 +12,17 @@ import {
   FiLoader 
 } from "react-icons/fi";
 import { API_BASE_URL } from '../Services/request';
+import {
+  getRememberedEmail,
+  getRememberMe,
+  saveAuthSession,
+} from "../Services/authStorage";
 import "../Styles/Login.css";
 
 function Login() {
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(getRememberedEmail);
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(getRememberMe);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -112,29 +118,10 @@ function Login() {
       }
 
       console.log('✅ Login bem-sucedido!');
-      console.log('🔑 Token recebido:', data.token.substring(0, 20) + '...');
       console.log('👤 User ID recebido:', data.user.id);
       console.log('📧 Email recebido:', data.user.email);
 
-      // ✅ ✅ ✅ **AQUI: PRIMEIRO SALVA NO LOCALSTORAGE**
-      // getAllTransactions(); // Chama a função para obter todas as transações
-      console.log('💾 Salvando no localStorage...');
-      
-      
-      // 1. Limpa qualquer coisa anterior
-      localStorage.clear();
-      sessionStorage.clear();
-      
-      // 2. Espera um ciclo
-      await new Promise(resolve => setTimeout(resolve, 50));
-      
-      // 3. Salva os NOVOS dados
-      localStorage.setItem('token' ,data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      
-      console.log('💾 Token salvo no localStorage:', localStorage.getItem('token') ? 'SIM' : 'NÃO');
-      console.log('💾 User salvo no localStorage:', localStorage.getItem('user') ? 'SIM' : 'NÃO');
-      
+      saveAuthSession(data.token, data.user, rememberMe);
       // Recarrega para o AuthProvider validar o token e restaurar a sessão.
       window.location.replace('/home');
       
@@ -142,9 +129,6 @@ function Login() {
       console.error('❌ Erro no login:', err);
       setError(err.message || "Erro ao fazer login");
       
-      // Limpa se houver erro
-      localStorage.clear();
-      sessionStorage.clear();
     } finally {
       setLoading(false);
     }
@@ -288,7 +272,12 @@ function Login() {
 
           {/* Lembrar-me */}
           <div className="remember-me">
-            <input type="checkbox" id="remember" />
+            <input
+              type="checkbox"
+              id="remember"
+              checked={rememberMe}
+              onChange={(event) => setRememberMe(event.target.checked)}
+            />
             <label htmlFor="remember">Lembrar-me</label>
           </div>
 

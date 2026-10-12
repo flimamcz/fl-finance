@@ -406,7 +406,8 @@ body.dark-mode .transaction-import-page {
 }
 
 .import-duplicate-note,
-.import-reason {
+.import-reason,
+.import-row-hint {
   display: flex;
   gap: 4px;
   margin-top: 4px;
@@ -416,6 +417,8 @@ body.dark-mode .transaction-import-page {
 
 .import-duplicate-note { color: #96611b; }
 .import-reason { color: var(--import-muted); }
+.import-row-hint { color: #526b82; }
+.import-row-hint svg { flex: 0 0 auto; }
 
 .import-amount {
   font-variant-numeric: tabular-nums;

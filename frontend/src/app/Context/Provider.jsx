@@ -2,6 +2,7 @@ import PropTypes from "prop-types";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import MyContext from "./Context";
 import { API_BASE_URL } from "../Services/request";
+import { clearAuthSession, getStoredToken, getStoredUser } from "../Services/authStorage";
 
 function Provider({ children }) {
   const [transactions, setTransactions] = useState([]);
@@ -10,6 +11,19 @@ function Provider({ children }) {
   const [initialized, setInitialized] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [darkMode, setDarkMode] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("darkMode") || "false");
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    document.body.classList.toggle("dark-mode", darkMode);
+    document.body.setAttribute("data-theme", darkMode ? "dark" : "light");
+    localStorage.setItem("darkMode", JSON.stringify(darkMode));
+  }, [darkMode]);
 
   // ✅ 1. FUNÇÃO PARA CALCULAR AMOUNTS
   const calculateAmounts = useCallback((transactionsList) => {
@@ -75,16 +89,13 @@ function Provider({ children }) {
 
       console.log("🔍 Context: Buscando transações...");
 
-      const token = localStorage.getItem("token");
+      const token = getStoredToken();
 
       if (!token) {
         console.error("❌ Token não encontrado no localStorage");
         throw new Error("Token não encontrado. Faça login novamente.");
       }
 
-      console.log("🔑 Token encontrado (primeiros 20 chars):", token.substring(0, 20) + "...");
-      console.log(token);
-      
 
       const response = await fetch(`${API_BASE_URL}/transactions`, {
         method: "GET",
@@ -98,8 +109,7 @@ function Provider({ children }) {
 
       if (response.status === 401) {
         console.warn("⚠️ Token expirado (401), limpando localStorage");
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
+        clearAuthSession();
         throw new Error("Sessão expirada. Faça login novamente.");
       }
 
@@ -171,8 +181,7 @@ function Provider({ children }) {
         error.message.includes("não encontrado")
       ) {
         console.warn("⚠️ Erro de autenticação, limpando localStorage");
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
+        clearAuthSession();
       }
 
       throw error;
@@ -187,7 +196,7 @@ function Provider({ children }) {
     try {
       console.log("🔍 Context: Buscando tipos de transação...");
 
-      const token = localStorage.getItem("token");
+      const token = getStoredToken();
       const headers = {
         "Content-Type": "application/json",
         ...(token && { Authorization: `Bearer ${token}` })
@@ -230,7 +239,7 @@ function Provider({ children }) {
       try {
         setLoading(true);
 
-        const token = localStorage.getItem("token");
+        const token = getStoredToken();
 
         if (!token) {
           throw new Error("Token não encontrado. Faça login novamente.");
@@ -248,8 +257,7 @@ function Provider({ children }) {
         });
 
         if (response.status === 401) {
-          localStorage.removeItem("token");
-          localStorage.removeItem("user");
+          clearAuthSession();
           throw new Error("Sessão expirada. Faça login novamente.");
         }
 
@@ -278,7 +286,7 @@ function Provider({ children }) {
 
   const importTransactions = useCallback(
     async (transactionsBatch) => {
-      const token = localStorage.getItem("token");
+      const token = getStoredToken();
       if (!token) throw new Error("Token não encontrado. Faça login novamente.");
 
       const response = await fetch(`${API_BASE_URL}/transactions/import`, {
@@ -292,8 +300,7 @@ function Provider({ children }) {
       const result = await response.json().catch(() => ({}));
 
       if (response.status === 401) {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
+        clearAuthSession();
         throw new Error("Sessão expirada. Faça login novamente.");
       }
       if (!response.ok) {
@@ -312,7 +319,7 @@ function Provider({ children }) {
       try {
         setLoading(true);
 
-        const token = localStorage.getItem("token");
+        const token = getStoredToken();
 
         if (!token) {
           throw new Error("Token não encontrado. Faça login novamente.");
@@ -329,8 +336,7 @@ function Provider({ children }) {
         });
 
         if (response.status === 401) {
-          localStorage.removeItem("token");
-          localStorage.removeItem("user");
+          clearAuthSession();
           throw new Error("Sessão expirada. Faça login novamente.");
         }
 
@@ -361,8 +367,8 @@ function Provider({ children }) {
   useEffect(() => {
     const init = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const user = localStorage.getItem("user");
+        const token = getStoredToken();
+        const user = getStoredUser();
 
         console.log("🚀 Context: Inicializando...");
         console.log("🔑 Token no localStorage:", token ? "EXISTE" : "NÃO EXISTE");
@@ -398,10 +404,13 @@ function Provider({ children }) {
       deleteTransaction,
       typesTransactions,
       amounts,
+      setAmounts,
       recalculateAmounts,
       initialized,
       loading,
       error,
+      darkMode,
+      setDarkMode,
       refreshTransactions: getAllTransactions,
     }),
     [
@@ -412,10 +421,12 @@ function Provider({ children }) {
       deleteTransaction,
       typesTransactions,
       amounts,
+      setAmounts,
       recalculateAmounts,
       initialized,
       loading,
       error,
+      darkMode,
     ]
   );
 

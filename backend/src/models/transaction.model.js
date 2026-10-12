@@ -46,6 +46,12 @@ const transactionModel = (sequelize, DataTypes) => {
         type: DataTypes.BOOLEAN,
         allowNull: false,
       },
+      createdAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        defaultValue: DataTypes.NOW,
+        field: "created_at",
+      },
     },
     {
       underscored: true,

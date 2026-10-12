@@ -2,6 +2,7 @@ import { useState, useEffect, useContext } from "react";
 import { FiX, FiCheckCircle, FiClock, FiAlertCircle, FiEdit2 } from "react-icons/fi";
 import MyContext from "../Context/Context";
 import { API_BASE_URL } from "../Services/request";
+import { getStoredToken } from "../Services/authStorage";
 
 function EditTransactionModal({ 
   isOpen, 
@@ -79,7 +80,7 @@ function EditTransactionModal({
         method: "PATCH", // Note: SEU BACKEND usa PATCH, não PUT
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${getStoredToken()}`,
         },
         body: JSON.stringify(updateData),
       });

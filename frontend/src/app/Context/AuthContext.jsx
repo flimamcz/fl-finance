@@ -2,6 +2,12 @@
 import { createContext, useState, useContext, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_BASE_URL } from "../Services/request";
+import {
+  clearAuthSession,
+  getStoredToken,
+  getStoredUser,
+  saveAuthSession,
+} from "../Services/authStorage";
 
 const AuthContext = createContext({});
 import MyContext from "../Context/Context";
@@ -32,7 +38,7 @@ export const AuthProvider = ({ children }) => {
 
       return { valid: true, user: data.user };
     } catch (error) {
-      return { valid: false, user: null };
+      return { valid: false, user: null, unavailable: true };
     }
   };
 
@@ -40,8 +46,8 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const loadUser = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const storedUser = localStorage.getItem("user");
+        const token = getStoredToken();
+        const storedUser = getStoredUser();
 
         console.log("🔍 AuthContext: Verificando localStorage...");
         console.log("   Token encontrado:", token ? "SIM" : "NÃO");
@@ -56,18 +62,36 @@ export const AuthProvider = ({ children }) => {
         // Verifica se token ainda é válido
         const verification = await verifyToken(token);
 
-        if (verification.valid) {
-          const userData = JSON.parse(storedUser);
-          setUser(userData);
-          await getAllTransactions();
-          console.log("✅ Usuário carregado:", userData.email);
-        } else {
+        if (!verification.valid && !verification.unavailable) {
           console.log("⚠️ Token expirado, limpando...");
-          logout();
+          clearAuthSession();
+          setUser(null);
+          setTransactions([]);
+          setAmounts([]);
+          return;
         }
+
+        const userData = JSON.parse(storedUser);
+        setUser(userData);
+        try {
+          await getAllTransactions();
+        } catch (transactionError) {
+          if (transactionError.message?.includes("Sessão expirada")) {
+            clearAuthSession();
+            setUser(null);
+            setTransactions([]);
+            setAmounts([]);
+            return;
+          }
+          console.error("❌ Extrato indisponível; sessão mantida:", transactionError.message);
+        }
+        console.log("✅ Usuário carregado:", userData.email);
       } catch (error) {
         console.error("❌ Erro ao carregar usuário:", error);
-        logout();
+        clearAuthSession();
+        setUser(null);
+        setTransactions([]);
+        setAmounts([]);
       } finally {
         setLoading(false);
       }
@@ -77,7 +101,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   // ✅ Função de login SIMPLIFICADA
-  const login = async (userData, token) => {
+  const login = async (userData, token, rememberMe = false) => {
     console.log("🔑 AuthContext.login() chamado");
     console.log("   User ID:", userData.id);
     console.log("   Email:", userData.email);
@@ -91,7 +115,7 @@ export const AuthProvider = ({ children }) => {
         throw new Error("Token inválido");
       }
 
-      // ✅ Atualiza estado local (Login.jsx já salvou no localStorage)
+      saveAuthSession(token, userData, rememberMe);
       setUser(userData);
 
       console.log("✅ Estado atualizado, navegando para /home");
@@ -103,8 +127,7 @@ export const AuthProvider = ({ children }) => {
       console.error("❌ Erro no authContext.login():", error);
 
       // Em caso de erro, limpa tudo
-      localStorage.clear();
-      sessionStorage.clear();
+      clearAuthSession();
       setUser(null);
 
       throw error;
@@ -115,9 +138,7 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     console.log("🚪 AuthContext: Logout");
 
-    // Limpa TUDO
-    localStorage.clear();
-    sessionStorage.clear();
+    clearAuthSession();
     setUser(null);
     setTransactions([]); // Limpa transações ao deslogar
     setAmounts([]); // Reseta valores ao deslogar

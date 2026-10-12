@@ -17,6 +17,7 @@ import {
 import Header from "../Components/Header";
 import MyContext from "../Context/Context";
 import { API_BASE_URL } from "../Services/request";
+import { getStoredToken } from "../Services/authStorage";
 import "../Styles/Debts.css";
 
 const localDateString = () => {
@@ -135,7 +136,7 @@ function Debts() {
       ...options,
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
+        Authorization: `Bearer ${getStoredToken()}`,
         ...options.headers,
       },
     });

@@ -84,11 +84,26 @@ export const parseImportDate = (value) => {
   return makeDateKey(parsedDate.getFullYear(), parsedDate.getMonth() + 1, parsedDate.getDate());
 };
 
-const parseTransactionType = (typeValue, signedAmount) => {
+const parseTransactionType = (typeValue, signedAmount, description) => {
   const type = normalizeText(typeValue);
+  const descriptionText = normalizeText(description);
   if (/(invest|aporte|aplicacao|buy(mf|stock|debt|other|opt)|reinvest)/.test(type)) return { typeId: 3, inferred: false };
   if (/^(receita|income|credit|credito|deposit|directdep|salary|entrada|div|int)/.test(type)) return { typeId: 1, inferred: false };
   if (/^(despesa|expense|debit|debito|withdrawal|withdraw|payment|purchase|saque|saida|check|atm|pos|fee|srvchg|directdebit)/.test(type)) return { typeId: 2, inferred: false };
+
+  if (/(salary|salario|payroll|folha)/.test(descriptionText)) {
+    return { typeId: 1, inferred: true, inferredFrom: "description" };
+  }
+  if (/(divida|emprestimo|emprest|parcela|prestacao|financiamento|mortgage|loan)/.test(descriptionText)) {
+    return { typeId: 2, inferred: true, inferredFrom: "debt-description" };
+  }
+  if (/(custo|compra|despesa|pagamento|boleto|fatura)/.test(descriptionText)) {
+    return { typeId: 2, inferred: true, inferredFrom: "description" };
+  }
+  if (/(investimento|aporte|aplicacao|resgate)/.test(descriptionText)) {
+    return { typeId: 3, inferred: true, inferredFrom: "description" };
+  }
+
   return { typeId: signedAmount < 0 ? 2 : 1, inferred: true };
 };
 
@@ -106,7 +121,21 @@ const makeImportRow = ({ date, description, signedAmount, type, status, isSalary
   const cleanDescription = String(description ?? "").trim();
   if (!normalizedDate || !cleanDescription || amount === null || amount === 0) return null;
 
-  const { typeId, inferred } = parseTransactionType(type, amount);
+  const { typeId, inferred, inferredFrom } = parseTransactionType(type, amount, cleanDescription);
+  const normalizedDescription = normalizeText(cleanDescription);
+  const inferredSalary = /(salario|salary|payroll|folha)/.test(normalizedDescription);
+  const isDebtDescription = /(divida|emprestimo|emprest|parcela|prestacao|financiamento|mortgage|loan)/.test(normalizedDescription);
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const isFutureDate = normalizedDate > today;
+  const hasStatusInFile = status !== undefined && status !== null && String(status).trim() !== "";
+  const importHints = [];
+  if (isDebtDescription) {
+    importHints.push("Importar cria uma movimentação, não uma dívida estruturada com parcelas. Use a página Dívidas para cadastrar o plano.");
+  }
+  if (isFutureDate && !hasStatusInFile) {
+    importHints.push("Data futura sem status no arquivo; marcada como pendente para não contar como paga.");
+  }
   return {
     id: `${index}-${sourceId || normalizedDate}`,
     date: normalizedDate,
@@ -115,10 +144,17 @@ const makeImportRow = ({ date, description, signedAmount, type, status, isSalary
     typeId,
     typeWasInferred: inferred,
     classificationReason: inferred
-      ? amount < 0 ? "Sugerido pelo valor negativo; confira antes de importar." : "Sugerido pelo valor positivo; confira antes de importar."
+      ? inferredFrom === "debt-description"
+        ? "Descrição de dívida/parcela; sugerido como despesa."
+        : inferredFrom === "description"
+        ? "Sugerido pela descrição; confirme a classificação antes de importar."
+        : amount < 0 ? "Sugerido pelo valor negativo; confira antes de importar." : "Sugerido pelo valor positivo; confira antes de importar."
       : `Tipo informado no arquivo: ${String(type).trim()}`,
-    status: parseBoolean(status, true),
-    isSalary: typeId === 1 && parseBoolean(isSalary, false),
+    status: parseBoolean(status, !isFutureDate),
+    statusWasInferred: !hasStatusInFile,
+    isFutureDate,
+    importHint: importHints.join(" "),
+    isSalary: typeId === 1 && parseBoolean(isSalary, inferredSalary),
     selected: true,
   };
 };

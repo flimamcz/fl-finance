@@ -80,52 +80,7 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* ===== BOTÃO TEMA E CONTROLES ===== */
-.theme-toggle {
-  position: fixed;
-  top: 11px;
-  right: 80px;
-  z-index: 1000;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: var(--shadow);
-  transition: all 0.3s ease;
-}
-
-.theme-toggle:hover {
-  transform: scale(1.1);
-  box-shadow: var(--shadow-hover);
-}
-
-.theme-toggle svg {
-  width: 20px;
-  height: 20px;
-  color: var(--text-primary);
-}
-
-.theme-toggle .sun-icon {
-  display: none;
-}
-
-.theme-toggle .moon-icon {
-  display: block;
-}
-
-body.dark-mode .theme-toggle .sun-icon {
-  display: block;
-}
-
-body.dark-mode .theme-toggle .moon-icon {
-  display: none;
-}
-
+/* ===== CONTROLES ===== */
 /* Botão Mostrar/Ocultar Valores */
 .btn-eye {
   background: var(--bg-input);
@@ -2533,16 +2488,8 @@ body.dark-mode input[type="radio"] {
     cursor: default !important;
   }
   
-  .theme-toggle {
-    width: 40px;
-    height: 40px;
-    top: 40px;
-    right: 40px;
-  }
-  
   .btn-icon,
-  .btn-eye,
-  .theme-toggle {
+  .btn-eye {
     min-height: 44px !important;
     min-width: 44px !important;
   }
@@ -2592,13 +2539,6 @@ body.dark-mode input[type="radio"] {
   
   .card-value {
     font-size: 28px;
-  }
-  
-  .theme-toggle {
-    width: 36px;
-    height: 36px;
-    top: 12px;
-    right: 70px;
   }
   
   .action-buttons {
@@ -2856,10 +2796,6 @@ body.dark-mode input[type="radio"] {
 .dashboard-content {
   position: relative;
   z-index: 1;
-}
-
-.theme-toggle {
-  z-index: 1000;
 }
 
 .modal-overlay {

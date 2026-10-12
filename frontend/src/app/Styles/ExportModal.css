@@ -134,11 +134,43 @@
 
 .checkbox-option input[type="checkbox"] {
   accent-color: var(--primary);
+  flex: 0 0 auto;
+  width: 17px;
+  height: 17px;
 }
 
 .checkbox-option span {
   color: var(--text-primary);
   font-size: 14px;
+  line-height: 1.4;
+}
+
+.export-data-groups {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-primary);
+}
+
+.export-data-groups .checkbox-option {
+  padding: 8px;
+}
+
+.export-loading-related {
+  color: var(--text-muted);
+  font-size: 12px;
+  padding: 0 8px;
+}
+
+.export-data-error {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 7px;
+  background: rgba(239, 68, 68, 0.08);
+  color: #b42318;
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 .info-text {

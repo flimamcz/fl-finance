@@ -268,6 +268,24 @@ body.dark-mode .transaction-analytics-page {
   min-width: 0;
   min-height: 260px;
   height: 310px;
+  overflow: hidden;
+}
+
+.analytics-chart .recharts-responsive-container,
+.analytics-chart .recharts-wrapper {
+  max-width: 100%;
+}
+
+.analytics-chart .recharts-default-legend {
+  display: flex !important;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 3px 10px;
+  padding: 0;
+}
+
+.analytics-chart .recharts-legend-item {
+  margin: 0 !important;
 }
 
 .analytics-projection-panel {
