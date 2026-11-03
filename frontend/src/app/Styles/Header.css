@@ -29,14 +29,14 @@
   height: 38px;
   place-items: center;
   border-radius: 12px;
-  background: linear-gradient(135deg, #4f46e5, #8b5cf6);
+  background: var(--gradient-primary, linear-gradient(135deg, #2857a4, #4a83df));
   color: #fff;
   font-size: 21px;
   letter-spacing: 0;
 }
 
 .brand-name {
-  background: linear-gradient(135deg, #4f46e5, #8b5cf6);
+  background: var(--gradient-primary, linear-gradient(135deg, #2857a4, #4a83df));
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -67,14 +67,14 @@
 
 .app-nav-link:hover,
 .app-nav-link.active {
-  background: rgba(99, 102, 241, 0.1);
-  color: #4f46e5;
+  background: var(--app-accent-soft, rgba(50, 105, 200, 0.1));
+  color: var(--app-accent, #3269c8);
 }
 
 .app-nav-link:focus-visible,
 .more-menu-link:focus-visible,
 .navigation-brand:focus-visible {
-  outline: 3px solid #818cf8;
+  outline: 3px solid var(--app-accent, #4a83df);
   outline-offset: 3px;
 }
 
@@ -107,13 +107,13 @@
 }
 
 .header-theme-toggle:hover {
-  border-color: #4f46e5;
-  background: rgba(99, 102, 241, 0.08);
-  color: #4f46e5;
+  border-color: var(--app-accent, #3269c8);
+  background: var(--app-accent-soft, rgba(50, 105, 200, 0.08));
+  color: var(--app-accent, #3269c8);
 }
 
 .header-theme-toggle:focus-visible {
-  outline: 3px solid #818cf8;
+  outline: 3px solid var(--app-accent, #4a83df);
   outline-offset: 2px;
 }
 
@@ -160,8 +160,8 @@
   height: 34px;
   place-items: center;
   border-radius: 50%;
-  background: #eef2ff;
-  color: #4f46e5;
+  background: var(--app-accent-soft, #e9f0fd);
+  color: var(--app-accent, #3269c8);
   font-size: 15px;
 }
 
@@ -189,8 +189,8 @@
 
 .more-menu-link:hover,
 .more-menu-link.active {
-  background: rgba(99, 102, 241, 0.1);
-  color: #4f46e5;
+  background: var(--app-accent-soft, rgba(50, 105, 200, 0.1));
+  color: var(--app-accent, #3269c8);
 }
 
 .more-menu-link.logout-link {
@@ -207,30 +207,30 @@
 
 body.dark-mode .app-navigation,
 body.dark-mode .more-menu {
-  background: #1e293b;
-  border-color: #334155;
+  background: var(--app-surface, #1b2940);
+  border-color: var(--app-border, #34445f);
 }
 
 body.dark-mode .app-nav-link {
-  color: #cbd5e1;
+  color: var(--app-muted, #b3c2dc);
 }
 
 body.dark-mode .app-nav-link:hover,
 body.dark-mode .app-nav-link.active,
 body.dark-mode .more-menu-link:hover,
 body.dark-mode .more-menu-link.active {
-  background: rgba(129, 140, 248, 0.16);
-  color: #a5b4fc;
+  background: var(--app-accent-soft, #243754);
+  color: var(--app-accent-strong, #b5ceff);
 }
 
 body.dark-mode .more-menu-user {
-  color: #f1f5f9;
-  border-color: #334155;
+  color: var(--app-text, #edf3ff);
+  border-color: var(--app-border, #34445f);
 }
 
 body.dark-mode .more-avatar {
-  background: #312e81;
-  color: #c7d2fe;
+  background: var(--app-accent-soft, #243754);
+  color: var(--app-accent-strong, #b5ceff);
 }
 
 @media (min-width: 1025px) {
@@ -398,20 +398,20 @@ body.dark-mode .more-avatar {
   }
 
   body.dark-mode .mobile-navigation {
-    border-color: #334155;
-    background: #1e293b;
+    border-color: var(--app-border, #34445f);
+    background: var(--app-surface, #1b2940);
   }
 
   body.dark-mode .header-theme-toggle {
-    border-color: #465650;
-    background: #1e2c28;
-    color: #d3e2dc;
+    border-color: var(--app-border, #34445f);
+    background: var(--app-surface, #1b2940);
+    color: var(--app-muted, #b3c2dc);
   }
 
   body.dark-mode .header-theme-toggle:hover {
-    border-color: #70c4a2;
-    background: #29443a;
-    color: #9fe0c3;
+    border-color: var(--app-accent, #8cb4ff);
+    background: var(--app-accent-soft, #243754);
+    color: var(--app-accent-strong, #b5ceff);
   }
 }
 

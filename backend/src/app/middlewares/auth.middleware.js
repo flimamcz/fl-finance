@@ -65,7 +65,9 @@ const authenticate = async (req, res, next) => {
     req.user = {
       id: message.id,
       email: message.email,
-      name: message.name
+      username: message.username,
+      name: message.name,
+      isAdmin: Boolean(message.isAdmin)
     };
     
     console.log('✅ Middleware: req.user definido:', req.user);

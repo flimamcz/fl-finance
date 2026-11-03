@@ -2,6 +2,7 @@
 const { User } = require("../../models");
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
+const { Op } = require('sequelize');
 
 const SALT_ROUNDS = 10;
 
@@ -15,7 +16,7 @@ const getMyProfile = async (userId) => {
     
     const user = await User.findOne({
       where: { id: userId },
-      attributes: ['id', 'fullname', 'email', 'photo', 'createdAt'] // Não retorna password!
+      attributes: ['id', 'fullname', 'username', 'email', 'isAdmin', 'photo', 'createdAt'] // Não retorna password!
     });
 
     if (!user) {
@@ -184,15 +185,20 @@ const searchUsers = async () => {
 const createUser = async (dataUser) => {
   try {
     console.log('🔐 Service createUser: Criando novo usuário');
+    const username = String(dataUser.username || '').trim().toLowerCase();
+    const email = String(dataUser.email || '').trim().toLowerCase();
+
+    if (!/^[a-z0-9._-]{3,30}$/.test(username)) {
+      return { error: "INVALID_USERNAME", message: "O usuário deve ter entre 3 e 30 caracteres (letras, números, ponto, hífen ou sublinhado)" };
+    }
     
-    // Verificar se email já existe
-    const findUserByEmail = await User.findOne({
-      where: { email: dataUser.email },
+    const existingUser = await User.findOne({
+      where: { [Op.or]: [{ email }, { username }] },
     });
 
-    if (findUserByEmail) {
-      console.log('❌ Email já cadastrado:', dataUser.email);
-      return { error: "EMAIL_EXISTS", message: "Email já cadastrado!" };
+    if (existingUser) {
+      const duplicateField = existingUser.email === email ? "Email" : "Usuário";
+      return { error: "ACCOUNT_EXISTS", message: `${duplicateField} já cadastrado!` };
     }
 
     // Validar senha
@@ -206,8 +212,10 @@ const createUser = async (dataUser) => {
     const resetCodeHash = bcrypt.hashSync(resetCode, SALT_ROUNDS);
     
     const userDataWithHash = {
-      fullname: dataUser.fullname,
-      email: dataUser.email,
+      fullname: dataUser.fullname || username,
+      username,
+      email,
+      isAdmin: false,
       password: hashedPassword,
       resetCodeHash,
       resetCodeHint: `${resetCode.slice(0, 2)}***${resetCode.slice(-1)}`,
@@ -256,12 +264,18 @@ const resetPassword = async (user, code, newPassword) => {
   return { error: null, message: "Senha redefinida com sucesso" };
 };
 
-const findUserForLogin = async (email) => {
+const findUserForLogin = async (identifier) => {
   try {
-    console.log('🔐 Service findUserForLogin: Buscando para login:', email);
+    const normalizedIdentifier = String(identifier || '').trim().toLowerCase();
+    console.log('🔐 Service findUserForLogin: Buscando conta pelo identificador');
     
     const user = await User.findOne({
-      where: { email }
+      where: {
+        [Op.or]: [
+          { email: normalizedIdentifier },
+          { username: normalizedIdentifier },
+        ],
+      },
     });
 
     if (!user) {

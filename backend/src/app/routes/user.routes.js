@@ -3,7 +3,6 @@ const { authenticate } = require('../middlewares/auth.middleware');
 
 // Importando do controller ATUAL (com as novas funções placeholder)
 const {
-  createUser,
   searchUsers,
   getMyProfile,
   updateMyProfile,
@@ -16,7 +15,6 @@ console.log('🛣️  Rotas de User carregadas');
 
 // Rotas públicas
 router.get("/", searchUsers);
-router.post("/register", createUser);
 
 // 🔐 Rotas PROTEGIDAS
 router.get("/me", authenticate, getMyProfile);
@@ -26,7 +24,6 @@ router.patch("/password", authenticate, updatePassword);
 // Log das rotas registradas
 console.log('✅ Rotas de User registradas:');
 console.log('   GET    /users');
-console.log('   POST   /users/register');
 console.log('   GET    /users/me');
 console.log('   PATCH  /users/me');
 console.log('   PATCH  /users/password');

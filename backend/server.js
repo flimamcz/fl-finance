@@ -1,7 +1,13 @@
 // src/server.js
-require("dotenv").config();
+const path = require("path");
+require("dotenv").config({ path: path.resolve(__dirname, "..", ".env") });
 const app = require("./app");
 const { settleDueInstallments } = require("./src/app/services/Debt.service");
+
+if (!process.env.JWT_SECRET) {
+  console.error("JWT_SECRET precisa estar configurado para iniciar o servidor.");
+  process.exit(1);
+}
 
 const port = process.env.PORT || 3001;
 const settleDebts = () => {
@@ -17,13 +23,7 @@ setInterval(settleDebts, 60 * 1000);
 console.log('\n🚀 === INICIANDO SERVIDOR ===');
 console.log('📅', new Date().toISOString());
 console.log('⚙️  Ambiente:', process.env.NODE_ENV || 'development');
-console.log('🔑 JWT_SECRET:', process.env.JWT_SECRET ? 'DEFINIDO' : 'NÃO DEFINIDO');
 console.log('🗄️  DB_HOST:', process.env.DB_HOST || 'NÃO DEFINIDO');
-
-// Verificar variáveis de ambiente críticas
-if (!process.env.JWT_SECRET) {
-  console.warn('⚠️  AVISO: JWT_SECRET não definido no .env! Usando valor padrão.');
-}
 
 // ================================
 // START SERVER (SEM IP FIXO)

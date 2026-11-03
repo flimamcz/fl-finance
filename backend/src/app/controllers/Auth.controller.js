@@ -1,6 +1,34 @@
 // src/app/controllers/Auth.controller.js
 const authService = require('../services/Auth.service');
 
+const setupStatus = async (req, res) => {
+  try {
+    res.set("Cache-Control", "no-store");
+    return res.status(200).json(await authService.getSetupStatus());
+  } catch (error) {
+    console.error("Erro ao consultar configuração inicial:", error.message);
+    return res.status(500).json({ error: true, message: "Não foi possível verificar a configuração inicial" });
+  }
+};
+
+const setupAdmin = async (req, res) => {
+  try {
+    const { username, email, password } = req.body;
+    if (!username || !email || !password) {
+      return res.status(400).json({ error: true, message: "Usuário, email e senha são obrigatórios" });
+    }
+
+    const result = await authService.setupAdmin({ username, email, password });
+    if (result.error) {
+      return res.status(400).json(result);
+    }
+    return res.status(201).json({ error: false, ...result.message });
+  } catch (error) {
+    console.error("Controller setup admin error:", error);
+    return res.status(500).json({ error: true, message: "Erro interno no servidor" });
+  }
+};
+
 const forgotPassword = async (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ error: true, message: "Email é obrigatório" });
@@ -29,18 +57,17 @@ const resetPassword = async (req, res) => {
 
 const login = async (req, res) => {
   try {
-    console.log("Login request body:", req.body);
+    const { identifier, username, email, password } = req.body;
+    const loginIdentifier = identifier || username || email;
     
-    const { email, password } = req.body;
-    
-    if (!email || !password) {
+    if (!loginIdentifier || !password) {
       return res.status(400).json({ 
         error: true, 
-        message: "Email e senha são obrigatórios" 
+        message: "Usuário ou email e senha são obrigatórios"
       });
     }
 
-    const { error, message } = await authService.login(email, password);
+    const { error, message } = await authService.login(loginIdentifier, password);
     
     if (error) {
       return res.status(401).json({ 
@@ -101,20 +128,18 @@ const verify = async (req, res) => {
 
 const register = async (req, res) => {
   try {
-    console.log("Register request body:", req.body);
+    const { fullname, username, email, password } = req.body;
     
-    const { fullname, email, password } = req.body;
-    
-    if (!fullname || !email || !password) {
+    if (!username || !email || !password) {
       return res.status(400).json({ 
         error: true, 
-        message: "Todos os campos são obrigatórios" 
+        message: "Usuário, email e senha são obrigatórios"
       });
     }
 
-    // Você precisa criar authService.register() primeiro!
     const { error, message } = await authService.register({
       fullname,
+      username,
       email,
       password
     });
@@ -143,6 +168,8 @@ const register = async (req, res) => {
 module.exports = {
   login,
   verify,
+  setupStatus,
+  setupAdmin,
   register,
   forgotPassword,
   resetPassword

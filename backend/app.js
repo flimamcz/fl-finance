@@ -97,7 +97,9 @@ app.get("/", (req, res) => {
     endpoints: {
       auth: {
         login: "POST /auth/login",
-        register: "POST /auth/register",
+        setupStatus: "GET /auth/setup-status",
+        setup: "POST /auth/setup (one-time)",
+        register: "POST /auth/register (after setup)",
         verify: "GET /auth/verify"
       },
       transactions: {

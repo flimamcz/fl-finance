@@ -11,8 +11,8 @@ module.exports = {
     console.log('🔍 Usuários encontrados para seed:', users);
     
     if (!users || users.length < 2) {
-      console.error('❌ ERRO: Não encontrou os 2 usuários necessários');
-      throw new Error('Usuários não encontrados para seed');
+      console.info('ℹ️ Pulando transações de exemplo: crie usuários pelo fluxo de setup.');
+      return;
     }
 
     const user1 = users.find(u => u.id === 1) || users[0];

@@ -1,4 +1,4 @@
-import { useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import {
   FiCreditCard,
@@ -39,11 +39,6 @@ function Header() {
   const { darkMode, setDarkMode } = useContext(MyContext);
   const isProfilePage = location.pathname === "/profile";
   const isTransactionsPage = location.pathname === "/transactions";
-
-  useLayoutEffect(() => {
-    document.body.classList.add("app-shell");
-    return () => document.body.classList.remove("app-shell");
-  }, []);
 
   useEffect(() => {
     setMoreOpen(false);

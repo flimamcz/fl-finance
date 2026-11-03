@@ -9,7 +9,18 @@ const UserModel = (sequelize, DataTypes) => {
       email: {
         type: DataTypes.STRING,
         allowNull: false,
-        
+        unique: true,
+      },
+      username: {
+        type: DataTypes.STRING(30),
+        allowNull: false,
+        unique: true,
+      },
+      isAdmin: {
+        field: "is_admin",
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
       },
       createdAt: {
         field: "created_at",

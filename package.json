@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Raiz project fl-finance",
   "scripts": {
+    "dev": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "db:migrate": "cd backend && npm run db:migrate",
     "compose:up": "docker compose up -d --build",
     "compose:down": "docker compose down"
   },

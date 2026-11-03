@@ -1,6 +1,6 @@
 // Login.jsx - VERSÃO CORRIGIDA (SALVA NO LOCALSTORAGE AQUI)
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { 
   FiMail, 
   FiLock, 
@@ -9,7 +9,8 @@ import {
   FiCheck, 
   FiAlertCircle,
   FiShield,
-  FiLoader 
+  FiLoader,
+  FiTrendingUp,
 } from "react-icons/fi";
 import { API_BASE_URL } from '../Services/request';
 import {
@@ -19,6 +20,8 @@ import {
 } from "../Services/authStorage";
 import "../Styles/Login.css";
 
+const EMAIL_DOMAINS = ["gmail.com", "outlook.com", "hotmail.com", "icloud.com", "yahoo.com"];
+
 function Login() {
   const [email, setEmail] = useState(getRememberedEmail);
   const [password, setPassword] = useState("");
@@ -26,9 +29,20 @@ function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [emailValid, setEmailValid] = useState(null);
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [particles, setParticles] = useState([]);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/auth/setup-status`, { cache: "no-store" })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.setupRequired) navigate("/setup", { replace: true });
+      })
+      .catch(() => {
+        // Login remains available if setup-status cannot be reached.
+      });
+  }, [navigate]);
 
   // Gerar partículas para background
   useEffect(() => {
@@ -41,17 +55,6 @@ function Login() {
     }));
     setParticles(newParticles);
   }, []);
-
-  // Validar email em tempo real
-  useEffect(() => {
-    if (!email) {
-      setEmailValid(null);
-      return;
-    }
-    
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    setEmailValid(emailRegex.test(email));
-  }, [email]);
 
   // Calcular força da senha
   useEffect(() => {
@@ -93,22 +96,20 @@ function Login() {
     e.preventDefault();
     setError("");
     
-    if (!emailValid) {
-      setError("Por favor, insira um email válido");
+    if (!email.trim()) {
+      setError("Informe seu usuário ou email");
       return;
     }
 
     setLoading(true);
 
     try {
-      console.log('🔐 Tentando login para:', email);
-      
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ identifier: email.trim(), password }),
       });
 
       const data = await response.json();
@@ -135,9 +136,14 @@ function Login() {
   };
 
   return (
-    <div className="login-container">
-      {/* Background com partículas */}
-      <div className="particles-bg">
+    <main className="login-container login-page">
+      <div className="login-backdrop" aria-hidden="true">
+        <span className="ambient-orb ambient-orb-one" />
+        <span className="ambient-orb ambient-orb-two" />
+        <span className="ambient-orb ambient-orb-three" />
+        <span className="ambient-grid" />
+      </div>
+      <div className="particles-bg" aria-hidden="true">
         {particles.map(particle => (
           <div 
             key={particle.id}
@@ -153,77 +159,76 @@ function Login() {
         ))}
       </div>
 
-      {/* Card de Login */}
-      <div className="login-card">
-        {/* Cabeçalho com Logo Animada */}
-        <div className="logo-section">
-          <div className="logo-animation">
-            <div className="pig-logo">
-              <div className="pig-body"></div>
-              <div className="pig-ear left"></div>
-              <div className="pig-ear right"></div>
-              <div className="pig-eye left"></div>
-              <div className="pig-eye right"></div>
-              <div className="pig-nose"></div>
-              <div className="pig-nostril left"></div>
-              <div className="pig-nostril right"></div>
-              <div className="coin">$</div>
-            </div>
-            <div className="money-flow">
-              <div className="dollar-sign">$</div>
-              <div className="dollar-sign">$</div>
-              <div className="dollar-sign">$</div>
-            </div>
+      <div className="login-layout">
+        <aside className="login-brand">
+          <div className="brand-heading">
+            <div className="brand-mark" aria-hidden="true"><FiTrendingUp /></div>
+            <span className="brand-name">FinFlow</span>
           </div>
-          <h1 className="app-title">
-            <span className="title-gradient">FinFlow</span>
-          </h1>
-          <p className="app-subtitle">Controle financeiro inteligente</p>
-          <div className="security-badge">
-            <FiShield />
-            <span>Conexão segura</span>
-          </div>
-        </div>
 
-        {/* Formulário */}
-        <form onSubmit={handleSubmit} className="login-form">
-          <h2 className="form-title">
-            <span className="welcome-text">Bem-vindo de volta!</span>
-          </h2>
+          <div className="brand-copy">
+            <span className="brand-eyebrow">SEU DINHEIRO, EM EQUILÍBRIO</span>
+            <h1>Mais clareza para suas <span>conquistas.</span></h1>
+            <p>Organize sua vida financeira e acompanhe o que realmente importa, em um só lugar.</p>
+          </div>
+
+          <div className="brand-visual" aria-hidden="true">
+            <div className="visual-orbit orbit-one" />
+            <div className="visual-orbit orbit-two" />
+            <div className="visual-chart">
+              <span /><span /><span /><span /><span /><span /><span />
+            </div>
+            <div className="visual-caption"><FiTrendingUp /><span>Seu próximo passo começa aqui</span></div>
+          </div>
+
+          <div className="brand-security"><FiShield /><span>Seus dados protegidos com segurança</span></div>
+        </aside>
+
+        <section className="login-card login-page-card" aria-labelledby="login-heading">
+          <form onSubmit={handleSubmit} className="login-form">
+          <div className="form-intro">
+            <span className="form-kicker">BEM-VINDO DE VOLTA</span>
+            <h2 id="login-heading" className="form-title"><span className="welcome-text">Acesse sua conta</span></h2>
+            <p>Entre para continuar cuidando das suas finanças.</p>
+          </div>
           
           {/* Mensagem de Erro */}
           {error && (
-            <div className="error-notification">
+            <div className="error-notification" role="alert">
               <FiAlertCircle />
               <span>{error}</span>
             </div>
           )}
 
           {/* Campo Email */}
-          <div className={`input-group ${emailValid === false ? 'invalid' : ''} ${emailValid ? 'valid' : ''}`}>
-            <label htmlFor="email">
+          <div className="input-group">
+            <label htmlFor="login-identifier">
               <FiMail />
-              <span>Email</span>
+              <span>Usuário ou email</span>
             </label>
             <input
-              id="email"
-              type="email"
-              placeholder="seu@email.com"
+              id="login-identifier"
+              type="text"
+              placeholder="Seu usuário ou email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className={emailValid === false ? 'shake' : ''}
+              autoComplete="username"
+              list="email-domain-suggestions"
+              aria-describedby="login-identifier-hint"
             />
-            {emailValid && (
-              <div className="validation-icon valid">
-                <FiCheck />
-              </div>
+            {email.includes("@") && (
+              <datalist id="email-domain-suggestions">
+                {EMAIL_DOMAINS
+                  .filter((domain) => domain.startsWith(email.split("@")[1].toLowerCase()))
+                  .map((domain) => (
+                    <option key={domain} value={`${email.split("@")[0]}@${domain}`} />
+                  ))}
+              </datalist>
             )}
-            {emailValid === false && (
-              <div className="validation-icon invalid">
-                <FiAlertCircle />
-              </div>
-            )}
+            <small id="login-identifier-hint" className="field-hint">
+              Você pode entrar com seu usuário ou email.
+            </small>
           </div>
 
           {/* Campo Senha */}
@@ -240,6 +245,7 @@ function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                autoComplete="current-password"
               />
               <button
                 type="button"
@@ -327,7 +333,8 @@ function Login() {
               <span>Continuar com Google</span>
             </button>
           </div>
-        </form>
+          </form>
+        </section>
       </div>
 
       {/* Toast de sucesso */}
@@ -339,7 +346,7 @@ function Login() {
           </div>
         </div>
       )}
-    </div>
+    </main>
   );
 }
 
