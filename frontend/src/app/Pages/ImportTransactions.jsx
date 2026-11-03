@@ -15,6 +15,8 @@ import {
 } from "react-icons/fi";
 import Header from "../Components/Header";
 import MyContext from "../Context/Context";
+import { API_BASE_URL } from "../Services/request";
+import { getStoredToken } from "../Services/authStorage";
 import {
   getTransactionFingerprint,
   parseCSVFile,
@@ -52,9 +54,10 @@ const readOFX = async (file) => {
 };
 
 function ImportTransactions() {
-  const { transactions, importTransactions } = useContext(MyContext);
+  const { transactions, importTransactions, getAllTransactions } = useContext(MyContext);
   const fileInput = useRef(null);
   const [rows, setRows] = useState([]);
+  const [backupData, setBackupData] = useState(null);
   const [fileName, setFileName] = useState("");
   const [issues, setIssues] = useState([]);
   const [search, setSearch] = useState("");
@@ -109,6 +112,9 @@ function ImportTransactions() {
     count: { 1: 0, 2: 0, 3: 0 },
     total: { 1: 0, 2: 0, 3: 0 },
   }), [selectedRows]);
+  const backupRecordCount = backupData
+    ? Object.values(backupData).reduce((total, records) => total + records.length, 0)
+    : 0;
 
   const handleFile = async (file) => {
     if (!file) return;
@@ -116,6 +122,7 @@ function ImportTransactions() {
     setNotice("");
     setIssues([]);
     setRows([]);
+    setBackupData(null);
     setSearch("");
 
     const extension = file.name.split(".").pop()?.toLowerCase();
@@ -134,6 +141,11 @@ function ImportTransactions() {
       const parsed = extension === "csv"
         ? await parseCSVFile(file)
         : await readOFX(file);
+      if (parsed.backup) {
+        setBackupData(parsed.backup);
+        setIssues(parsed.issues || []);
+        return;
+      }
       const fileFingerprints = new Set();
       const records = parsed.rows.map((row) => {
         const fingerprint = getTransactionFingerprint(row);
@@ -175,6 +187,35 @@ function ImportTransactions() {
     setImporting(true);
     setError("");
     try {
+      if (backupData) {
+        const token = getStoredToken();
+        if (!token) throw new Error("Sua sessão expirou. Entre novamente para restaurar o backup.");
+        const response = await fetch(`${API_BASE_URL}/transactions/import-backup`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ backup: backupData }),
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || result.error) {
+          throw new Error(result.message || "Não foi possível restaurar o backup.");
+        }
+        await getAllTransactions?.();
+        setNotice(
+          `Backup restaurado: ${result.transactions} transações, ${result.debts} dívidas, `
+          + `${result.installments} parcelas, ${result.investments} movimentações de investimento e `
+          + `${result.categories} categorias adicionadas. Registros já existentes foram preservados.`,
+        );
+        setRows([]);
+        setBackupData(null);
+        setFileName("");
+        setIssues([]);
+        setConfirmOpen(false);
+        return;
+      }
+
       const batch = selectedRows.map(({ value, typeId, description, date, status, isSalary }) => ({
         value,
         typeId,
@@ -183,8 +224,22 @@ function ImportTransactions() {
         status,
         isSalary: typeId === 1 && isSalary,
       }));
-      await importTransactions(batch);
-      setNotice(`${batch.length} ${batch.length === 1 ? "transação importada" : "transações importadas"} com sucesso.`);
+      const result = await importTransactions(batch);
+      const importedCount = Number.isInteger(result.count) ? result.count : batch.length;
+      const skippedDebtInstallments = Number(result.skippedDebtInstallments) || 0;
+      const linkedDebtInstallments = Number(result.linkedDebtInstallments) || 0;
+      const importSummary = importedCount === 0
+        ? "Nenhuma nova transação foi criada."
+        : `${importedCount} ${importedCount === 1 ? "transação importada" : "transações importadas"} com sucesso.`;
+      const debtSummary = [
+        linkedDebtInstallments > 0
+          ? `${linkedDebtInstallments} ${linkedDebtInstallments === 1 ? "pagamento foi vinculado" : "pagamentos foram vinculados"} às parcelas correspondentes.`
+          : "",
+        skippedDebtInstallments > 0
+          ? `${skippedDebtInstallments} ${skippedDebtInstallments === 1 ? "linha foi ignorada" : "linhas foram ignoradas"} porque a parcela já está registrada ou continua controlada em Dívidas.`
+          : "",
+      ].filter(Boolean).join(" ");
+      setNotice([importSummary, debtSummary].filter(Boolean).join(" "));
       setRows([]);
       setFileName("");
       setIssues([]);
@@ -228,7 +283,7 @@ function ImportTransactions() {
           <div className="import-main-column">
             <section className="import-upload-panel" aria-labelledby="import-file-title">
               <div className="import-panel-heading">
-                <div><h2 id="import-file-title">Selecione o arquivo</h2><p>O arquivo é processado localmente; só as linhas confirmadas são enviadas.</p></div>
+                <div><h2 id="import-file-title">Selecione o arquivo</h2><p>O arquivo é lido localmente; nenhum dado é enviado antes da confirmação.</p></div>
                 <button className="import-template-button" type="button" onClick={downloadTemplate}><FiDownload aria-hidden="true" />Modelo CSV</button>
               </div>
               <button
@@ -254,7 +309,7 @@ function ImportTransactions() {
                 aria-label="Selecionar arquivo CSV, OFX ou QFX"
               />
               <div className="import-format-notes">
-                <span><FiFileText aria-hidden="true" />CSV: data, descrição e valor (ou débito/crédito).</span>
+                <span><FiFileText aria-hidden="true" />CSV do FinFlow: restaura transações, dívidas, parcelas, investimentos e categorias.</span>
                 <span><FiInfo aria-hidden="true" />OFX/QFX: o sinal sugere entrada ou saída; revise o tipo antes de importar.</span>
               </div>
             </section>
@@ -265,6 +320,30 @@ function ImportTransactions() {
                 <ul>{issues.slice(0, 8).map((issue, index) => <li key={`${index}-${issue}`}>{issue}</li>)}</ul>
                 {issues.length > 8 && <small>Mais {issues.length - 8} avisos não exibidos.</small>}
               </details>
+            )}
+
+            {backupData && (
+              <section className="import-preview-panel" aria-labelledby="backup-preview-title">
+                <div className="import-preview-heading">
+                  <div>
+                    <h2 id="backup-preview-title">Restaurar backup completo</h2>
+                    <p>{backupRecordCount} registros encontrados em {fileName}</p>
+                  </div>
+                </div>
+                <div className="import-backup-breakdown">
+                  <div><span>Transações</span><strong>{backupData.transactions.length}</strong></div>
+                  <div><span>Dívidas</span><strong>{backupData.debts.length}</strong></div>
+                  <div><span>Parcelas</span><strong>{backupData.installments.length}</strong></div>
+                  <div><span>Movimentações de investimento</span><strong>{backupData.investments.length}</strong></div>
+                  <div><span>Categorias</span><strong>{backupData.categories.length}</strong></div>
+                </div>
+                <div className="import-preview-footer import-backup-footer">
+                  <span>Os vínculos entre os registros serão restaurados.</span>
+                  <button className="import-submit-button" type="button" onClick={() => setConfirmOpen(true)} disabled={importing}>
+                    Restaurar tudo <FiCheck aria-hidden="true" />
+                  </button>
+                </div>
+              </section>
             )}
 
             {rowsWithDuplicateStatus.length > 0 && (
@@ -340,15 +419,21 @@ function ImportTransactions() {
           <section className="import-confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="import-confirm-title" aria-describedby="import-confirm-description">
             <button className="import-dialog-close" type="button" onClick={() => setConfirmOpen(false)} disabled={importing} aria-label="Fechar"><FiX /></button>
             <span className="import-confirm-icon"><FiUploadCloud aria-hidden="true" /></span>
-            <h2 id="import-confirm-title">Confirmar importação</h2>
-            <p id="import-confirm-description">{selectedRows.length} lançamentos do arquivo {fileName ? `“${fileName}”` : "selecionado"} serão adicionados.</p>
-            <div className="import-confirm-breakdown">
-              {typeOptions.map((type) => <div key={type.value}><span>{type.label} <small>({type.detail})</small></span><strong>{selectionSummary.count[type.value]} · {formatCurrency(selectionSummary.total[type.value])}</strong></div>)}
-            </div>
-            <p className="import-confirm-warning"><FiInfo aria-hidden="true" />A importação é atômica: em caso de erro, nenhuma linha deste lote será gravada.</p>
+            <h2 id="import-confirm-title">{backupData ? "Confirmar restauração" : "Confirmar importação"}</h2>
+            <p id="import-confirm-description">
+              {backupData
+                ? `${backupRecordCount} registros de todos os grupos do backup serão restaurados.`
+                : `${selectedRows.length} lançamentos do arquivo ${fileName ? `“${fileName}”` : "selecionado"} serão adicionados.`}
+            </p>
+            {!backupData && (
+              <div className="import-confirm-breakdown">
+                {typeOptions.map((type) => <div key={type.value}><span>{type.label} <small>({type.detail})</small></span><strong>{selectionSummary.count[type.value]} · {formatCurrency(selectionSummary.total[type.value])}</strong></div>)}
+              </div>
+            )}
+            <p className="import-confirm-warning"><FiInfo aria-hidden="true" />A restauração é atômica: em caso de erro, nenhum registro deste backup será gravado. Itens já existentes não serão duplicados.</p>
             <div className="import-confirm-actions">
               <button type="button" onClick={() => setConfirmOpen(false)} disabled={importing}>Voltar à revisão</button>
-              <button className="confirm-import-button" type="button" onClick={importSelected} disabled={importing}>{importing ? "Importando..." : "Confirmar importação"}</button>
+              <button className="confirm-import-button" type="button" onClick={importSelected} disabled={importing}>{importing ? "Importando..." : backupData ? "Restaurar tudo" : "Confirmar importação"}</button>
             </div>
           </section>
         </div>

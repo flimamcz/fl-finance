@@ -3,6 +3,54 @@ const { Op } = require("sequelize");
 const { Transaction, Category, Debt, DebtInstallment, InvestmentMovement } = require("../../models");
 const debtService = require("./Debt.service");
 
+const normalizeDebtText = (value) => String(value ?? "")
+  .normalize("NFD")
+  .replace(/[\u0300-\u036f]/g, "")
+  .toLocaleLowerCase("pt-BR")
+  .replace(/[^a-z0-9]/g, "");
+
+const getAmountInCents = (value) => Math.round(Number(value) * 100);
+
+const findMatchingDebtInstallment = (transaction, debts) => {
+  if (Number(transaction.typeId) !== 2) return null;
+
+  const description = normalizeDebtText(transaction.description);
+  const amountInCents = getAmountInCents(transaction.value);
+  const installmentNumberMatch = String(transaction.description ?? "").match(/\((\d+)\s*\/\s*(\d+)\)/);
+  const statedInstallmentNumber = installmentNumberMatch
+    ? Number(installmentNumberMatch[1])
+    : null;
+  const statedInstallmentCount = installmentNumberMatch
+    ? Number(installmentNumberMatch[2])
+    : null;
+
+  const matches = [];
+  for (const debt of debts) {
+    const debtName = normalizeDebtText(debt.name);
+    const creditor = normalizeDebtText(debt.creditor);
+    const descriptionMatchesDebt =
+      (debtName.length >= 4 && description.includes(debtName))
+      || (creditor.length >= 4 && description.includes(creditor));
+    if (!descriptionMatchesDebt) continue;
+
+    for (const installment of debt.installments || []) {
+      if (getAmountInCents(installment.amount) !== amountInCents) continue;
+      if (statedInstallmentNumber !== null) {
+        if (
+          Number(installment.installment_number) !== statedInstallmentNumber
+          || Number(debt.installment_count) !== statedInstallmentCount
+        ) continue;
+      } else if (String(installment.due_date).slice(0, 10) !== String(transaction.date).slice(0, 10)) {
+        continue;
+      }
+
+      matches.push(installment);
+    }
+  }
+
+  return matches.length === 1 ? matches[0] : null;
+};
+
 const searchTransactions = async (userId = null) => {
   console.log('🔍 Service: Buscando transações para userId:', userId);
   
@@ -149,9 +197,48 @@ const createTransaction = async (dataTransaction) => {
 
 const createTransactionsBatch = async (userId, transactions) => {
   try {
+    let importedCount = 0;
+    let skippedDebtInstallments = 0;
+    let linkedDebtInstallments = 0;
+
     await Transaction.sequelize.transaction(async (databaseTransaction) => {
-      await Transaction.bulkCreate(
-        transactions.map((transaction) => ({
+      const debts = await Debt.findAll({
+        where: { user_id: Number(userId) },
+        include: [{ model: DebtInstallment, as: "installments" }],
+        transaction: databaseTransaction,
+        lock: databaseTransaction.LOCK.UPDATE,
+      });
+      const rowsToCreate = [];
+      const installmentsToLink = [];
+      const reservedInstallments = new Set();
+
+      transactions.forEach((transaction) => {
+        const installment = findMatchingDebtInstallment(transaction, debts);
+        if (!installment) {
+          rowsToCreate.push(transaction);
+          return;
+        }
+
+        if (reservedInstallments.has(installment.id) || installment.transaction_id) {
+          skippedDebtInstallments += 1;
+          return;
+        }
+
+        if (!transaction.status) {
+          skippedDebtInstallments += 1;
+          return;
+        }
+
+        reservedInstallments.add(installment.id);
+        installmentsToLink.push({
+          installment,
+          transactionIndex: rowsToCreate.length,
+        });
+        rowsToCreate.push(transaction);
+      });
+
+      const createdTransactions = await Transaction.bulkCreate(
+        rowsToCreate.map((transaction) => ({
           value: String(transaction.value),
           typeId: transaction.typeId,
           category_id: null,
@@ -163,9 +250,40 @@ const createTransactionsBatch = async (userId, transactions) => {
         })),
         { transaction: databaseTransaction, validate: true },
       );
+
+      for (const { installment, transactionIndex } of installmentsToLink) {
+        const createdTransaction = createdTransactions[transactionIndex];
+        if (!createdTransaction?.id) {
+          throw new Error("Não foi possível vincular o pagamento importado à parcela correspondente.");
+        }
+
+        const [updatedInstallments] = await DebtInstallment.update(
+          {
+            status: "paid",
+            transaction_id: createdTransaction.id,
+            paid_at: new Date(),
+            auto_settle: true,
+          },
+          {
+            where: { id: installment.id, transaction_id: null },
+            transaction: databaseTransaction,
+          },
+        );
+        if (updatedInstallments !== 1) {
+          throw new Error("A parcela mudou durante a importação; nenhum lançamento foi importado.");
+        }
+        linkedDebtInstallments += 1;
+      }
+
+      importedCount = rowsToCreate.length;
     });
 
-    return { error: null, count: transactions.length };
+    return {
+      error: null,
+      count: importedCount,
+      skippedDebtInstallments,
+      linkedDebtInstallments,
+    };
   } catch (error) {
     console.error("Erro ao importar lote de transações:", error);
     return { error: "IMPORT_FAILED", message: "Não foi possível importar as transações." };

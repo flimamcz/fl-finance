@@ -5,6 +5,7 @@ const {
   searchTrasctions,
   createTrasaction,
   importTransactions,
+  importBackup,
   deleteTransaction,
   updateTransaction,
   getCategoriesByType,    // ✅ NOVO
@@ -35,6 +36,7 @@ router.post('/', authenticate, (req, res, next) => {
 }, createTrasaction);
 
 router.post('/import', authenticate, importTransactions);
+router.post('/import-backup', authenticate, importBackup);
 
 // PATCH /transactions - Atualizar transação
 router.patch('/', authenticate, (req, res, next) => {

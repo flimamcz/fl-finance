@@ -1,5 +1,6 @@
 // src/app/controllers/Transaction.controller.js - VERSÃO COM CATEGORIAS
 const transactionService = require("../services/Transaction.service");
+const backupImportService = require("../services/BackupImport.service");
 
 const searchTrasctions = async (req, res) => {
   try {
@@ -207,10 +208,32 @@ const importTransactions = async (req, res) => {
       return res.status(500).json({ error: true, message: result.message });
     }
 
-    return res.status(201).json({ error: false, count: result.count });
+    return res.status(201).json({
+      error: false,
+      count: result.count,
+      skippedDebtInstallments: result.skippedDebtInstallments,
+      linkedDebtInstallments: result.linkedDebtInstallments,
+    });
   } catch (error) {
     console.error("Erro ao importar transações:", error);
     return res.status(500).json({ error: true, message: "Erro interno ao importar transações." });
+  }
+};
+
+const importBackup = async (req, res) => {
+  try {
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ error: true, message: "Usuário não autenticado." });
+    }
+
+    const result = await backupImportService.importBackup(req.user.id, req.body?.backup);
+    return res.status(201).json({ error: false, ...result });
+  } catch (error) {
+    if (error.name === "BackupValidationError") {
+      return res.status(400).json({ error: true, message: error.message });
+    }
+    console.error("Erro ao restaurar backup:", error);
+    return res.status(500).json({ error: true, message: "Erro interno ao restaurar o backup. Nenhum dado foi gravado." });
   }
 };
 
@@ -477,6 +500,7 @@ module.exports = {
   searchTrasctions,
   createTrasaction,
   importTransactions,
+  importBackup,
   deleteTransaction,
   updateTransaction,
   getCategoriesByType,    // ✅ NOVO

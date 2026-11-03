@@ -87,6 +87,7 @@ export const parseImportDate = (value) => {
 const parseTransactionType = (typeValue, signedAmount, description) => {
   const type = normalizeText(typeValue);
   const descriptionText = normalizeText(description);
+  if (type === "resgate") return { typeId: 1, inferred: false };
   if (/(invest|aporte|aplicacao|buy(mf|stock|debt|other|opt)|reinvest)/.test(type)) return { typeId: 3, inferred: false };
   if (/^(receita|income|credit|credito|deposit|directdep|salary|entrada|div|int)/.test(type)) return { typeId: 1, inferred: false };
   if (/^(despesa|expense|debit|debito|withdrawal|withdraw|payment|purchase|saque|saida|check|atm|pos|fee|srvchg|directdebit)/.test(type)) return { typeId: 2, inferred: false };
@@ -160,6 +161,8 @@ const makeImportRow = ({ date, description, signedAmount, type, status, isSalary
 };
 
 const findCSVColumns = (headers) => ({
+  group: findHeader(headers, ["grupo", "group"]),
+  id: findHeader(headers, ["id"]),
   date: findHeader(headers, ["data", "date", "dtposted", "posteddate", "transactiondate", "datadatransacao"]),
   description: findHeader(headers, ["descricao", "description", "memo", "payee", "name", "historico", "history", "details", "merchant", "lancamento"]),
   amount: findHeader(headers, ["valor", "amount", "value", "trnamt", "transactionamount", "montante"]),
@@ -168,7 +171,158 @@ const findCSVColumns = (headers) => ({
   type: findHeader(headers, ["tipo", "type", "transactiontype", "natureza"]),
   status: findHeader(headers, ["status", "situacao"]),
   isSalary: findHeader(headers, ["salario", "salary", "issalary"]),
+  details: findHeader(headers, ["detalhes", "details"]),
 });
+
+const parseBackupDetails = (value, lineNumber) => {
+  if (!String(value ?? "").trim()) return {};
+  try {
+    const details = JSON.parse(value);
+    if (!details || typeof details !== "object" || Array.isArray(details)) {
+      throw new Error("Os detalhes precisam ser um objeto.");
+    }
+    return details;
+  } catch (error) {
+    throw new Error(`Linha ${lineNumber}: detalhes do backup inválidos (${error.message}).`);
+  }
+};
+
+const parseBackupCSV = ({ data, errors, meta }) => {
+  const columns = findCSVColumns(meta.fields || []);
+  if (errors.length) {
+    const firstError = errors[0];
+    throw new Error(`CSV inválido na linha ${firstError.row + 2}: ${firstError.message}`);
+  }
+  const backup = {
+    transactions: [],
+    debts: [],
+    installments: [],
+    investments: [],
+    categories: [],
+  };
+  const issues = [];
+
+  data.forEach((record, index) => {
+    const lineNumber = index + 2;
+    const group = normalizeText(record[columns.group]);
+    if (!group) {
+      const hasContent = Object.values(record).some((value) => String(value ?? "").trim() !== "");
+      if (hasContent) throw new Error(`Linha ${lineNumber}: grupo do registro ausente.`);
+      return;
+    }
+    const sourceId = String(record[columns.id] ?? "").trim();
+    const details = parseBackupDetails(record[columns.details], lineNumber);
+    const date = parseImportDate(record[columns.date]);
+    const description = String(record[columns.description] ?? "").trim();
+    const amount = parseImportAmount(record[columns.amount]);
+    const type = String(record[columns.type] ?? "").trim();
+
+    if (!sourceId) throw new Error(`Linha ${lineNumber}: o ID do registro está ausente.`);
+
+    if (group === normalizeText("Transação")) {
+      const row = makeImportRow({
+        date,
+        description,
+        signedAmount: amount,
+        type,
+        status: record[columns.status],
+        isSalary: details.salary,
+        sourceId,
+      }, index);
+      if (!row) throw new Error(`Linha ${lineNumber}: transação do backup inválida.`);
+      backup.transactions.push({
+        sourceId,
+        date: row.date,
+        description: row.description,
+        value: row.value,
+        typeId: row.typeId,
+        status: row.status,
+        isSalary: row.isSalary,
+        category: String(details.category ?? "").trim(),
+      });
+      return;
+    }
+
+    if (group === normalizeText("Dívida")) {
+      const installmentCount = Number(details.installmentCount ?? 1);
+      if (!date || !description || !Number.isFinite(amount) || amount <= 0
+        || !Number.isInteger(installmentCount) || installmentCount < 1) {
+        throw new Error(`Linha ${lineNumber}: dívida do backup inválida.`);
+      }
+      backup.debts.push({
+        sourceId,
+        name: description,
+        creditor: String(details.creditor ?? "").trim(),
+        amount,
+        firstDueDate: date,
+        recurring: normalizeText(type) === normalizeText("Recorrente"),
+        installmentCount,
+      });
+      return;
+    }
+
+    if (group === normalizeText("Parcela")) {
+      const installmentNumber = Number(type.split("/")[0]);
+      if (!date || !description || !Number.isFinite(amount) || amount <= 0
+        || !Number.isInteger(installmentNumber) || installmentNumber < 1
+        || details.debtId == null) {
+        throw new Error(`Linha ${lineNumber}: parcela do backup inválida.`);
+      }
+      backup.installments.push({
+        sourceId,
+        debtSourceId: String(details.debtId),
+        installmentNumber,
+        dueDate: date,
+        amount,
+        status: parseBoolean(record[columns.status], false) ? "paid" : "pending",
+        autoSettle: parseBoolean(details.autoSettle, false),
+        transactionSourceId: details.transactionId == null ? null : String(details.transactionId),
+        paidAt: details.paidAt || null,
+      });
+      return;
+    }
+
+    if (group === normalizeText("Investimento")) {
+      if (!date || !Number.isFinite(amount) || amount <= 0) {
+        throw new Error(`Linha ${lineNumber}: movimentação de investimento inválida.`);
+      }
+      const normalizedType = normalizeText(type);
+      if (!["aporte", "resgate"].includes(normalizedType)) {
+        throw new Error(`Linha ${lineNumber}: tipo de movimentação de investimento não reconhecido.`);
+      }
+      backup.investments.push({
+        sourceId,
+        transactionSourceId: details.transactionId == null ? null : String(details.transactionId),
+        date,
+        description,
+        amount,
+        type: normalizedType === "aporte" ? "contribution" : "withdrawal",
+      });
+      return;
+    }
+
+    if (group === normalizeText("Categoria")) {
+      const typeId = Number(details.typeId);
+      if (!description || ![1, 2, 3].includes(typeId)) {
+        throw new Error(`Linha ${lineNumber}: categoria do backup inválida.`);
+      }
+      backup.categories.push({
+        sourceId,
+        name: description,
+        typeId,
+        icon: String(details.icon ?? "").trim(),
+        color: String(details.color ?? "").trim(),
+      });
+      return;
+    }
+
+    throw new Error(`Linha ${lineNumber}: grupo "${record[columns.group]}" não reconhecido; nenhum dado foi descartado.`);
+  });
+
+  const totalRecords = Object.values(backup).reduce((total, records) => total + records.length, 0);
+  if (!totalRecords) throw new Error("O CSV de backup não contém registros importáveis.");
+  return { rows: [], backup, issues };
+};
 
 export const parseCSVText = (text) => new Promise((resolve, reject) => {
   Papa.parse(text, {
@@ -178,6 +332,13 @@ export const parseCSVText = (text) => new Promise((resolve, reject) => {
     complete: ({ data, errors, meta }) => {
       try {
         const columns = findCSVColumns(meta.fields || []);
+        if (columns.group && columns.id && columns.details) {
+          if (data.length > 5000) {
+            throw new Error(`O backup contém ${data.length} linhas. Importe no máximo 5.000 por vez.`);
+          }
+          resolve(parseBackupCSV({ data, errors, meta }));
+          return;
+        }
         if (!columns.date || !columns.description || (!columns.amount && !columns.debit && !columns.credit)) {
           throw new Error("Não encontrei as colunas necessárias. O CSV precisa ter data, descrição e valor ou colunas de débito/crédito.");
         }
@@ -186,8 +347,15 @@ export const parseCSVText = (text) => new Promise((resolve, reject) => {
         }
 
         const rows = [];
-        const issues = errors.map((error) => `Linha ${error.row + 2}: ${error.message}`);
+        const issues = errors
+          .filter((error) => error.code !== "TooFewFields")
+          .map((error) => `Linha ${error.row + 2}: ${error.message}`);
         data.forEach((record, index) => {
+          const hasContent = Object.values(record).some((value) => String(value ?? "").trim() !== "");
+          if (!hasContent) return;
+
+          const date = record[columns.date];
+          const description = record[columns.description];
           let signedAmount = columns.amount ? parseImportAmount(record[columns.amount]) : null;
           if (signedAmount === null && (columns.debit || columns.credit)) {
             const debit = columns.debit ? parseImportAmount(record[columns.debit]) : null;
@@ -197,8 +365,8 @@ export const parseCSVText = (text) => new Promise((resolve, reject) => {
           }
 
           const row = makeImportRow({
-            date: record[columns.date],
-            description: record[columns.description],
+            date,
+            description,
             signedAmount,
             type: columns.type ? record[columns.type] : "",
             status: columns.status ? record[columns.status] : undefined,
@@ -206,7 +374,13 @@ export const parseCSVText = (text) => new Promise((resolve, reject) => {
           }, index);
 
           if (row) rows.push(row);
-          else issues.push(`Linha ${index + 2}: data, descrição ou valor ausente/inválido.`);
+          else {
+            const missingFields = [];
+            if (!parseImportDate(date)) missingFields.push("data ausente ou inválida");
+            if (!String(description ?? "").trim()) missingFields.push("descrição ausente");
+            if (signedAmount === null || signedAmount === 0) missingFields.push("valor ausente ou inválido");
+            issues.push(`Linha ${index + 2}: ${missingFields.join(", ") || "registro inválido"}.`);
+          }
         });
 
         if (!rows.length) throw new Error(issues[0] || "Nenhuma transação válida foi encontrada no CSV.");
