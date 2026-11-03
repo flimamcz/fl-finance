@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101a30">
+  <meta name="description" content="Roadmap prático para publicar o FinFlow com frontend, API e banco separados, incluindo CORS, HTTPS, TLS, migrações e segurança.">
+  <title>Roadmap de produção — FinFlow</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17233c;
+      --muted: #64728a;
+      --line: #e2e8f1;
+      --paper: #f5f7fb;
+      --surface: #fff;
+      --navy: #101a30;
+      --blue: #477be1;
+      --cyan: #4bc4d5;
+      --green: #15745f;
+      --amber: #926016;
+      --red: #a63d42;
+      --shadow: 0 18px 48px rgba(27, 47, 82, .09);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 28px; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font: 15px/1.65 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    a { color: #285db5; text-underline-offset: 3px; }
+    a:hover { color: #183f85; }
+    code, pre { font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace; }
+    code {
+      padding: .12em .38em;
+      border: 1px solid #e4e9f1;
+      border-radius: 5px;
+      background: #f3f6fa;
+      color: #23416d;
+      font-size: .88em;
+      overflow-wrap: anywhere;
+    }
+    .hero {
+      position: relative;
+      overflow: hidden;
+      padding: 48px max(24px, calc((100vw - 1180px) / 2)) 46px;
+      background:
+        radial-gradient(ellipse at 82% 10%, rgba(71, 123, 225, .27), transparent 34%),
+        radial-gradient(ellipse at 69% 90%, rgba(75, 196, 213, .13), transparent 30%),
+        var(--navy);
+      color: #f7faff;
+    }
+    .hero::after {
+      position: absolute;
+      right: -80px;
+      bottom: -180px;
+      width: 580px;
+      height: 360px;
+      border: 1px solid rgba(126, 171, 249, .18);
+      border-radius: 50%;
+      box-shadow: 0 0 0 34px rgba(126, 171, 249, .035), 0 0 0 72px rgba(126, 171, 249, .025);
+      content: "";
+      transform: rotate(-18deg);
+      pointer-events: none;
+    }
+    .hero-inner { position: relative; z-index: 1; width: min(100%, 1180px); margin: 0 auto; }
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: #dce8ff;
+      font-size: 13px;
+      font-weight: 750;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+    .brand-mark {
+      display: grid;
+      width: 32px;
+      height: 32px;
+      place-items: center;
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: 10px;
+      background: linear-gradient(145deg, rgba(89,145,244,.36), rgba(56,198,211,.18));
+      color: #dffbff;
+      font-size: 18px;
+    }
+    .hero-grid { display: grid; grid-template-columns: minmax(0, 1fr) 300px; align-items: end; gap: 52px; margin-top: 50px; }
+    .eyebrow { margin: 0 0 12px; color: #8db4ff; font-size: 11px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
+    h1 { max-width: 760px; margin: 0; font-size: clamp(36px, 5vw, 58px); font-weight: 760; letter-spacing: -.055em; line-height: 1.08; }
+    .hero-copy { max-width: 690px; margin: 20px 0 0; color: #bdc9df; font-size: 17px; }
+    .hero-meta { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 25px; }
+    .pill { display: inline-flex; align-items: center; gap: 7px; padding: 6px 10px; border: 1px solid rgba(220,232,255,.17); border-radius: 99px; background: rgba(255,255,255,.055); color: #dce8ff; font-size: 11px; font-weight: 650; }
+    .print-button { margin-top: 21px; padding: 9px 13px; border: 1px solid rgba(220,232,255,.22); border-radius: 8px; background: rgba(255,255,255,.09); color: #f7faff; font: inherit; font-size: 11px; font-weight: 700; cursor: pointer; }
+    .print-button:hover { background: rgba(255,255,255,.16); }
+    .pulse { width: 7px; height: 7px; border-radius: 50%; background: #5bd0b0; box-shadow: 0 0 0 4px rgba(91,208,176,.12); }
+    .hero-card { padding: 19px; border: 1px solid rgba(220,232,255,.14); border-radius: 16px; background: rgba(255,255,255,.055); backdrop-filter: blur(12px); }
+    .hero-card small { color: #9cacc6; font-size: 10px; font-weight: 750; letter-spacing: .11em; text-transform: uppercase; }
+    .stack { display: grid; gap: 9px; margin-top: 13px; }
+    .stack-row { display: flex; align-items: center; gap: 10px; color: #eaf1ff; font-size: 12px; font-weight: 650; }
+    .stack-icon { display: grid; width: 28px; height: 28px; place-items: center; border: 1px solid rgba(220,232,255,.13); border-radius: 8px; background: rgba(255,255,255,.06); color: #90b8ff; font-size: 11px; font-weight: 800; }
+    .stack-row span:last-child { margin-left: auto; color: #92a4c1; font-size: 10px; font-weight: 500; }
+    .layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 34px; width: min(1180px, calc(100% - 48px)); margin: 34px auto 80px; align-items: start; }
+    .side { position: sticky; top: 22px; display: grid; gap: 16px; }
+    .side-card, .content-card { border: 1px solid var(--line); border-radius: 15px; background: var(--surface); box-shadow: 0 4px 18px rgba(27,47,82,.035); }
+    .side-card { padding: 16px; }
+    .side-title { margin: 0 0 11px; color: #8995a8; font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    .side nav { display: grid; gap: 3px; }
+    .side nav a { padding: 7px 9px; border-radius: 7px; color: #53617a; font-size: 12px; font-weight: 620; text-decoration: none; }
+    .side nav a:hover { background: #f0f4fb; color: #244e99; }
+    .side-note { padding: 14px; border: 1px solid #f0dfb8; border-radius: 12px; background: #fffaf0; color: #72521f; font-size: 11px; line-height: 1.55; }
+    .side-note strong { display: block; margin-bottom: 5px; font-size: 12px; }
+    main { min-width: 0; }
+    .notice { display: grid; grid-template-columns: 34px minmax(0,1fr); gap: 12px; margin-bottom: 18px; padding: 18px; border: 1px solid #f0d8a8; border-radius: 14px; background: linear-gradient(110deg, #fffaf0, #fff); }
+    .notice-icon { display: grid; width: 32px; height: 32px; place-items: center; border-radius: 9px; background: #fff0cf; color: var(--amber); font-weight: 850; }
+    .notice strong { display: block; margin: 1px 0 3px; color: #674915; font-size: 13px; }
+    .notice p { margin: 0; color: #765f36; font-size: 12px; }
+    .content-card { margin-bottom: 18px; padding: clamp(20px, 3vw, 30px); }
+    .section-head { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 19px; }
+    .section-number { display: grid; flex: 0 0 36px; width: 36px; height: 36px; place-items: center; border: 1px solid #dce7f8; border-radius: 11px; background: #f0f5ff; color: #3269c8; font-size: 12px; font-weight: 800; }
+    h2 { margin: 0; font-size: 21px; letter-spacing: -.03em; line-height: 1.25; }
+    h3 { margin: 0 0 7px; font-size: 14px; letter-spacing: -.01em; }
+    .section-head p { margin: 5px 0 0; color: var(--muted); font-size: 12px; }
+    p { margin-top: 0; }
+    .providers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 11px; }
+    .provider { min-width: 0; padding: 15px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
+    .provider-top { display: flex; align-items: center; gap: 9px; margin-bottom: 11px; }
+    .provider-logo { display: grid; width: 30px; height: 30px; place-items: center; border-radius: 9px; background: #edf3ff; color: #3269c8; font-size: 11px; font-weight: 850; }
+    .provider h3 { margin: 0; font-size: 13px; }
+    .provider .type { display: block; color: #8a96a9; font-size: 10px; }
+    .provider p { min-height: 60px; margin: 0; color: var(--muted); font-size: 11px; line-height: 1.55; }
+    .provider a { display: inline-block; margin-top: 10px; font-size: 11px; font-weight: 700; }
+    .tag { display: inline-flex; margin-bottom: 8px; padding: 3px 7px; border-radius: 99px; background: #eaf6f1; color: #17684f; font-size: 9px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+    .tag.warn { background: #fff2dc; color: #865a12; }
+    .sequence { display: grid; gap: 13px; counter-reset: step; }
+    .step { position: relative; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 12px; counter-increment: step; }
+    .step:not(:last-child)::after { position: absolute; top: 29px; bottom: -14px; left: 13px; width: 1px; background: #dfe7f3; content: ""; }
+    .step-dot { position: relative; z-index: 1; display: grid; width: 27px; height: 27px; place-items: center; border: 1px solid #d9e5f8; border-radius: 50%; background: #f3f7ff; color: #3269c8; font-size: 10px; font-weight: 800; }
+    .step-dot::before { content: counter(step); }
+    .step-body { min-width: 0; padding: 2px 0 3px; }
+    .step-body > p { margin: 0 0 8px; color: var(--muted); font-size: 12px; }
+    .step-body ul { margin: 6px 0 0; padding-left: 18px; color: #58667c; font-size: 11px; }
+    .step-body li { margin: 4px 0; }
+    .codeblock { position: relative; margin: 10px 0; padding: 13px 15px; overflow-x: auto; border: 1px solid #263553; border-radius: 10px; background: #111d33; color: #dce7fb; font-size: 11px; line-height: 1.65; white-space: pre; }
+    .codeblock code { padding: 0; border: 0; background: none; color: inherit; font-size: inherit; }
+    .env-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    .env-table th, .env-table td { padding: 10px 9px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    .env-table th { color: #748198; font-size: 9px; letter-spacing: .08em; text-transform: uppercase; }
+    .env-table td:first-child { width: 185px; white-space: nowrap; }
+    .env-table tr:last-child td { border-bottom: 0; }
+    .callout { margin: 12px 0 0; padding: 12px 14px; border-left: 3px solid #70a0ee; border-radius: 0 8px 8px 0; background: #f2f6fd; color: #52637e; font-size: 11px; }
+    .callout.warn { border-left-color: #dfa844; background: #fff9ec; color: #705726; }
+    .checklist { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; }
+    .check { display: flex; align-items: flex-start; gap: 9px; padding: 10px; border: 1px solid var(--line); border-radius: 9px; color: #53617a; font-size: 11px; }
+    .check input { flex: 0 0 auto; margin: 2px 0 0; accent-color: #2a7b67; }
+    .refs { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px 16px; margin: 0; padding: 0; list-style: none; }
+    .refs a { font-size: 11px; font-weight: 650; }
+    .refs span { display: block; color: #8995a8; font-size: 10px; }
+    .footer { padding: 22px 0 4px; color: #8591a4; font-size: 10px; text-align: center; }
+    .small { color: #8490a3; font-size: 10px; }
+    .divider { height: 1px; margin: 18px 0; background: var(--line); }
+    @media (max-width: 900px) {
+      .hero-grid { grid-template-columns: minmax(0,1fr) 260px; gap: 24px; }
+      .layout { grid-template-columns: 1fr; }
+      .side { position: static; grid-template-columns: minmax(0,1fr) minmax(220px,.7fr); }
+      .side nav { grid-template-columns: repeat(2,minmax(0,1fr)); }
+    }
+    @media (max-width: 640px) {
+      .hero { padding: 28px 20px 30px; }
+      .hero-grid { grid-template-columns: 1fr; gap: 22px; margin-top: 34px; }
+      .hero-card { grid-row: 2; }
+      .hero-copy { font-size: 15px; }
+      .hero-card { max-width: 100%; }
+      .layout { width: min(100% - 28px, 1180px); margin-top: 18px; }
+      .side { grid-template-columns: 1fr; gap: 10px; }
+      .side-card { padding: 12px; }
+      .side nav { grid-template-columns: repeat(2,minmax(0,1fr)); }
+      .providers { grid-template-columns: 1fr; }
+      .provider p { min-height: 0; }
+      .checklist, .refs { grid-template-columns: 1fr; }
+      .content-card { padding: 18px 15px; }
+      .env-table { display: block; overflow-x: auto; }
+      .env-table td:first-child { width: auto; }
+      h2 { font-size: 19px; }
+    }
+    @media print {
+      body { background: #fff; font-size: 11px; }
+      .hero { padding: 28px; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      .hero-grid { margin-top: 20px; }
+      .layout { display: block; width: auto; margin: 18px; }
+      .side { display: none; }
+      .content-card, .notice { break-inside: avoid; box-shadow: none; }
+      a { color: inherit; }
+      .footer { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-inner">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">↗</span> FinFlow · guia de publicação</div>
+      <div class="hero-grid">
+        <div>
+          <p class="eyebrow">Da máquina local à web</p>
+          <h1>Seu roadmap de produção, com segurança em cada etapa.</h1>
+          <p class="hero-copy">Um roteiro prático para publicar frontend, API e banco de dados em serviços separados — com CORS, HTTPS, TLS, segredos, migrações e uma verificação final.</p>
+          <div class="hero-meta">
+            <span class="pill"><i class="pulse" aria-hidden="true"></i> Adaptado à arquitetura atual do FinFlow</span>
+            <span class="pill">Revisado em 03 nov 2026</span>
+          </div>
+          <button class="print-button" type="button" onclick="window.print()">Imprimir / salvar como PDF</button>
+        </div>
+        <aside class="hero-card" aria-label="Arquitetura recomendada">
+          <small>Arquitetura sugerida</small>
+          <div class="stack">
+            <div class="stack-row"><span class="stack-icon">UI</span> React + Vite <span>Vercel</span></div>
+            <div class="stack-row"><span class="stack-icon">API</span> Node + Express <span>Render</span></div>
+            <div class="stack-row"><span class="stack-icon">DB</span> MySQL-compatible <span>TiDB</span></div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="side">
+      <div class="side-card">
+        <p class="side-title">Neste guia</p>
+        <nav aria-label="Navegação do roadmap">
+          <a href="#decisao">01 · Hospedagem</a>
+          <a href="#limites">02 · Limites do gratuito</a>
+          <a href="#preparacao">03 · Preparação</a>
+          <a href="#database">04 · Banco e TLS</a>
+          <a href="#backend">05 · API, CORS e HTTPS</a>
+          <a href="#frontend">06 · Frontend</a>
+          <a href="#validacao">07 · Validação</a>
+          <a href="#seguranca">08 · Segurança contínua</a>
+          <a href="#fontes">Fontes oficiais</a>
+        </nav>
+      </div>
+      <div class="side-note">
+        <strong>Antes de publicar</strong>
+        Este projeto guarda dados financeiros. “Grátis” é adequado para ensaio com dados fictícios; não significa backup, disponibilidade ou suporte de produção.
+      </div>
+    </aside>
+
+    <main>
+      <div class="notice">
+        <span class="notice-icon" aria-hidden="true">!</span>
+        <div>
+          <strong>Recomendação honesta: valide primeiro com dados fictícios</strong>
+          <p>O plano gratuito do Render é explicitamente destinado a testes/hobby, pode suspender serviços ociosos e não oferece disco persistente. O TiDB Starter também tem cotas e pode bloquear novas conexões ao excedê-las. Para dados financeiros reais, migre para planos com SLA, backups verificáveis e monitoramento antes de convidar usuários.</p>
+        </div>
+      </div>
+
+      <section class="content-card" id="decisao">
+        <div class="section-head">
+          <span class="section-number">01</span>
+          <div><h2>Onde hospedar cada parte</h2><p>Separar os serviços facilita deploys, mas exige configurar as URLs e a confiança entre eles.</p></div>
+        </div>
+        <div class="providers">
+          <article class="provider">
+            <span class="tag">Frontend · gratuito</span>
+            <div class="provider-top"><span class="provider-logo">V</span><div><h3>Vercel Hobby</h3><span class="type">React + Vite / arquivos estáticos</span></div></div>
+            <p>Conecta ao GitHub e publica a pasta <code>frontend</code>. Fornece domínio <code>vercel.app</code> e TLS/HTTPS gerenciado.</p>
+            <a href="https://vercel.com/pricing" target="_blank" rel="noreferrer">Ver plano e cotas ↗</a>
+          </article>
+          <article class="provider">
+            <span class="tag warn">API · ensaio grátis</span>
+            <div class="provider-top"><span class="provider-logo">R</span><div><h3>Render Free Web Service</h3><span class="type">Node.js + Express</span></div></div>
+            <p>Deploy do diretório <code>backend</code>; recebe <code>PORT</code> automaticamente. Pode “dormir” após inatividade e demorar a voltar.</p>
+            <a href="https://render.com/docs/free" target="_blank" rel="noreferrer">Ver limites do gratuito ↗</a>
+          </article>
+          <article class="provider">
+            <span class="tag warn">Banco · cota gratuita</span>
+            <div class="provider-top"><span class="provider-logo">T</span><div><h3>TiDB Cloud Starter</h3><span class="type">Compatível com protocolo MySQL</span></div></div>
+            <p>Alternativa MySQL gerenciada. Exige conexão TLS; tem cota mensal, sem equivaler a uma garantia de backup/produção.</p>
+            <a href="https://docs.pingcap.com/tidbcloud/select-cluster-tier/" target="_blank" rel="noreferrer">Ver plano e cotas ↗</a>
+          </article>
+        </div>
+        <p class="small" style="margin:14px 0 0">Outra opção para arquivos estáticos: Render Static Site. Revise termos, disponibilidade regional, limites e eventual exigência de cartão antes de cadastrar o projeto; provedores alteram seus planos.</p>
+      </section>
+
+      <section class="content-card" id="limites">
+        <div class="section-head">
+          <span class="section-number">02</span>
+          <div><h2>O que “grátis” significa na prática</h2><p>Planeje as limitações antes que elas virem indisponibilidade ou perda de dados.</p></div>
+        </div>
+        <div class="checklist">
+          <div class="check"><span>⏱</span><span><strong>Render Free:</strong> serviço web pode dormir após 15 minutos sem tráfego; a próxima chamada pode aguardar cerca de um minuto.</span></div>
+          <div class="check"><span>💾</span><span><strong>Disco:</strong> o filesystem do serviço Render é efêmero. Não use SQLite, arquivos locais ou uploads como armazenamento permanente.</span></div>
+          <div class="check"><span>📦</span><span><strong>Render Postgres gratuito:</strong> não serve como banco permanente; a documentação atual informa expiração após 30 dias. Não é compatível com o MySQL que este app usa.</span></div>
+          <div class="check"><span>🧮</span><span><strong>TiDB Starter MySQL:</strong> a documentação informa 5 GiB de armazenamento e 50 milhões de RUs/mês por instância elegível; ao atingir a cota, novas conexões podem ser negadas até o reset/upgrade.</span></div>
+          <div class="check"><span>🔁</span><span><strong>Rotinas:</strong> o backend executa liquidação de parcelas por timer. Um serviço gratuito que dorme não executa tarefas de forma contínua; teste o fluxo e não dependa de horário exato.</span></div>
+          <div class="check"><span>🛟</span><span><strong>Backups:</strong> exporte e teste a restauração. Não assuma retenção, backup automático ou SLA no free tier.</span></div>
+        </div>
+      </section>
+
+      <section class="content-card" id="preparacao">
+        <div class="section-head">
+          <span class="section-number">03</span>
+          <div><h2>Preparação no repositório</h2><p>Faça isso antes de conectar serviços públicos ao banco.</p></div>
+        </div>
+        <div class="sequence">
+          <div class="step"><span class="step-dot"></span><div class="step-body"><h3>Confirme o estado local</h3><p>Rode frontend e backend localmente, valide login, setup inicial, criação/edição de transação, dívidas, investimentos, importação e exportação.</p></div></div>
+          <div class="step"><span class="step-dot"></span><div class="step-body"><h3>Confira o ponto de partida</h3><ul>
+            <li>Frontend: <code>frontend</code>, comando de build <code>npm run build</code>, saída <code>dist</code>.</li>
+            <li>API: <code>backend</code>, inicia com <code>npm start</code>, escuta <code>PORT</code> e <code>0.0.0.0</code>.</li>
+            <li>O backend lê variáveis do ambiente e, localmente, o arquivo <code>.env</code> na raiz do repositório.</li>
+            <li>As migrações ficam em <code>backend/src/migrations</code>; o script existente é <code>npm run db:migrate</code>.</li>
+          </ul></div></div>
+          <div class="step"><span class="step-dot"></span><div class="step-body"><h3>Prepare o Git com segurança</h3><p>Faça push para um repositório privado, se preferir. Verifique que <code>.env</code>, senhas, dumps do banco e chaves JWT não estão commitados. Nunca use variáveis <code>VITE_*</code> para segredos: elas podem ser incorporadas no JavaScript público.</p></div></div>
+        </div>
+      </section>
+
+      <section class="content-card" id="database">
+        <div class="section-head">
+          <span class="section-number">04</span>
+          <div><h2>Crie o banco e prepare TLS</h2><p>O código atual usa Sequelize + mysql2; o TiDB exige conexão criptografada.</p></div>
+        </div>
+        <div class="sequence">
+          <div class="step"><span class="step-dot"></span><div class="step-body"><h3>Crie uma instância MySQL-compatible</h3><p>No console TiDB Cloud, crie TiDB Cloud Starter em uma região próxima do serviço da API. Salve host, usuário com prefixo da instância, senha e nome do banco. Crie o banco no console, se necessário, e limite o usuário às permissões necessárias.</p></div></div>
+          <div class="step"><span class="step-dot"></span><div class="step-body"><h3>Habilite TLS no Sequelize</h3><p>Antes de migrar, ajuste <code>backend/src/config/config.js</code>. Mantenha a verificação de certificado ligada; não use <code>rejectUnauthorized: false</code>.</p>
+            <pre class="codeblock"><code>const config = {
+  username: process.env.MYSQL_USER,
+  password: process.env.MYSQL_PASSWORD,
+  database: process.env.MYSQL_DATABASE,
+  host: process.env.MYSQL_HOST,
+  dialect: "mysql",
+  dialectOptions: {
+    ssl: {
+      minVersion: "TLSv1.2",
+      rejectUnauthorized: true
+    }
+  }
+};</code></pre>
+          </div></div>
+          <div class="step"><span class="step-dot"></span><div class="step-body"><h3>Habilite TLS também no script de migração</h3><p>Em <code>backend/scripts/db-migrate.js</code>, passe TLS na conexão <code>mysql2</code> usada para criar/verificar o banco:</p>
+            <pre class="codeblock"><code>const connection = await mysql.createConnection({
+  host: process.env.MYSQL_HOST,
+  user: process.env.MYSQL_USER,
+  password: process.env.MYSQL_PASSWORD,
+  ssl: {
+    minVersion: "TLSv1.2",
+    rejectUnauthorized: true
+  }
+});</code></pre>
+            <p class="small">Confirme na tela “Connect” do TiDB o hostname, usuário e os parâmetros atualizados. O usuário normalmente inclui o prefixo de instância; copiar somente “root” pode falhar.</p>
+          </div></div>
+          <div class="step"><span class="step-dot"></span><div class="step-body"><h3>Migre e confira o schema</h3><p>Faça primeiro um backup/export. Configure temporariamente no seu terminal seguro <code>MYSQL_HOST</code>, <code>MYSQL_USER</code>, <code>MYSQL_PASSWORD</code> e <code>MYSQL_DATABASE</code> da instância de teste; na pasta <code>backend</code>, rode <code>npm.cmd run db:migrate</code>. O script cria o banco caso ainda não exista e aplica as migrations.</p><div class="callout warn">Teste todas as migrations neste provedor antes de importar dados reais: compatibilidade de protocolo MySQL não garante compatibilidade idêntica de cada operação SQL. Não rode <code>db:drop</code> contra produção.</div></div></div>
+          <div class="step"><span class="step-dot"></span><div class="step-body"><h3>Crie o administrador e migre seus dados, se houver</h3><p>Com schema vazio, use a tela <code>/setup</code> e confirme em <code>/auth/setup-status</code> que a configuração inicial foi concluída. Se já tem dados locais, exporte o backup completo pelo app, teste a restauração numa instância de ensaio e só então importe uma vez no ambiente final, conferindo transações, categorias, dívidas/parcelas e investimentos/movimentos relacionados.</p><div class="callout warn">A configuração inicial é um endpoint público de uso único: não compartilhe a URL do app/API antes de criar o administrador inicial. CORS não impede chamadas diretas de scripts ou servidores.</div></div></div>
+        </div>
+        <div class="callout">O TiDB documenta TLS obrigatório no Starter. A API e o comando de migração precisam usar TLS; configurar apenas HTTPS no navegador não protege a conexão backend↔banco.</div>
+      </section>
+
+      <section class="content-card" id="backend">
+        <div class="section-head">
+          <span class="section-number">05</span>
+          <div><h2>Publique a API: Node + Express no Render</h2><p>Crie um Web Service conectado ao repositório, selecionando como raiz o diretório <code>backend</code>.</p></div>
+        </div>
+        <div class="sequence">
+          <div class="step"><span class="step-dot"></span><div class="step-body"><h3>Configure build, start e health check</h3><ul>
+            <li>Runtime: Node. Root Directory: <code>backend</code>.</li>
+            <li>Build Command: <code>npm install</code>. Start Command: <code>npm start</code>.</li>
+            <li>Health Check Path: <code>/health</code>. O endpoint existente confirma que o processo HTTP responde; não testa a conexão ao banco.</li>
+            <li>Não fixe uma porta em código/plataforma: o servidor usa <code>process.env.PORT</code> e <code>0.0.0.0</code>.</li>
+          </ul></div></div>
+          <div class="step"><span class="step-dot"></span><div class="step-body"><h3>Cadastre variáveis no painel da API</h3><p>Use a área Environment do serviço. Valores são placeholders; os reais devem vir do console do banco e ser gerados por você.</p>
+            <table class="env-table">
+              <thead><tr><th>Variável</th><th>Valor no serviço backend</th><th>Nota</th></tr></thead>
+              <tbody>
+                <tr><td><code>NODE_ENV</code></td><td><code>production</code></td><td>Ativa configuração estrita de CORS.</td></tr>
+                <tr><td><code>JWT_SECRET</code></td><td>Segredo aleatório exclusivo, longo</td><td>Não reutilize o exemplo/local nem exponha no frontend.</td></tr>
+                <tr><td><code>MYSQL_HOST</code></td><td>Hostname de conexão do TiDB</td><td>Sem <code>https://</code>.</td></tr>
+                <tr><td><code>MYSQL_USER</code></td><td>Usuário completo fornecido pelo TiDB</td><td>Inclua o prefixo do cluster.</td></tr>
+                <tr><td><code>MYSQL_PASSWORD</code></td><td>Senha do usuário de aplicação</td><td>Secret do provedor, não Git.</td></tr>
+                <tr><td><code>MYSQL_DATABASE</code></td><td>Nome exato do banco</td><td>Schema já migrado.</td></tr>
+                <tr><td><code>FRONTEND_ORIGINS</code></td><td><code>https://seu-app.vercel.app</code></td><td>Origem exata, sem barra final; origens adicionais separadas por vírgula.</td></tr>
+                <tr><td><code>TRUST_PROXY</code></td><td><code>1</code></td><td>Somente se API estiver atrás do proxy gerenciado do host; o app usa um salto confiável.</td></tr>
+                <tr><td><code>PORT</code></td><td>Deixe o provedor definir</td><td>Render injeta a porta pública interna.</td></tr>
+              </tbody>
+            </table>
+            <div class="callout">Gere o JWT secret localmente com Node: <code>node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"</code>. Copie o resultado diretamente para o secret do Render; não salve em arquivo versionado.</div>
+          </div></div>
+          <div class="step"><span class="step-dot"></span><div class="step-body"><h3>Entenda CORS e HTTPS</h3><p>O código lê <code>FRONTEND_ORIGINS</code> e compara a origem exata. Quando <code>NODE_ENV=production</code>, não há origem local liberada por padrão. O HTTPS é terminado pelo Render; use somente a URL <code>https://…onrender.com</code> no frontend. Se conectar domínio próprio, cadastre também a nova origem exata no CORS.</p>
+            <ul><li>Não use <code>*</code> como origem em produção.</li><li>Não coloque caminho (<code>/home</code>) ou barra final no valor da origem.</li><li>URLs de Preview da Vercel não são automaticamente permitidas; mantenha produção e Preview controlados.</li><li>Não é necessário habilitar cookies cross-site para a autenticação Bearer deste app.</li></ul>
+          </div></div>
+          <div class="step"><span class="step-dot"></span><div class="step-body"><h3>Faça o primeiro deploy e anote a URL pública</h3><p>Após deploy bem-sucedido, teste <code>https://SUA-API.onrender.com/health</code>. Copie somente o hostname/URL HTTPS; será usado em <code>VITE_API_URL</code>.</p></div></div>
+        </div>
+      </section>
+
+      <section class="content-card" id="frontend">
+        <div class="section-head">
+          <span class="section-number">06</span>
+          <div><h2>Publique o React + Vite na Vercel</h2><p>É um frontend estático: a URL da API é compilada durante o build.</p></div>
+        </div>
+        <div class="sequence">
+          <div class="step"><span class="step-dot"></span><div class="step-body"><h3>Crie o projeto Vercel a partir do Git</h3><ul>
+            <li>Selecione o repositório e defina Root Directory como <code>frontend</code>.</li>
+            <li>Framework Preset: Vite (ou detecção automática).</li>
+            <li>Build Command: <code>npm run build</code>; Output Directory: <code>dist</code>.</li>
+            <li>Cadastre <code>VITE_API_URL=https://SUA-API.onrender.com</code> no ambiente Production.</li>
+          </ul><div class="callout warn"><code>VITE_API_URL</code> não é segredo; será público no bundle. Nunca cadastre JWT secret, senha SQL ou credenciais na Vercel.</div></div></div>
+          <div class="step"><span class="step-dot"></span><div class="step-body"><h3>Configure navegação SPA (React Router)</h3><p>Este app tem caminhos como <code>/home</code> e <code>/setup</code>. Para abrir ou atualizar uma rota diretamente na Vercel, adicione <code>frontend/vercel.json</code> com fallback para o index da SPA:</p>
+            <pre class="codeblock"><code>{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}</code></pre>
+          </div></div>
+          <div class="step"><span class="step-dot"></span><div class="step-body"><h3>Conecte a origem ao CORS e redeploy</h3><p>Copie a URL de produção da Vercel e atualize <code>FRONTEND_ORIGINS</code> no Render, sem barra final. Salve, deixe o backend redeployar e faça novo deploy do frontend se alterou <code>VITE_API_URL</code>. Vercel e Render fornecem TLS gerenciado nos seus domínios.</p></div></div>
+        </div>
+      </section>
+
+      <section class="content-card" id="validacao">
+        <div class="section-head">
+          <span class="section-number">07</span>
+          <div><h2>Validação de ponta a ponta</h2><p>Teste a publicação como se fosse uma pessoa usuária, sem dados reais inicialmente.</p></div>
+        </div>
+        <div class="checklist">
+          <label class="check"><input type="checkbox">A URL pública da API responde em <code>/health</code> usando HTTPS.</label>
+          <label class="check"><input type="checkbox">A URL do frontend abre e o certificado do navegador é válido.</label>
+          <label class="check"><input type="checkbox">Atualizar diretamente <code>/login</code>, <code>/home</code> e <code>/setup</code> não dá 404.</label>
+          <label class="check"><input type="checkbox">Setup inicial cria o administrador; confirme que não pode ser repetido após concluído.</label>
+          <label class="check"><input type="checkbox">Login, sessão, criação e edição de transação funcionam após reload.</label>
+          <label class="check"><input type="checkbox">CORS aceita o domínio oficial e rejeita uma origem desconhecida.</label>
+          <label class="check"><input type="checkbox">Uma operação de escrita persiste no banco após novo deploy/restart da API.</label>
+          <label class="check"><input type="checkbox">Importação, dívidas, parcelas, investimentos, exportação e recuperação de senha foram testados.</label>
+          <label class="check"><input type="checkbox">Valores e datas importados foram conferidos no banco e na tela.</label>
+          <label class="check"><input type="checkbox">Backup de teste foi exportado e uma restauração foi comprovada em instância separada.</label>
+        </div>
+        <p class="small" style="margin:13px 0 0">Os quadrinhos ajudam na revisão visual; não são enviados nem persistidos por este arquivo.</p>
+      </section>
+
+      <section class="content-card" id="seguranca">
+        <div class="section-head">
+          <span class="section-number">08</span>
+          <div><h2>Antes de colocar dados reais</h2><p>HTTPS é necessário, mas não basta para tornar um serviço financeiro pronto para produção.</p></div>
+        </div>
+        <div class="sequence">
+          <div class="step"><span class="step-dot"></span><div class="step-body"><h3>Troque o ambiente de ensaio por infraestrutura compatível com o risco</h3><p>Use backend sempre ligado, banco gerenciado com backups automáticos/retidos, restauração point-in-time quando disponível, alertas, cotas e uma política de recuperação testada. Avalie controles contratuais, residência dos dados, disponibilidade, suporte e requisitos legais aplicáveis.</p></div></div>
+          <div class="step"><span class="step-dot"></span><div class="step-body"><h3>Operação e segredos</h3><ul>
+            <li>Use credencial de banco exclusiva para a aplicação; evite usuário root e permissões globais.</li>
+            <li>Ative MFA nas contas de hospedagem/Git; restrinja colaboradores e tokens.</li>
+            <li>Gire credenciais se forem expostas; não envie dados financeiros ou tokens para logs.</li>
+            <li>Monitore falhas de login, erros 5xx, conexões DB e limites de uso; defina alertas de custo.</li>
+            <li>Faça atualizações de dependências e mantenha produção e Preview isolados.</li>
+          </ul></div></div>
+          <div class="step"><span class="step-dot"></span><div class="step-body"><h3>Revise tarefas agendadas e escala</h3><p>O servidor executa liquidação automática por <code>setInterval</code>. Serviços gratuitos podem pausar; múltiplas réplicas também podem executar a rotina ao mesmo tempo. Antes de escalar, transforme a tarefa em job idempotente/único e use scheduler/worker apropriado.</p></div></div>
+        </div>
+        <div class="callout warn">Não importe backup financeiro pessoal para uma infraestrutura de ensaio sem entender retenção, acesso e exclusão. Use dataset fictício até ter controles e restauração verificados.</div>
+      </section>
+
+      <section class="content-card" id="fontes">
+        <div class="section-head">
+          <span class="section-number">↗</span>
+          <div><h2>Fontes oficiais e leitura adicional</h2><p>Limites e condições consultados em 03/11/2026; confirme as páginas antes do deploy.</p></div>
+        </div>
+        <ul class="refs">
+          <li><a href="https://vercel.com/docs/frameworks/frontend/vite" target="_blank" rel="noreferrer">Vercel · Vite</a><span>Build, deploy e variáveis de ambiente</span></li>
+          <li><a href="https://vercel.com/docs/project-configuration/vercel-json" target="_blank" rel="noreferrer">Vercel · configuração e rewrites</a><span>Fallback de SPA com React Router</span></li>
+          <li><a href="https://vercel.com/pricing" target="_blank" rel="noreferrer">Vercel · planos e cotas</a><span>Hobby e uso incluído</span></li>
+          <li><a href="https://render.com/docs/web-services" target="_blank" rel="noreferrer">Render · Web Services</a><span>Root, comandos, porta e variáveis</span></li>
+          <li><a href="https://render.com/docs/free" target="_blank" rel="noreferrer">Render · limitações gratuitas</a><span>Sleep, filesystem efêmero e expiração do Postgres free</span></li>
+          <li><a href="https://render.com/docs/tls" target="_blank" rel="noreferrer">Render · TLS gerenciado</a><span>HTTPS e renovação automática</span></li>
+          <li><a href="https://render.com/docs/health-checks" target="_blank" rel="noreferrer">Render · health checks</a><span>Configuração de endpoint de saúde</span></li>
+          <li><a href="https://docs.pingcap.com/tidbcloud/select-cluster-tier/" target="_blank" rel="noreferrer">TiDB · planos Starter</a><span>Compatibilidade MySQL e cotas publicadas</span></li>
+          <li><a href="https://docs.pingcap.com/tidbcloud/secure-connections-to-serverless-clusters/" target="_blank" rel="noreferrer">TiDB · conexão TLS</a><span>Requisito TLS e autoridades certificadoras</span></li>
+        </ul>
+      </section>
+
+      <footer class="footer">FinFlow · roadmap técnico independente. Planos gratuitos mudam; disponibilidade, cotas e termos devem ser verificados no provedor antes da publicação.</footer>
+    </main>
+  </div>
+</body>
+</html>
