@@ -9,7 +9,8 @@ if (!process.env.JWT_SECRET) {
   process.exit(1);
 }
 
-const port = process.env.PORT || 3001;
+const port = Number(process.env.PORT) || 5000;
+const host = process.env.HOST || (process.env.NODE_ENV === "production" ? "0.0.0.0" : "127.0.0.1");
 const settleDebts = () => {
   settleDueInstallments().catch((error) => {
     console.error("Erro ao processar parcelas vencidas:", error);
@@ -23,15 +24,15 @@ setInterval(settleDebts, 60 * 1000);
 console.log('\n🚀 === INICIANDO SERVIDOR ===');
 console.log('📅', new Date().toISOString());
 console.log('⚙️  Ambiente:', process.env.NODE_ENV || 'development');
-console.log('🗄️  DB_HOST:', process.env.DB_HOST || 'NÃO DEFINIDO');
+console.log('🗄️  MYSQL_HOST:', process.env.MYSQL_HOST || 'NÃO DEFINIDO');
 
 // ================================
 // START SERVER (SEM IP FIXO)
 // ================================
-app.listen(port, "0.0.0.0", () => {
+app.listen(port, host, () => {
   console.log('\n✅ === SERVIDOR INICIADO ===');
-  console.log(`   🔗 Local:      http://localhost:${port}`);
-  console.log(`   🌐 Rede:       http://0.0.0.0:${port}`);
+  console.log(`   🔗 API:        http://localhost:${port}`);
+  console.log(`   🖥️  Bind:       ${host}:${port}`);
   console.log('\n📌 ENDPOINTS:');
   console.log(`   🔐 Auth:       http://localhost:${port}/auth`);
   console.log(`   💰 Transações: http://localhost:${port}/transactions`);

@@ -8,7 +8,7 @@ RUN npm install
 
 COPY . ./
 
-EXPOSE 3001
+EXPOSE 5000
 
 ENTRYPOINT [ "npm", "run" ]
 CMD [ "dev" ]

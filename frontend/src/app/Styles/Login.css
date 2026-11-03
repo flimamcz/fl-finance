@@ -1858,3 +1858,51 @@ input:focus-visible {
     min-height: 82px;
   }
 }
+
+/* Setup uses the same compact auth system as login/register, with room for its
+   four fields and a naturally sized card on short and narrow viewports. */
+.setup-page .login-layout {
+  min-height: 0;
+  align-items: stretch;
+}
+
+.setup-page .login-page-card {
+  align-items: center;
+}
+
+.setup-page .login-form {
+  min-width: 0;
+}
+
+.setup-page .input-group {
+  min-width: 0;
+}
+
+.setup-page .input-group input {
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.setup-page .setup-complete .login-button {
+  width: 100%;
+  margin: 0;
+}
+
+.setup-page .recovery-code {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 680px) {
+  .setup-page {
+    padding: max(12px, env(safe-area-inset-top, 0px)) 12px max(12px, env(safe-area-inset-bottom, 0px));
+  }
+
+  .setup-page .login-layout {
+    width: min(100%, 460px);
+  }
+
+  .setup-page .login-page-card {
+    width: auto;
+    margin: 0 8px 8px;
+  }
+}

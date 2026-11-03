@@ -17,7 +17,7 @@ if (process.env.TRUST_PROXY === "1") {
 
 const defaultOrigins = process.env.NODE_ENV === "production"
   ? ""
-  : "http://localhost:3000,http://localhost:5173";
+  : "http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173";
 const allowedOrigins = (process.env.FRONTEND_ORIGINS || defaultOrigins)
   .split(",")
   .map((origin) => origin.trim())

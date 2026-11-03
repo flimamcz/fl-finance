@@ -1,4 +1,11 @@
 /* Shared application palette: drawn from the navy and blue auth experience. */
+html,
+body,
+#root {
+  min-height: 100%;
+  margin: 0;
+}
+
 body.app-shell {
   --app-page: #f3f6fb;
   --app-surface: #ffffff;
