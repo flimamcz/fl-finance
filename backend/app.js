@@ -23,9 +23,14 @@ const allowedOrigins = (process.env.FRONTEND_ORIGINS || defaultOrigins)
   .map((origin) => origin.trim())
   .filter(Boolean);
 
+
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    console.warn(`CORS bloqueou origem: ${origin}`);
     return callback(null, false);
   },
   methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
@@ -33,6 +38,7 @@ app.use(cors({
   credentials: false,
   maxAge: 86400
 }));
+
 
 app.use((req, res, next) => {
   res.set("X-Content-Type-Options", "nosniff");
