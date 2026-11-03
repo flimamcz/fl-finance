@@ -1,4 +1,4 @@
-import { useContext, useEffect, useMemo, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   FiArrowDown,
@@ -9,6 +9,7 @@ import {
   FiChevronRight,
   FiDollarSign,
   FiInfo,
+  FiRefreshCw,
   FiTrendingDown,
   FiTrendingUp,
 } from "react-icons/fi";
@@ -45,6 +46,29 @@ const getMonthKeys = (count) => {
     const date = new Date(today.getFullYear(), today.getMonth() - count + index + 1, 1);
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
   });
+};
+
+const getPreviousMonthKeys = (monthKeys) => {
+  const [year, month] = monthKeys[0].split("-").map(Number);
+  return Array.from({ length: monthKeys.length }, (_, index) => {
+    const date = new Date(year, month - 1 - monthKeys.length + index + 1, 1);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+  });
+};
+
+const toDateKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+
+const shiftDateKey = (dateKey, days) => {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  const date = new Date(year, month - 1, day + days);
+  return toDateKey(date);
+};
+
+const getDateRangeKeys = (dayCount, endOffset = 0) => {
+  const endDate = shiftDateKey(toDateKey(new Date()), endOffset);
+  return Array.from({ length: dayCount }, (_, index) =>
+    shiftDateKey(endDate, index - dayCount + 1)
+  );
 };
 
 const formatMonth = (monthKey, options = { month: "short" }) => {
@@ -84,14 +108,16 @@ const getPercentageChange = (current, previous) => {
   return Math.round(((current - previous) / Math.abs(previous)) * 100);
 };
 
-const getConfirmedMonthTotals = (transactions, monthKey, lastDay) => {
+const getConfirmedPeriodTotals = (transactions, monthKeys, currentMonthKey = null, currentDay = null) => {
+  const includedMonths = new Set(monthKeys);
   const totals = { income: 0, expense: 0, investment: 0 };
   transactions.forEach((transaction) => {
     const dateKey = getDateKey(transaction.date);
+    const transactionMonth = dateKey.slice(0, 7);
     if (
       transaction.status !== true ||
-      dateKey.slice(0, 7) !== monthKey ||
-      Number(dateKey.slice(8, 10)) > lastDay
+      !includedMonths.has(transactionMonth) ||
+      (transactionMonth === currentMonthKey && Number(dateKey.slice(8, 10)) > currentDay)
     ) return;
 
     const typeId = Number(transaction.typeId);
@@ -102,6 +128,57 @@ const getConfirmedMonthTotals = (transactions, monthKey, lastDay) => {
   return totals;
 };
 
+const getTotalsForDateKeys = (transactions, dateKeys, confirmed) => {
+  const includedDates = new Set(dateKeys);
+  const totals = { income: 0, expense: 0, investment: 0 };
+  transactions.forEach((transaction) => {
+    if (transaction.status !== confirmed || !includedDates.has(getDateKey(transaction.date))) return;
+    const typeId = Number(transaction.typeId);
+    if (typeId === 1) totals.income += parseAmount(transaction.value);
+    if (typeId === 2) totals.expense += parseAmount(transaction.value);
+    if (typeId === 3) totals.investment += parseAmount(transaction.value);
+  });
+  return totals;
+};
+
+const getDateRangeChartData = (transactions, dateKeys, groupSize) => {
+  const buckets = [];
+  for (let index = 0; index < dateKeys.length; index += groupSize) {
+    const dates = dateKeys.slice(index, index + groupSize);
+    const firstDate = dates[0];
+    const lastDate = dates[dates.length - 1];
+    const [year, month, day] = firstDate.split("-").map(Number);
+    const label = groupSize === 1
+      ? new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short" }).format(new Date(year, month - 1, day))
+      : `${day}/${String(month).padStart(2, "0")}–${lastDate.slice(8, 10)}/${lastDate.slice(5, 7)}`;
+    buckets.push({
+      monthKey: firstDate,
+      month: label,
+      income: 0,
+      expense: 0,
+      investment: 0,
+      confirmedCount: 0,
+      pendingCount: 0,
+      projectedNet: null,
+    });
+  }
+
+  const dateIndexes = new Map(dateKeys.map((dateKey, index) => [dateKey, Math.floor(index / groupSize)]));
+  transactions.forEach((transaction) => {
+    if (transaction.status !== true) return;
+    const bucketIndex = dateIndexes.get(getDateKey(transaction.date));
+    if (bucketIndex === undefined) return;
+    const bucket = buckets[bucketIndex];
+    const typeId = Number(transaction.typeId);
+    const amountType = typeId === 1 ? "income" : typeId === 2 ? "expense" : typeId === 3 ? "investment" : null;
+    if (!amountType) return;
+    bucket[amountType] += parseAmount(transaction.value);
+    bucket.confirmedCount += 1;
+  });
+
+  return buckets;
+};
+
 const getTypeLabel = (typeId) => {
   if (Number(typeId) === 1) return "Receita";
   if (Number(typeId) === 2) return "Despesa";
@@ -110,20 +187,71 @@ const getTypeLabel = (typeId) => {
 };
 
 function TransactionAnalytics() {
-  const { transactions } = useContext(MyContext);
-  const [monthsToShow, setMonthsToShow] = useState(6);
+  const { transactions, refreshTransactions } = useContext(MyContext);
+  const [selectedPeriod, setSelectedPeriod] = useState("6m");
+  const isMonthPeriod = selectedPeriod === "6m" || selectedPeriod === "12m";
+  const monthsToShow = selectedPeriod === "12m" ? 12 : 6;
+  const periodDays = { day: 1, "7d": 7, "14d": 14, "1m": 30 }[selectedPeriod];
+  const periodLabels = {
+    day: "Último dia (hoje)",
+    "7d": "Últimos 7 dias",
+    "14d": "Últimos 14 dias",
+    "1m": "Últimos 30 dias",
+    "6m": "Últimos 6 meses",
+    "12m": "Últimos 12 meses",
+  };
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [tablePage, setTablePage] = useState(1);
   const [tablePageSize, setTablePageSize] = useState(8);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshError, setRefreshError] = useState("");
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const refreshInFlight = useRef(false);
+
+  const refreshData = useCallback(async () => {
+    if (refreshInFlight.current) return;
+    refreshInFlight.current = true;
+    setIsRefreshing(true);
+    setRefreshError("");
+    try {
+      await refreshTransactions();
+      setLastUpdated(new Date());
+    } catch {
+      setRefreshError("Não foi possível atualizar. Exibindo os últimos dados carregados.");
+    } finally {
+      refreshInFlight.current = false;
+      setIsRefreshing(false);
+    }
+  }, [refreshTransactions]);
+
+  useEffect(() => {
+    const refreshWhenVisible = () => {
+      if (!document.hidden) refreshData();
+    };
+
+    refreshData();
+    window.addEventListener("focus", refreshWhenVisible);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    return () => {
+      window.removeEventListener("focus", refreshWhenVisible);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
+  }, [refreshData]);
 
   const monthKeys = useMemo(() => getMonthKeys(monthsToShow), [monthsToShow]);
   const currentMonthKey = monthKeys[monthKeys.length - 1];
-  const previousMonthKey = monthKeys[monthKeys.length - 2];
+  const previousMonthKeys = useMemo(() => getPreviousMonthKeys(monthKeys), [monthKeys]);
   const currentDay = new Date().getDate();
-  const [previousYear, previousMonthNumber] = previousMonthKey.split("-").map(Number);
-  const previousDayLimit = Math.min(currentDay, new Date(previousYear, previousMonthNumber, 0).getDate());
+  const selectedDateKeys = useMemo(
+    () => isMonthPeriod ? [] : getDateRangeKeys(periodDays),
+    [isMonthPeriod, periodDays],
+  );
+  const previousDateKeys = useMemo(
+    () => isMonthPeriod ? [] : getDateRangeKeys(periodDays, -periodDays),
+    [isMonthPeriod, periodDays],
+  );
 
   const monthlyData = useMemo(() => {
     const buckets = new Map(monthKeys.map((monthKey) => [monthKey, {
@@ -162,14 +290,17 @@ function TransactionAnalytics() {
     return [...buckets.values()];
   }, [transactions, monthKeys, currentMonthKey, currentDay]);
 
-  const currentMonth = monthlyData[monthlyData.length - 1] || {};
   const currentPeriodTotals = useMemo(
-    () => getConfirmedMonthTotals(transactions, currentMonthKey, currentDay),
-    [transactions, currentMonthKey, currentDay],
+    () => isMonthPeriod
+      ? getConfirmedPeriodTotals(transactions, monthKeys, currentMonthKey, currentDay)
+      : getTotalsForDateKeys(transactions, selectedDateKeys, true),
+    [transactions, monthKeys, currentMonthKey, currentDay, isMonthPeriod, selectedDateKeys],
   );
   const previousPeriodTotals = useMemo(
-    () => getConfirmedMonthTotals(transactions, previousMonthKey, previousDayLimit),
-    [transactions, previousMonthKey, previousDayLimit],
+    () => isMonthPeriod
+      ? getConfirmedPeriodTotals(transactions, previousMonthKeys)
+      : getTotalsForDateKeys(transactions, previousDateKeys, true),
+    [transactions, previousMonthKeys, isMonthPeriod, previousDateKeys],
   );
   const currentNet = currentPeriodTotals.income - currentPeriodTotals.expense - currentPeriodTotals.investment;
   const previousNet = previousPeriodTotals.income - previousPeriodTotals.expense - previousPeriodTotals.investment;
@@ -179,24 +310,31 @@ function TransactionAnalytics() {
   const investmentRatio = currentPeriodTotals.income > 0
     ? (currentPeriodTotals.investment / currentPeriodTotals.income) * 100
     : null;
-  const pendingOutflows = (currentMonth.pendingExpense || 0) + (currentMonth.pendingInvestment || 0);
+  const pendingPeriodTotals = isMonthPeriod
+    ? monthlyData.reduce((totals, month) => ({
+      income: totals.income + month.pendingIncome,
+      expense: totals.expense + month.pendingExpense,
+      investment: totals.investment + month.pendingInvestment,
+    }), { income: 0, expense: 0, investment: 0 })
+    : getTotalsForDateKeys(transactions, selectedDateKeys, false);
+  const pendingOutflows = pendingPeriodTotals.expense + pendingPeriodTotals.investment;
   const financialInsights = [
     {
       key: "expense-share",
       title: "Despesas sobre receitas",
       value: expenseRatio === null ? "Sem base" : `${expenseRatio.toFixed(0)}%`,
       detail: expenseRatio === null
-        ? "Ainda não há receita confirmada para comparar neste mês."
+        ? "Ainda não há receita confirmada para comparar no período selecionado."
         : expenseRatio > 100
-          ? "As despesas pagas superam as receitas confirmadas no período até agora."
-          : "Compare esta proporção com meses completos antes de ajustar seu orçamento.",
+          ? "As despesas pagas superam as receitas confirmadas no período selecionado."
+          : "Proporção calculada sobre o período selecionado.",
       tone: expenseRatio !== null && expenseRatio > 100 ? "attention" : "neutral",
     },
     {
       key: "pending",
       title: "Saídas pendentes",
       value: formatCurrency(pendingOutflows),
-      detail: `${formatCurrency(currentMonth.pendingExpense || 0)} em despesas e ${formatCurrency(currentMonth.pendingInvestment || 0)} em aportes pendentes; ${formatCurrency(currentMonth.pendingIncome || 0)} em receitas pendentes.`,
+      detail: `${formatCurrency(pendingPeriodTotals.expense)} em despesas e ${formatCurrency(pendingPeriodTotals.investment)} em aportes pendentes; ${formatCurrency(pendingPeriodTotals.income)} em receitas pendentes no período selecionado.`,
       tone: pendingOutflows > 0 ? "attention" : "neutral",
     },
     {
@@ -204,7 +342,7 @@ function TransactionAnalytics() {
       title: "Aportes confirmados",
       value: investmentRatio === null ? formatCurrency(currentPeriodTotals.investment) : `${investmentRatio.toFixed(0)}% da receita`,
       detail: currentPeriodTotals.investment > 0
-        ? `${formatCurrency(currentPeriodTotals.investment)} destinados a investimentos; aporte reduz o caixa disponível, mas não é despesa de consumo.`
+        ? `${formatCurrency(currentPeriodTotals.investment)} destinados a investimentos no período; aporte reduz o caixa disponível, mas não é despesa de consumo.`
         : "Aportes são mostrados separadamente das despesas para não confundir investimento com consumo.",
       tone: "neutral",
     },
@@ -213,8 +351,8 @@ function TransactionAnalytics() {
       title: "Fluxo líquido confirmado",
       value: formatCurrency(currentNet),
       detail: currentNet < 0
-        ? "As saídas confirmadas superam as entradas até hoje; confira o peso de despesas e aportes separadamente."
-        : "Diferença entre receitas, despesas e aportes confirmados até hoje.",
+        ? "As saídas confirmadas superam as entradas no período selecionado; confira despesas e aportes separadamente."
+        : "Diferença entre receitas, despesas e aportes confirmados no período selecionado.",
       tone: currentNet < 0 ? "attention" : "neutral",
     },
   ];
@@ -240,6 +378,9 @@ function TransactionAnalytics() {
   }, [monthlyData]);
 
   const chartData = useMemo(() => {
+    if (!isMonthPeriod) {
+      return getDateRangeChartData(transactions, selectedDateKeys, periodDays === 30 ? 7 : 1);
+    }
     const currentMonthIndex = monthlyData.length - 1;
     const actual = monthlyData.map((month, index) => ({
       ...month,
@@ -262,7 +403,9 @@ function TransactionAnalytics() {
       projectedNet: forecast.net,
     });
     return actual;
-  }, [monthlyData, currentMonthKey, forecast.net, forecast.available]);
+  }, [transactions, selectedDateKeys, periodDays, isMonthPeriod, monthlyData, currentMonthKey, forecast.net, forecast.available]);
+
+  const showForecast = isMonthPeriod && forecast.available;
 
   const filteredTransactions = useMemo(() => {
     const query = search.trim().toLocaleLowerCase("pt-BR");
@@ -298,27 +441,42 @@ function TransactionAnalytics() {
           <div>
             <p className="analytics-eyebrow">Visão financeira</p>
             <h1>Transações</h1>
-            <p>Realizado até o dia {currentDay}; pendências ficam separadas dos valores confirmados.</p>
+            <p>Valores confirmados: {periodLabels[selectedPeriod]}{isMonthPeriod ? `, até o dia ${currentDay} no mês atual` : ""}; pendências ficam separadas.</p>
           </div>
-          <label className="analytics-period-control">
-            <FiCalendar aria-hidden="true" />
-            <span>Período</span>
-            <select value={monthsToShow} onChange={(event) => setMonthsToShow(Number(event.target.value))}>
-              <option value={6}>Últimos 6 meses</option>
-              <option value={12}>Últimos 12 meses</option>
-            </select>
-          </label>
+          <div className="analytics-heading-actions">
+            <div className="analytics-refresh-control">
+              <button type="button" className="analytics-refresh-button" onClick={refreshData} disabled={isRefreshing}>
+                <FiRefreshCw className={isRefreshing ? "spinning" : ""} aria-hidden="true" />
+                {isRefreshing ? "Atualizando" : "Atualizar dados"}
+              </button>
+              <span className={refreshError ? "analytics-refresh-error" : "analytics-refresh-status"} role="status" aria-live="polite">
+                {refreshError || (lastUpdated ? `Atualizado às ${lastUpdated.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}` : "")}
+              </span>
+            </div>
+            <label className="analytics-period-control">
+              <FiCalendar aria-hidden="true" />
+              <span>Período</span>
+              <select value={selectedPeriod} onChange={(event) => setSelectedPeriod(event.target.value)}>
+                <option value="day">Último dia (hoje)</option>
+                <option value="7d">Últimos 7 dias</option>
+                <option value="14d">Últimos 14 dias</option>
+                <option value="1m">Últimos 30 dias</option>
+                <option value="6m">Últimos 6 meses</option>
+                <option value="12m">Últimos 12 meses</option>
+              </select>
+            </label>
+          </div>
         </header>
 
-        <section className="analytics-metrics" aria-label="Resumo do mês atual">
+        <section className="analytics-metrics" aria-label="Resumo do período selecionado">
           {currentTrends.map(({ key, label, current, previous, icon: Icon, tone }) => {
             const change = getPercentageChange(current, previous);
             const isRising = change > 0;
             const changeLabel = change === null
-              ? "Sem base no mês anterior"
+              ? "Sem base no período anterior"
               : change === 0
-                ? "Sem variação vs. mês anterior"
-                : `${Math.abs(change)}% vs. mesmo dia do mês anterior`;
+                ? "Sem variação vs. período anterior"
+                : `${Math.abs(change)}% vs. período anterior`;
             return (
               <article className={`analytics-metric ${tone}`} key={key}>
                 <div className="analytics-metric-top">
@@ -355,7 +513,7 @@ function TransactionAnalytics() {
           <article className="analytics-panel analytics-chart-panel">
             <div className="analytics-panel-heading">
               <div>
-                <h2>Movimentação mensal</h2>
+                <h2>{isMonthPeriod ? "Movimentação mensal" : periodDays === 30 ? "Movimentação semanal" : "Movimentação diária"}</h2>
                 <p>Entradas confirmadas; pendências são exibidas à parte.</p>
               </div>
             </div>
@@ -384,7 +542,7 @@ function TransactionAnalytics() {
                   <Area type="monotone" dataKey="income" name="Receitas" stroke="#16866d" fill="url(#analyticsIncomeFill)" strokeWidth={2} connectNulls={false} />
                   <Area type="monotone" dataKey="expense" name="Despesas" stroke="#d35f55" fill="url(#analyticsExpenseFill)" strokeWidth={2} connectNulls={false} />
                   <Area type="monotone" dataKey="investment" name="Investimentos" stroke="#c28b32" fill="url(#analyticsInvestmentFill)" strokeWidth={2} connectNulls={false} />
-                  {forecast.available && <Line type="monotone" dataKey="projectedNet" name="Projeção do fluxo líquido" stroke="#354f6b" strokeWidth={2} strokeDasharray="6 5" dot={false} connectNulls />}
+                  {showForecast && <Line type="monotone" dataKey="projectedNet" name="Projeção do fluxo líquido" stroke="#354f6b" strokeWidth={2} strokeDasharray="6 5" dot={false} connectNulls />}
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -395,7 +553,7 @@ function TransactionAnalytics() {
               <span className="projection-mark"><FiInfo aria-hidden="true" /></span>
               <div><h2>Próximo mês</h2><p>Estimativa de fluxo</p></div>
             </div>
-            {forecast.available ? <>
+            {showForecast ? <>
               <strong className={`projection-value ${forecast.net < 0 ? "negative" : ""}`}>{formatCurrency(forecast.net)}</strong>
               <span className="projection-label">Fluxo líquido estimado</span>
               <div className="projection-breakdown">
@@ -408,8 +566,10 @@ function TransactionAnalytics() {
               </p>
             </> : (
               <div className="projection-unavailable" role="status">
-                <strong>Histórico insuficiente</strong>
-                <p>A estimativa aparece após haver lançamentos confirmados em pelo menos dois dos últimos três meses completos.</p>
+                <strong>{isMonthPeriod ? "Histórico insuficiente" : "Estimativa mensal"}</strong>
+                <p>{isMonthPeriod
+                  ? "A estimativa aparece após haver lançamentos confirmados em pelo menos dois dos últimos três meses completos."
+                  : "Selecione 6 ou 12 meses para consultar a estimativa mensal."}</p>
               </div>
             )}
           </aside>

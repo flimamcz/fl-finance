@@ -1,0 +1,56 @@
+"use strict";
+
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const bcrypt = require("bcryptjs");
+const { User, sequelize } = require("../../models");
+const UserService = require("./User.service");
+
+test("user directory query excludes password and recovery credentials", async () => {
+  const originalFindAll = User.findAll;
+  let queryOptions;
+  User.findAll = async (options) => {
+    queryOptions = options;
+    return [{ id: 1, username: "owner" }];
+  };
+
+  try {
+    const result = await UserService.searchUsers();
+    assert.equal(result.error, null);
+    assert.deepEqual(queryOptions.attributes, ["id", "fullname", "username", "email", "isAdmin", "createdAt"]);
+  } finally {
+    User.findAll = originalFindAll;
+  }
+});
+
+test("password recovery rotates its code and consumes the previous one", async () => {
+  const originals = {
+    findOne: User.findOne,
+    transaction: sequelize.transaction,
+  };
+  const user = {
+    resetCodeHash: bcrypt.hashSync("123456", 4),
+    resetCodeHint: "12***6",
+    async save() {},
+  };
+  const transaction = { LOCK: { UPDATE: "UPDATE" } };
+  User.findOne = async (options) => {
+    assert.deepEqual(options.where, { email: "owner@example.com" });
+    assert.equal(options.transaction, transaction);
+    assert.equal(options.lock, transaction.LOCK.UPDATE);
+    return user;
+  };
+  sequelize.transaction = async (callback) => callback(transaction);
+
+  try {
+    const result = await UserService.resetPassword("owner@example.com", "123456", "new-password");
+    assert.equal(result.error, null);
+    assert.match(result.recoveryCode, /^\d{6}$/);
+    assert.equal(await bcrypt.compare("123456", user.resetCodeHash), false);
+    assert.equal(await bcrypt.compare(result.recoveryCode, user.resetCodeHash), true);
+    assert.equal(await bcrypt.compare("new-password", user.password), true);
+  } finally {
+    User.findOne = originals.findOne;
+    sequelize.transaction = originals.transaction;
+  }
+});

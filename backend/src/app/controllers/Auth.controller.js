@@ -30,29 +30,41 @@ const setupAdmin = async (req, res) => {
 };
 
 const forgotPassword = async (req, res) => {
-  const { email } = req.body;
-  if (!email) return res.status(400).json({ error: true, message: "Email é obrigatório" });
-
-  const result = await authService.getResetHint(email.toLowerCase().trim());
-  if (result.error) return res.status(404).json(result);
-  return res.status(200).json({ error: false, hint: result.message });
+  const email = req.body?.email;
+  if (typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+    return res.status(400).json({ error: true, message: "Informe um email válido." });
+  }
+  return res.status(200).json({
+    error: false,
+    message: "Se a conta existir, use o código de recuperação salvo ao criar a conta.",
+  });
 };
 
 const resetPassword = async (req, res) => {
-  const { email, code, newPassword } = req.body;
-  if (!email || !code || !newPassword) {
-    return res.status(400).json({ error: true, message: "Email, código e nova senha são obrigatórios" });
+  const { email, code, newPassword } = req.body || {};
+  if (typeof email !== "string" || typeof code !== "string" || typeof newPassword !== "string"
+    || !email.trim() || !code || !newPassword) {
+    return res.status(400).json({ error: true, message: "Email, código e nova senha são obrigatórios." });
   }
   if (!/^\d{6}$/.test(code)) {
-    return res.status(400).json({ error: true, message: "O código deve ter 6 números" });
+    return res.status(400).json({ error: true, message: "O código de recuperação é inválido." });
   }
   if (newPassword.length < 6) {
-    return res.status(400).json({ error: true, message: "A senha deve ter pelo menos 6 caracteres" });
+    return res.status(400).json({ error: true, message: "A nova senha deve ter pelo menos 6 caracteres." });
   }
 
-  const result = await authService.resetPassword(email.toLowerCase().trim(), code, newPassword);
-  if (result.error) return res.status(400).json(result);
-  return res.status(200).json({ error: false, message: result.message });
+  try {
+    const result = await authService.resetPassword(email.toLowerCase().trim(), code, newPassword);
+    if (result.error) return res.status(400).json({ error: true, message: "Email ou código de recuperação inválidos." });
+    return res.status(200).json({
+      error: false,
+      message: result.message,
+      recoveryCode: result.recoveryCode,
+    });
+  } catch (error) {
+    console.error("Erro ao redefinir senha:", error);
+    return res.status(500).json({ error: true, message: "Não foi possível redefinir a senha." });
+  }
 };
 
 const login = async (req, res) => {

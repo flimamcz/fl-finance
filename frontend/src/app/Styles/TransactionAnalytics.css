@@ -43,6 +43,67 @@ body.dark-mode .transaction-analytics-page {
   margin: 8px 0 22px;
 }
 
+.analytics-heading-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.analytics-refresh-control {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+}
+
+.analytics-refresh-button {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: 1px solid var(--analytics-border);
+  border-radius: 6px;
+  background: var(--analytics-surface);
+  color: var(--analytics-text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: border-color 160ms ease, color 160ms ease, background 160ms ease;
+}
+
+.analytics-refresh-button:hover:not(:disabled) {
+  border-color: #19745f;
+  color: #19745f;
+}
+
+.analytics-refresh-button:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.analytics-refresh-button svg.spinning {
+  animation: analytics-refresh-spin 900ms linear infinite;
+}
+
+.analytics-refresh-status,
+.analytics-refresh-error {
+  max-width: 250px;
+  color: var(--analytics-muted);
+  font-size: 10px;
+  text-align: right;
+}
+
+.analytics-refresh-error { color: #ad5149; }
+
+body.dark-mode .analytics-refresh-error { color: #ef9b91; }
+
+@keyframes analytics-refresh-spin {
+  to { transform: rotate(360deg); }
+}
+
 .analytics-eyebrow {
   margin: 0 0 6px;
   color: #19745f;
@@ -582,6 +643,10 @@ body.dark-mode .analytics-projection-panel {
 @media (max-width: 680px) {
   .transaction-analytics-page { padding: 22px 14px 88px; }
   .analytics-heading { align-items: flex-start; flex-direction: column; }
+  .analytics-heading-actions { width: 100%; justify-content: space-between; }
+  .analytics-refresh-control { justify-items: start; }
+  .analytics-refresh-status,
+  .analytics-refresh-error { text-align: left; }
   .analytics-period-control { align-self: stretch; justify-content: space-between; }
   .analytics-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .analytics-metric { padding: 12px; }
@@ -602,6 +667,8 @@ body.dark-mode .analytics-projection-panel {
 
 @media (max-width: 420px) {
   .analytics-metrics { gap: 8px; }
+  .analytics-heading-actions { align-items: stretch; flex-direction: column; }
+  .analytics-refresh-control { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
   .analytics-metric-top { font-size: 10px; }
   .analytics-trend { font-size: 9px; }
   .analytics-projection-panel { grid-template-columns: 1fr; }

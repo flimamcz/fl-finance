@@ -1,4 +1,4 @@
-import { useState, useContext, useEffect, useMemo, useCallback } from "react";
+import { lazy, Suspense, useState, useContext, useEffect, useMemo, useCallback } from "react";
 import {
   FiPlus,
   FiDownload,
@@ -49,10 +49,11 @@ import Header from "../Components/Header";
 import MyContext from "../Context/Context";
 import { API_BASE_URL } from "../Services/request";
 import { getStoredToken } from "../Services/authStorage";
-import ExportModal from "../Components/ExportModal";
 import EditTransactionModal from "../Components/EditTransactionModal";
 
 import "../Styles/Home.css";
+
+const ExportModal = lazy(() => import("../Components/ExportModal"));
 
 function Home() {
   const navigate = useNavigate();
@@ -1864,15 +1865,27 @@ function Home() {
       </div>
 
       {/* Modal de Exportação */}
-      <ExportModal
-        isOpen={exportModalOpen}
-        onClose={() => setExportModalOpen(false)}
-        transactions={transactions}
-        filters={{
-          activeFilter,
-          timeRange,
-        }}
-      />
+      {exportModalOpen && (
+        <Suspense
+          fallback={
+            <div className="modal-overlay">
+              <div className="modal-content export-modal" role="status" aria-live="polite">
+                Preparando a exportação...
+              </div>
+            </div>
+          }
+        >
+          <ExportModal
+            isOpen={exportModalOpen}
+            onClose={() => setExportModalOpen(false)}
+            transactions={transactions}
+            filters={{
+              activeFilter,
+              timeRange,
+            }}
+          />
+        </Suspense>
+      )}
 
       {/* Modal de Confirmação de Exclusão */}
       {showConfirmModal && (

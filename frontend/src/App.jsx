@@ -2,20 +2,20 @@
 import { lazy, Suspense, useLayoutEffect } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider } from "./app/Context/AuthContext"; // NOVO IMPORT
-import Login from "./app/Pages/Login";
-import Register from "./app/Pages/Register";
-import AccountSetup from "./app/Pages/AccountSetup";
-import ForgotPassword from "./app/Pages/ForgotPassword";
-import Home from "./app/Pages/Home";
-import Profile from "./app/Pages/Profile";
-import Debts from "./app/Pages/Debts";
-import Investments from "./app/Pages/Investments";
-import Revenues from "./app/Pages/Revenues";
-import Expenses from "./app/Pages/Expenses";
-import TransactionAnalytics from "./app/Pages/TransactionAnalytics";
 import ProtectedRoute from "./app/Components/ProtectedRoute";
 import "./app/Styles/App.css";
 
+const Login = lazy(() => import("./app/Pages/Login"));
+const Register = lazy(() => import("./app/Pages/Register"));
+const AccountSetup = lazy(() => import("./app/Pages/AccountSetup"));
+const ForgotPassword = lazy(() => import("./app/Pages/ForgotPassword"));
+const Home = lazy(() => import("./app/Pages/Home"));
+const Profile = lazy(() => import("./app/Pages/Profile"));
+const Debts = lazy(() => import("./app/Pages/Debts"));
+const Investments = lazy(() => import("./app/Pages/Investments"));
+const Revenues = lazy(() => import("./app/Pages/Revenues"));
+const Expenses = lazy(() => import("./app/Pages/Expenses"));
+const TransactionAnalytics = lazy(() => import("./app/Pages/TransactionAnalytics"));
 const ImportTransactions = lazy(() => import("./app/Pages/ImportTransactions"));
 const appShellPaths = new Set([
   "/home",
@@ -80,6 +80,35 @@ function App() {
           </svg>
         )}
         <div className="route-content">
+          <Suspense
+            fallback={
+              <div className="finance-loader" role="status" aria-label="Carregando página">
+                <div className="finance-loader__card">
+                  <div className="finance-loader__visual" aria-hidden="true">
+                    <svg className="finance-loader__chart" viewBox="0 0 120 76" fill="none">
+                      <path className="finance-loader__chart-grid" d="M8 16.5h104M8 38h104M8 59.5h104" />
+                      <path className="finance-loader__chart-line" d="m10 54 22-13 18 7 20-23 17 10 23-25" />
+                      <circle className="finance-loader__chart-point" cx="110" cy="10" r="3.5" />
+                    </svg>
+                    <div className="finance-loader__bars">
+                      <i /><i /><i /><i /><i />
+                    </div>
+                    <div className="finance-loader__orbit">
+                      <span />
+                    </div>
+                  </div>
+                  <div className="finance-loader__copy">
+                    <span className="finance-loader__eyebrow">FINFLOW</span>
+                    <strong>Organizando suas finanças</strong>
+                    <span className="finance-loader__caption">Só um instante</span>
+                  </div>
+                  <div className="finance-loader__progress" aria-hidden="true">
+                    <span />
+                  </div>
+                </div>
+              </div>
+            }
+          >
           <Routes location={location}>
             <Route path="/" element={<Navigate to="/home" replace />} />
             <Route path="/login" element={<Login />} />
@@ -138,15 +167,7 @@ function App() {
               path="/import-transactions"
               element={
                 <ProtectedRoute>
-                  <Suspense
-                    fallback={
-                      <div className="page-loading" role="status">
-                        Carregando importação...
-                      </div>
-                    }
-                  >
-                    <ImportTransactions />
-                  </Suspense>
+                  <ImportTransactions />
                 </ProtectedRoute>
               }
             />
@@ -159,6 +180,7 @@ function App() {
               }
             />
           </Routes>
+          </Suspense>
         </div>
       </div>
     </AuthProvider>

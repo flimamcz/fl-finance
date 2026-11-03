@@ -30,6 +30,8 @@ services:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_HOST: db
       PORT: ${PORT}
+      FRONTEND_ORIGINS: ${FRONTEND_ORIGINS}
+      TRUST_PROXY: ${TRUST_PROXY:-0}
     depends_on:
       - db
 
@@ -40,8 +42,8 @@ services:
     command: --max_allowed_packet=32M
     restart: always
     ports:
-      - 3306:3306
-      - 33060:33060
+      - 127.0.0.1:3306:3306
+      - 127.0.0.1:33060:33060
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}

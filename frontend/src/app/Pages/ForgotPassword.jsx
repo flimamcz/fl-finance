@@ -1,16 +1,16 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { FiAlertCircle, FiCheck, FiEye, FiEyeOff, FiKey, FiLock, FiMail, FiShield } from "react-icons/fi";
 import { API_BASE_URL } from "../Services/request";
 import "../Styles/Login.css";
 
 function ForgotPassword() {
-  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [hint, setHint] = useState("");
+  const [recoveryCode, setRecoveryCode] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -37,7 +37,7 @@ function ForgotPassword() {
       });
       const data = await response.json();
       if (!response.ok || data.error) throw new Error(data.message || "Não foi possível iniciar a recuperação.");
-      setHint(data.hint);
+      setHint("ready");
     } catch (requestError) {
       setError(requestError.message);
     } finally {
@@ -61,8 +61,8 @@ function ForgotPassword() {
       });
       const data = await response.json();
       if (!response.ok || data.error) throw new Error(data.message || "Não foi possível redefinir a senha.");
-      setSuccess("Senha redefinida com sucesso! Redirecionando...");
-      setTimeout(() => navigate("/login"), 1200);
+      setRecoveryCode(data.recoveryCode || "");
+      setSuccess(data.message || "Senha redefinida com sucesso.");
     } catch (requestError) {
       setError(requestError.message);
     } finally {
@@ -85,15 +85,16 @@ function ForgotPassword() {
           <h2 className="form-title"><span className="welcome-text">Esqueceu sua senha?</span></h2>
           {error && <div className="error-notification"><FiAlertCircle /><span>{error}</span></div>}
           {success && <div className="success-notification"><FiCheck /><span>{success}</span></div>}
+          {recoveryCode && <div className="recovery-code" role="status"><span>Seu novo código de recuperação</span><strong>{recoveryCode}</strong><small>Salve-o em um lugar seguro. Ele substitui o código anterior.</small></div>}
 
           <div className="input-group"><label htmlFor="forgot-email"><FiMail /><span>Email</span></label><input id="forgot-email" type="email" value={email} onChange={(event) => { setEmail(event.target.value); setHint(""); setError(""); }} placeholder="seu@email.com" required disabled={Boolean(hint)} /></div>
 
           {!hint ? <button className={`login-button ${loading ? "loading" : ""}`} type="submit" disabled={loading || !email}>{loading ? "Verificando..." : "Continuar"}</button> : <>
-            <div className="recovery-hint"><FiKey /><span>Seu código começa com <strong>{hint.slice(0, 2)}</strong> e termina com <strong>{hint.slice(-1)}</strong>.</span></div>
+            <div className="recovery-hint"><FiKey /><span>Use o código de recuperação que foi exibido ao criar sua conta. Ele não é enviado por email.</span></div>
             <div className="input-group"><label htmlFor="recovery-code"><FiKey /><span>Código de 6 números</span></label><input id="recovery-code" inputMode="numeric" pattern="[0-9]{6}" maxLength="6" value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, ""))} placeholder="000000" required /></div>
             <div className="input-group"><label htmlFor="new-password"><FiLock /><span>Nova senha</span></label><div className="password-input"><input id="new-password" type={showPassword ? "text" : "password"} value={newPassword} onChange={(event) => setNewPassword(event.target.value)} required /><button type="button" className="toggle-password" onClick={() => setShowPassword((visible) => !visible)} aria-label="Mostrar ou ocultar senha">{showPassword ? <FiEyeOff /> : <FiEye />}</button></div></div>
             <div className="input-group"><label htmlFor="confirm-new-password"><FiLock /><span>Confirme a nova senha</span></label><div className="password-input"><input id="confirm-new-password" type={showConfirmPassword ? "text" : "password"} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required /><button type="button" className="toggle-password" onClick={() => setShowConfirmPassword((visible) => !visible)} aria-label="Mostrar ou ocultar senha">{showConfirmPassword ? <FiEyeOff /> : <FiEye />}</button></div></div>
-            <button className={`login-button ${loading ? "loading" : ""}`} type="submit" disabled={loading}>{loading ? "Salvando..." : "Redefinir senha"}</button>
+            <button className={`login-button ${loading ? "loading" : ""}`} type="submit" disabled={loading || Boolean(recoveryCode)}>{loading ? "Salvando..." : "Redefinir senha"}</button>
           </>}
           <div className="form-footer"><div className="register-link"><Link to="/login" className="register-cta">Voltar para o login</Link></div></div>
         </form>

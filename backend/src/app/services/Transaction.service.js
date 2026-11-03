@@ -52,15 +52,10 @@ const findMatchingDebtInstallment = (transaction, debts) => {
 };
 
 const searchTransactions = async (userId = null) => {
-  console.log('🔍 Service: Buscando transações para userId:', userId);
-  
   const whereClause = {};
   
   if (userId) {
     whereClause.user_id = Number(userId);
-    console.log('🛠️ Usando filtro: { user_id:', userId, '}');
-  } else {
-    console.log('⚠️ AVISO: userId não fornecido, buscando TODAS as transações');
   }
   
   try {
@@ -126,30 +121,15 @@ const searchTransactions = async (userId = null) => {
       };
     });
 
-    console.log(`✅ Service: Encontradas ${transactions.length} transações`);
-    
-    // Log para debug
-    if (transactions.length > 0) {
-      const firstTrans = transactions[0].toJSON();
-      console.log('🔍 Transação com categoria:', {
-        id: firstTrans.id,
-        description: firstTrans.description,
-        category: firstTrans.category
-      });
-    }
-
     return { error: null, message: transactionsWithDebtInstallments };
     
   } catch (error) {
-    console.error('❌ Service ERROR:', error.message);
-    console.error('❌ Stack:', error.stack);
+    console.error("Erro ao buscar transações:", error);
     return { error: "DATABASE_ERROR", message: "Erro ao buscar transações" };
   }
 };
 
 const createTransaction = async (dataTransaction) => {
-  console.log('📝 Service: Criando transação com dados:', dataTransaction);
-  
   try {
     // ✅ CORREÇÃO: Converte userId para user_id se necessário
     const dataToSave = { ...dataTransaction };
@@ -171,8 +151,6 @@ const createTransaction = async (dataTransaction) => {
       dataToSave.category_id = null;
     }
     
-    console.log('📤 Dados para salvar no banco:', dataToSave);
-    
     const newTransaction = await Transaction.create(dataToSave);
     
     // Busca transação com dados da categoria
@@ -186,11 +164,9 @@ const createTransaction = async (dataTransaction) => {
       ]
     });
     
-    console.log('✅ Transação criada com categoria:', transactionWithCategory.toJSON());
-    
     return { error: null, message: transactionWithCategory };
   } catch (error) {
-    console.error('❌ Erro ao criar transação:', error);
+    console.error("Erro ao criar transação:", error);
     return { error: "Bad Request", message: "Erro ao criar transação!" };
   }
 };
@@ -291,8 +267,6 @@ const createTransactionsBatch = async (userId, transactions) => {
 };
 
 const updateTransaction = async (dataTransaction) => {
-  console.log('🔄 Service: Atualizando transação:', dataTransaction);
-  
   try {
     // ✅ CORREÇÃO: Verifica também pelo user_id para segurança
     const whereClause = { id: dataTransaction.id };
@@ -303,8 +277,6 @@ const updateTransaction = async (dataTransaction) => {
     } else if (dataTransaction.user_id) {
       whereClause.user_id = dataTransaction.user_id;
     }
-    
-    console.log('🔍 Verificando transação com where:', whereClause);
     
     const findTransaction = await Transaction.findOne({
       where: whereClause,
@@ -377,8 +349,6 @@ const updateTransaction = async (dataTransaction) => {
 };
 
 const deleteTransaction = async (id, userId = null) => {
-  console.log('🗑️ Service: Deletando transação ID:', id, 'para userId:', userId);
-  
   try {
     const whereClause = { id };
     
@@ -387,8 +357,6 @@ const deleteTransaction = async (id, userId = null) => {
       whereClause.user_id = Number(userId);
     }
     
-    console.log('🔍 Deletando com where:', whereClause);
-
     const transactionToDelete = await Transaction.findOne({ where: whereClause });
     if (!transactionToDelete) {
       return {
@@ -452,8 +420,6 @@ const deleteTransaction = async (id, userId = null) => {
 
 // ✅ NOVA FUNÇÃO: Buscar categorias por tipo
 const getCategoriesByType = async (typeId = null) => {
-  console.log('🏷️ Service: Buscando categorias para typeId:', typeId);
-  
   try {
     const whereClause = {};
     
@@ -466,20 +432,16 @@ const getCategoriesByType = async (typeId = null) => {
       order: [['name', 'ASC']]
     });
 
-    console.log(`✅ Service: Encontradas ${categories.length} categorias`);
-    
     return { error: null, message: categories };
     
   } catch (error) {
-    console.error('❌ Service ERROR (categorias):', error.message);
+    console.error("Erro ao buscar categorias:", error);
     return { error: "DATABASE_ERROR", message: "Erro ao buscar categorias" };
   }
 };
 
 // ✅ NOVA FUNÇÃO: Buscar todas as categorias
 const getAllCategories = async () => {
-  console.log('🏷️ Service: Buscando TODAS as categorias');
-  
   try {
     const categories = await Category.findAll({
       order: [
@@ -488,8 +450,6 @@ const getAllCategories = async () => {
       ]
     });
 
-    console.log(`✅ Service: Encontradas ${categories.length} categorias no total`);
-    
     // Agrupa por type_id para facilitar no frontend
     const grouped = categories.reduce((acc, category) => {
       const typeId = category.type_id;
@@ -507,7 +467,7 @@ const getAllCategories = async () => {
     };
     
   } catch (error) {
-    console.error('❌ Service ERROR (todas categorias):', error.message);
+    console.error("Erro ao buscar categorias:", error);
     return { error: "DATABASE_ERROR", message: "Erro ao buscar categorias" };
   }
 };

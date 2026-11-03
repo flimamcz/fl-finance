@@ -4,11 +4,9 @@ const backupImportService = require("../services/BackupImport.service");
 
 const searchTrasctions = async (req, res) => {
   try {
-    console.log('🔍 Controller: Iniciando busca de transações...');
     
     // Verificar se o usuário está autenticado
     if (!req.user || !req.user.id) {
-      console.log('❌ Controller: Usuário não autenticado!');
       return res.status(401).json({ 
         error: true, 
         message: "Usuário não autenticado" 
@@ -16,22 +14,17 @@ const searchTrasctions = async (req, res) => {
     }
     
     const userId = req.user.id;
-    console.log('✅ Controller: Usuário autenticado, ID:', userId);
     
     // Passar userId para o service
     const { error, message } = await transactionService.searchTransactions(userId);
     
-    console.log('📊 Controller: Resultado do service - error:', error, 'message length:', message?.length || 0);
-
     if (error) {
-      console.log('❌ Controller: Service retornou erro:', error);
       return res.status(404).json({ 
         error: true, 
         message 
       });
     }
 
-    console.log(`✅ Controller: Retornando ${message.length} transações`);
     
     // ✅ MELHORIA: Formata resposta para incluir categoria de forma amigável
     const formattedData = message.map(transaction => {
@@ -49,8 +42,7 @@ const searchTrasctions = async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ Controller ERROR:', error.message);
-    console.error('❌ Stack:', error.stack);
+    console.error("Erro ao consultar transações:", error);
     return res.status(500).json({ 
       error: true, 
       message: "Erro interno no servidor" 
@@ -60,9 +52,6 @@ const searchTrasctions = async (req, res) => {
 
 const createTrasaction = async (req, res) => {
   try {
-    console.log('📝 Controller: Criando nova transação...');
-    console.log('👤 req.user:', req.user);
-    console.log('📦 req.body:', req.body);
     
     // Verificar autenticação
     if (!req.user || !req.user.id) {
@@ -119,7 +108,6 @@ const createTrasaction = async (req, res) => {
       transactionData.categoryId = categoryId;
     }
     
-    console.log('📤 Controller: Enviando para service:', transactionData);
     
     const { error, message } = await transactionService.createTransaction(transactionData);
 
@@ -239,9 +227,6 @@ const importBackup = async (req, res) => {
 
 const updateTransaction = async (req, res) => {
   try {
-    console.log('🔄 Controller: Atualizando transação...');
-    console.log('👤 req.user:', req.user);
-    console.log('📦 req.body:', req.body);
     
     // Verificar autenticação
     if (!req.user || !req.user.id) {
@@ -288,7 +273,6 @@ const updateTransaction = async (req, res) => {
       });
     }
     
-    console.log('📤 Controller: Enviando para service:', updateData);
     
     const { error, message } = await transactionService.updateTransaction(updateData);
     
@@ -316,9 +300,6 @@ const updateTransaction = async (req, res) => {
 
 const deleteTransaction = async (req, res) => {
   try {
-    console.log('🗑️ Controller: Deletando transação...');
-    console.log('👤 req.user:', req.user);
-    console.log('🎯 req.params:', req.params);
     
     // Verificar autenticação
     if (!req.user || !req.user.id) {
@@ -338,7 +319,6 @@ const deleteTransaction = async (req, res) => {
       });
     }
     
-    console.log(`🗑️ Usuário ${userId} deletando transação ${transactionId}`);
     
     const { error, message } = await transactionService.deleteTransaction(transactionId, userId);
 
@@ -366,8 +346,6 @@ const deleteTransaction = async (req, res) => {
 // ✅ NOVO CONTROLLER: Buscar categorias por tipo
 const getCategoriesByType = async (req, res) => {
   try {
-    console.log('🏷️ Controller: Buscando categorias por tipo...');
-    console.log('🎯 req.params:', req.params);
     
     const { typeId } = req.params;
     
@@ -396,7 +374,6 @@ const getCategoriesByType = async (req, res) => {
       });
     }
 
-    console.log(`✅ Controller: Retornando ${message.length} categorias para tipo ${typeId}`);
     
     return res.status(200).json({
       error: false,
@@ -417,7 +394,6 @@ const getCategoriesByType = async (req, res) => {
 // ✅ NOVO CONTROLLER: Buscar todas as categorias
 const getAllCategories = async (req, res) => {
   try {
-    console.log('🏷️ Controller: Buscando TODAS as categorias...');
     
     const { error, message, grouped } = await transactionService.getAllCategories();
     
@@ -428,7 +404,6 @@ const getAllCategories = async (req, res) => {
       });
     }
 
-    console.log(`✅ Controller: Retornando ${message.length} categorias no total`);
     
     return res.status(200).json({
       error: false,
@@ -449,8 +424,6 @@ const getAllCategories = async (req, res) => {
 // ✅ NOVO CONTROLLER: Validar categoria (opcional)
 const validateCategory = async (req, res) => {
   try {
-    console.log('✅ Controller: Validando categoria...');
-    console.log('📦 req.body:', req.body);
     
     const { categoryId, typeId } = req.body;
     

@@ -11,86 +11,58 @@ const investmentsRouter = require("./src/app/routes/investments.routes");
 
 const app = express();
 
-// 🔍 MIDDLEWARE DE LOG PARA TODAS AS REQUISIÇÕES
-app.use((req, res, next) => {
-  console.log('\n📨 === NOVA REQUISIÇÃO ===');
-  console.log('🕐', new Date().toISOString());
-  console.log('🔹 Método:', req.method);
-  console.log('🔹 URL:', req.originalUrl);
-  console.log('🔹 Authorization:', req.headers.authorization ? 'SIM' : 'NÃO');
-  console.log('🔹 Content-Type:', req.headers['content-type']);
-  console.log('🔹 Body:', req.method !== 'GET' ? req.body : 'N/A');
-  next();
-});
+if (process.env.TRUST_PROXY === "1") {
+  app.set("trust proxy", 1);
+}
 
-// ⭐ CORS SUPER PERMISSIVO ⭐
+const defaultOrigins = process.env.NODE_ENV === "production"
+  ? ""
+  : "http://localhost:3000,http://localhost:5173";
+const allowedOrigins = (process.env.FRONTEND_ORIGINS || defaultOrigins)
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 app.use(cors({
-  origin: '*',
-  methods: '*',
-  allowedHeaders: '*',
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(null, false);
+  },
+  methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
   credentials: false,
   maxAge: 86400
 }));
 
-// Middleware customizado para headers extras
 app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Headers", "*");
-  res.header("Access-Control-Allow-Methods", "*");
-  
-  // Handle preflight requests
-  if (req.method === "OPTIONS") {
-    console.log('🛫 Resposta preflight OPTIONS');
-    return res.status(200).end();
-  }
-  
+  res.set("X-Content-Type-Options", "nosniff");
+  res.set("X-Frame-Options", "DENY");
+  res.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
   next();
 });
 
-app.use(express.json({ limit: "15mb" }));
-app.use(express.urlencoded({ extended: true, limit: "15mb" }));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "100kb" }));
 
-// Rotas com logs
-console.log('\n🚀 === REGISTRANDO ROTAS ===');
-
-// Rotas
-app.use("/users", (req, res, next) => {
-  console.log('🛣️  Rota /users acessada');
-  next();
-}, userRouter);
-
-app.use("/transactions", (req, res, next) => {
-  console.log('🛣️  Rota /transactions acessada');
-  next();
-}, transactionsRouter);
-
+app.use("/users", userRouter);
+app.use("/transactions", transactionsRouter);
 app.use("/debts", debtsRouter);
 app.use("/investments", investmentsRouter);
-
-app.use("/types", (req, res, next) => {
-  console.log('🛣️  Rota /types acessada');
-  next();
-}, typesRouter);
-
-app.use("/auth", (req, res, next) => {
-  console.log('🛣️  Rota /auth acessada');
-  next();
-}, authRouter);
+app.use("/types", typesRouter);
+app.use("/auth", authRouter);
 
 // Rota de health check
 app.get("/health", (req, res) => {
-  console.log('🩺 Health check acionado');
   res.status(200).json({ 
     status: "OK", 
     message: "Backend está rodando",
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
+    timestamp: new Date().toISOString()
   });
 });
 
 // Rota raiz
 app.get("/", (req, res) => {
-  console.log('🏠 Rota raiz acionada');
   res.json({
     message: "API FL Finanças",
     version: "1.0.0",
@@ -109,14 +81,13 @@ app.get("/", (req, res) => {
         delete: "DELETE /transactions/:id (com autenticação)"
       },
       types: "GET /types",
-      users: "GET /users"
+      users: "GET /users (admin only)"
     }
   });
 });
 
 // Tratamento de rotas não encontradas
 app.use((req, res) => {
-  console.log('❌ Rota não encontrada:', req.originalUrl);
   res.status(404).json({
     error: true,
     message: "Rota não encontrada",
@@ -127,20 +98,13 @@ app.use((req, res) => {
 
 // Tratamento de erros global
 app.use((err, req, res, next) => {
-  console.error('🔥 ERRO GLOBAL DO SERVIDOR:');
-  console.error('🔴 Mensagem:', err.message);
-  console.error('🔴 Stack:', err.stack);
-  console.error('🔴 URL:', req.originalUrl);
-  console.error('🔴 Método:', req.method);
+  console.error("Erro não tratado na API:", err);
   
   res.status(500).json({
     error: true,
     message: "Erro interno do servidor",
-    details: process.env.NODE_ENV === "development" ? err.message : undefined,
     timestamp: new Date().toISOString()
   });
 });
-
-console.log('\n✅ App configurado com sucesso!\n');
 
 module.exports = app;

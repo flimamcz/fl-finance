@@ -45,8 +45,6 @@ const createUser = async (req, res) => {
 
 const getMyProfile = async (req, res) => {
   try {
-    console.log("👤 Controller getMyProfile: Iniciando...");
-
     if (!req.user || !req.user.id) {
       return res.status(401).json({
         error: true,
@@ -55,8 +53,6 @@ const getMyProfile = async (req, res) => {
     }
 
     const userId = req.user.id;
-    console.log("🔍 Buscando perfil do usuário ID:", userId);
-
     // Chamar service REAL
     const { error, message } = await userService.getMyProfile(userId);
 
@@ -74,8 +70,6 @@ const getMyProfile = async (req, res) => {
       });
     }
 
-    console.log("✅ Dados retornados do banco");
-
     return res.status(200).json({
       error: false,
       data: message,
@@ -91,8 +85,6 @@ const getMyProfile = async (req, res) => {
 
 const updateMyProfile = async (req, res) => {
   try {
-    console.log("🔄 Controller updateMyProfile: Iniciando...");
-
     if (!req.user || !req.user.id) {
       return res.status(401).json({
         error: true,
@@ -102,12 +94,6 @@ const updateMyProfile = async (req, res) => {
 
     const { name, email, birthDate, photo } = req.body;
     const userId = req.user.id;
-
-    console.log(`📝 Tentando atualizar usuário ${userId}:`, {
-      name,
-      email,
-      birthDate,
-    });
 
     // Validações básicas
     if (!name && !email && photo === undefined) {
@@ -187,8 +173,6 @@ const updateMyProfile = async (req, res) => {
 
 const updatePassword = async (req, res) => {
   try {
-    console.log("🔐 Controller updatePassword: Iniciando...");
-
     if (!req.user || !req.user.id) {
       return res.status(401).json({
         error: true,
@@ -198,8 +182,6 @@ const updatePassword = async (req, res) => {
 
     const { currentPassword, newPassword } = req.body;
     const userId = req.user.id;
-
-    console.log(`🔑 Usuário ${userId} tentando alterar senha`);
 
     // Validações
     if (!currentPassword || !newPassword) {

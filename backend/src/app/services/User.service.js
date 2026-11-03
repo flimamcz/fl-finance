@@ -1,5 +1,5 @@
 // src/app/services/User.service.js
-const { User } = require("../../models");
+const { User, sequelize } = require("../../models");
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { Op } = require('sequelize');
@@ -12,8 +12,6 @@ const SALT_ROUNDS = 10;
 
 const getMyProfile = async (userId) => {
   try {
-    console.log('👤 Service getMyProfile: Buscando usuário ID:', userId);
-    
     const user = await User.findOne({
       where: { id: userId },
       attributes: ['id', 'fullname', 'username', 'email', 'isAdmin', 'photo', 'createdAt'] // Não retorna password!
@@ -28,7 +26,6 @@ const getMyProfile = async (userId) => {
     // Formatar datas
     userData.joinedDate = userData.createdAt;
     
-    console.log('✅ Perfil encontrado:', userData.email);
     return { error: null, message: userData };
     
   } catch (error) {
@@ -39,9 +36,6 @@ const getMyProfile = async (userId) => {
 
 const updateMyProfile = async (userId, updateData) => {
   try {
-    console.log('🔄 Service updateMyProfile: Usuário ID:', userId);
-    console.log('📝 Dados para atualizar:', updateData);
-    
     // Buscar usuário
     const user = await User.findOne({ 
       where: { id: userId }
@@ -91,8 +85,6 @@ const updateMyProfile = async (userId, updateData) => {
     
     await user.save();
     
-    console.log('✅ Perfil atualizado com sucesso');
-    
     // Retornar dados atualizados (sem password)
     const userResponse = user.toJSON();
     delete userResponse.password;
@@ -107,7 +99,6 @@ const updateMyProfile = async (userId, updateData) => {
 
 const updatePassword = async (userId, currentPassword, newPassword) => {
   try {
-    console.log('🔐 Service updatePassword: Usuário ID:', userId);
     
     // Buscar usuário COM senha (para comparação)
     const user = await User.findOne({ 
@@ -118,13 +109,10 @@ const updatePassword = async (userId, currentPassword, newPassword) => {
       return { error: "NOT_FOUND", message: "Usuário não encontrado" };
     }
     
-    console.log('🔑 Verificando senha atual...');
-    
     // 1. VERIFICAR SENHA ATUAL
-    const isPasswordValid = bcrypt.compareSync(currentPassword, user.password);
+    const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
     
     if (!isPasswordValid) {
-      console.log('❌ Senha atual incorreta');
       return { error: "INVALID_PASSWORD", message: "Senha atual incorreta" };
     }
     
@@ -134,20 +122,17 @@ const updatePassword = async (userId, currentPassword, newPassword) => {
     }
     
     // 3. VERIFICAR SE É DIFERENTE DA ATUAL
-    const isSamePassword = bcrypt.compareSync(newPassword, user.password);
+    const isSamePassword = await bcrypt.compare(newPassword, user.password);
     if (isSamePassword) {
       return { error: "SAME_PASSWORD", message: "A nova senha não pode ser igual à atual" };
     }
     
     // 4. CRIAR HASH DA NOVA SENHA
-    console.log('🔄 Gerando hash da nova senha...');
-    const newPasswordHash = bcrypt.hashSync(newPassword, SALT_ROUNDS);
+    const newPasswordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
     
     // 5. ATUALIZAR NO BANCO
     user.password = newPasswordHash;
     await user.save();
-    
-    console.log('✅ Senha alterada com sucesso');
     
     return { error: null, message: "Senha alterada com sucesso" };
     
@@ -163,17 +148,14 @@ const updatePassword = async (userId, currentPassword, newPassword) => {
 
 const searchUsers = async () => {
   try {
-    console.log('🔍 Service: Buscando todos os usuários');
-    
     const users = await User.findAll({
-      attributes: { exclude: ['password'] } // NUNCA retorna senha!
+      attributes: ["id", "fullname", "username", "email", "isAdmin", "createdAt"],
     });
 
     if (!users || users.length === 0) {
       return { error: "NOT_FOUND", message: "Nenhum usuário encontrado!" };
     }
 
-    console.log(`✅ Encontrados ${users.length} usuários`);
     return { error: null, message: users };
     
   } catch (error) {
@@ -184,7 +166,6 @@ const searchUsers = async () => {
 
 const createUser = async (dataUser) => {
   try {
-    console.log('🔐 Service createUser: Criando novo usuário');
     const username = String(dataUser.username || '').trim().toLowerCase();
     const email = String(dataUser.email || '').trim().toLowerCase();
 
@@ -207,9 +188,11 @@ const createUser = async (dataUser) => {
     }
 
     // CRIAR HASH DA SENHA
-    const hashedPassword = bcrypt.hashSync(dataUser.password, SALT_ROUNDS);
     const resetCode = String(crypto.randomInt(100000, 1000000));
-    const resetCodeHash = bcrypt.hashSync(resetCode, SALT_ROUNDS);
+    const [hashedPassword, resetCodeHash] = await Promise.all([
+      bcrypt.hash(dataUser.password, SALT_ROUNDS),
+      bcrypt.hash(resetCode, SALT_ROUNDS),
+    ]);
     
     const userDataWithHash = {
       fullname: dataUser.fullname || username,
@@ -223,8 +206,6 @@ const createUser = async (dataUser) => {
       updatedAt: new Date()
     };
     
-    console.log('✅ Senha criptografada com sucesso');
-
     // Criar usuário no banco
     const createUserRequest = await User.create(userDataWithHash);
 
@@ -238,8 +219,6 @@ const createUser = async (dataUser) => {
     delete userWithoutPassword.resetCodeHash;
     userWithoutPassword.recoveryCode = resetCode;
     
-    console.log('✅ Usuário criado com sucesso:', userWithoutPassword.email);
-    
     return { error: null, message: userWithoutPassword };
     
   } catch (error) {
@@ -248,26 +227,35 @@ const createUser = async (dataUser) => {
   }
 };
 
-const findUserForPasswordReset = async (email) => {
-  const user = await User.findOne({ where: { email } });
-  if (!user || !user.resetCodeHash) return null;
-  return user;
-};
+const resetPassword = async (email, code, newPassword) => {
+  return sequelize.transaction(async (transaction) => {
+    const user = await User.findOne({
+      where: { email },
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+    if (!user?.resetCodeHash || !await bcrypt.compare(code, user.resetCodeHash)) {
+      return { error: "INVALID_CODE", message: "Email ou código de recuperação inválidos." };
+    }
 
-const resetPassword = async (user, code, newPassword) => {
-  if (!bcrypt.compareSync(code, user.resetCodeHash)) {
-    return { error: "INVALID_CODE", message: "Código de recuperação inválido" };
-  }
-
-  user.password = bcrypt.hashSync(newPassword, SALT_ROUNDS);
-  await user.save();
-  return { error: null, message: "Senha redefinida com sucesso" };
+    const recoveryCode = String(crypto.randomInt(100000, 1000000));
+    [user.password, user.resetCodeHash] = await Promise.all([
+      bcrypt.hash(newPassword, SALT_ROUNDS),
+      bcrypt.hash(recoveryCode, SALT_ROUNDS),
+    ]);
+    user.resetCodeHint = `${recoveryCode.slice(0, 2)}***${recoveryCode.slice(-1)}`;
+    await user.save({ transaction });
+    return {
+      error: null,
+      message: "Senha redefinida com sucesso. Guarde seu novo código de recuperação.",
+      recoveryCode,
+    };
+  });
 };
 
 const findUserForLogin = async (identifier) => {
   try {
     const normalizedIdentifier = String(identifier || '').trim().toLowerCase();
-    console.log('🔐 Service findUserForLogin: Buscando conta pelo identificador');
     
     const user = await User.findOne({
       where: {
@@ -292,8 +280,6 @@ const findUserForLogin = async (identifier) => {
 
 const verifyCredentials = async (email, password) => {
   try {
-    console.log('🔑 Service verifyCredentials:', email);
-    
     const user = await User.findOne({
       where: { email }
     });
@@ -302,7 +288,7 @@ const verifyCredentials = async (email, password) => {
       return { error: "USER_NOT_FOUND", message: "Email ou senha incorretos" };
     }
     
-    const isPasswordValid = bcrypt.compareSync(password, user.password);
+    const isPasswordValid = await bcrypt.compare(password, user.password);
     
     if (!isPasswordValid) {
       return { error: "INVALID_PASSWORD", message: "Email ou senha incorretos" };
@@ -332,7 +318,6 @@ module.exports = {
   updateMyProfile,
   updatePassword,
   verifyCredentials,
-  findUserForLogin
-  ,findUserForPasswordReset
-  ,resetPassword
+  findUserForLogin,
+  resetPassword,
 };

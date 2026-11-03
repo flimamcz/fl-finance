@@ -27,10 +27,7 @@ function Provider({ children }) {
 
   // ✅ 1. FUNÇÃO PARA CALCULAR AMOUNTS
   const calculateAmounts = useCallback((transactionsList) => {
-    console.log('🧮 Calculando amounts para:', transactionsList?.length || 0, 'transações');
-    
     if (!Array.isArray(transactionsList) || transactionsList.length === 0) {
-      console.log('📭 Nenhuma transação, retornando amounts zerados');
       return [
         { amount: "0.00", type: "RECIPES" },
         { amount: "0.00", type: "EXPENSES" },
@@ -68,14 +65,11 @@ function Provider({ children }) {
         type: "INVESTIMENTS",
       },
     ];
-    
-    console.log('💰 Resultado do cálculo:', result);
     return result;
   }, []);
 
   // ✅ 2. FUNÇÃO PARA RECALCULAR AMOUNTS
   const recalculateAmounts = useCallback(() => {
-    console.log('🔄 Chamando recalculateAmounts()');
     const newAmounts = calculateAmounts(transactions);
     setAmounts(newAmounts);
     return newAmounts;
@@ -87,12 +81,9 @@ function Provider({ children }) {
       setLoading(true);
       setError(null);
 
-      console.log("🔍 Context: Buscando transações...");
-
       const token = getStoredToken();
 
       if (!token) {
-        console.error("❌ Token não encontrado no localStorage");
         throw new Error("Token não encontrado. Faça login novamente.");
       }
 
@@ -105,10 +96,7 @@ function Provider({ children }) {
         },
       });
 
-      console.log("📊 Response status:", response.status);
-
       if (response.status === 401) {
-        console.warn("⚠️ Token expirado (401), limpando localStorage");
         clearAuthSession();
         throw new Error("Sessão expirada. Faça login novamente.");
       }
@@ -119,33 +107,20 @@ function Provider({ children }) {
       }
 
       const data = await response.json();
-      console.log("📊 Dados brutos recebidos:", data);
 
       let transactionsData = [];
 
       if (data.error === false && data.data) {
         // Formato: { error: false, data: [...], count: X }
         transactionsData = data.data || [];
-        console.log(`✅ Formato: {error: false, data: [...]} - ${transactionsData.length} itens`);
       } else if (data.error === false && data.message) {
         // Formato: { error: false, message: [...] }
         transactionsData = data.message || [];
-        console.log(`✅ Formato: {error: false, message: [...]} - ${transactionsData.length} itens`);
       } else if (Array.isArray(data)) {
         // Formato: [...]
         transactionsData = data;
-        console.log(`✅ Formato: array direto - ${transactionsData.length} itens`);
       } else {
-        console.error("❌ Formato de resposta inválido:", data);
         throw new Error("Formato de resposta inválido do servidor");
-      }
-
-      // DEBUG: Mostrar user_id de cada transação
-      if (transactionsData.length > 0) {
-        console.log("👥 User IDs nas transações recebidas:");
-        transactionsData.slice(0, 3).forEach((t, i) => {
-          console.log(`   ${i + 1}. ID: ${t.id}, user_id: ${t.user_id}, desc: ${t.description?.substring(0, 30)}`);
-        });
       }
 
       // Ordenar por data (mais recente primeiro)
@@ -158,30 +133,22 @@ function Provider({ children }) {
       // ✅ Calcular amounts com as transações recebidas
       const calculatedAmounts = calculateAmounts(sortedTransactions);
       setAmounts(calculatedAmounts);
-      
-      console.log(`✅ Context: ${sortedTransactions.length} transações carregadas`);
-      console.log('💰 Amounts calculados:', calculatedAmounts);
-
       return sortedTransactions;
       
     } catch (error) {
       console.error("❌ Context Erro ao buscar transações:", error.message);
       setError(error.message);
-      
-      // Limpa amounts em caso de erro
-      const emptyAmounts = calculateAmounts([]);
-      setAmounts(emptyAmounts);
-      setTransactions([]);
-      
-      if (
+      const sessionExpired = (
         error.message.includes("401") ||
         error.message.includes("token") ||
         error.message.includes("Sessão") ||
         error.message.includes("autenticado") ||
         error.message.includes("não encontrado")
-      ) {
-        console.warn("⚠️ Erro de autenticação, limpando localStorage");
+      );
+      if (sessionExpired) {
         clearAuthSession();
+        setTransactions([]);
+        setAmounts(calculateAmounts([]));
       }
 
       throw error;
@@ -194,8 +161,6 @@ function Provider({ children }) {
   // ✅ 4. FUNÇÃO PARA BUSCAR TIPOS
   const getAllTypes = useCallback(async () => {
     try {
-      console.log("🔍 Context: Buscando tipos de transação...");
-
       const token = getStoredToken();
       const headers = {
         "Content-Type": "application/json",
@@ -224,8 +189,6 @@ function Provider({ children }) {
       }
 
       setTypesTransactions(typesData);
-      console.log(`✅ Context: ${typesData.length} tipos carregados`);
-
       return typesData;
     } catch (error) {
       console.error("❌ Context Erro ao buscar tipos:", error);
@@ -244,8 +207,6 @@ function Provider({ children }) {
         if (!token) {
           throw new Error("Token não encontrado. Faça login novamente.");
         }
-
-        console.log("📤 Enviando transação:", transactionData);
 
         const response = await fetch(`${API_BASE_URL}/transactions`, {
           method: "POST",
@@ -271,8 +232,6 @@ function Provider({ children }) {
         // ✅ Recarrega as transações E recalcula amounts
         await getAllTransactions();
         
-        console.log("✅ Transação criada e dados atualizados");
-
         return data;
       } catch (error) {
         console.error("❌ Context Erro ao criar transação:", error);
@@ -325,8 +284,6 @@ function Provider({ children }) {
           throw new Error("Token não encontrado. Faça login novamente.");
         }
 
-        console.log(`🗑️ Deletando transação ID: ${id}`);
-
         const response = await fetch(`${API_BASE_URL}/transactions/${id}`, {
           method: "DELETE",
           headers: {
@@ -350,7 +307,7 @@ function Provider({ children }) {
         // ✅ Recarrega as transações E recalcula amounts
         await getAllTransactions();
         
-        console.log("✅ Transação deletada e dados atualizados");
+
 
         return data;
       } catch (error) {
@@ -370,16 +327,9 @@ function Provider({ children }) {
         const token = getStoredToken();
         const user = getStoredUser();
 
-        console.log("🚀 Context: Inicializando...");
-        console.log("🔑 Token no localStorage:", token ? "EXISTE" : "NÃO EXISTE");
-        console.log("👤 User no localStorage:", user ? "EXISTE" : "NÃO EXISTE");
-
         if (token && user) {
-          console.log("✅ Token e user encontrados, carregando dados...");
-          await getAllTypes();
-          await getAllTransactions();
+          await Promise.all([getAllTypes(), getAllTransactions()]);
         } else {
-          console.log("⚠️ Sem autenticação, carregando apenas tipos públicos");
           await getAllTypes();
           // Limpa dados de transações e amounts
           setTransactions([]);

@@ -43,7 +43,7 @@ class AuthService {
         await UserService.findUserForLogin(identifier);
 
       if (userError === "USER_NOT_FOUND") {
-        return { error: true, message: "Email ou senha incorretos" };
+        return { error: true, message: "Usuário/email ou senha incorretos" };
       }
 
       if (userError) {
@@ -73,7 +73,7 @@ class AuthService {
         return { error: true, message: "Erro no sistema. Senha não segura." };
       }
 
-      const isValidPassword = bcrypt.compareSync(password, user.password);
+      const isValidPassword = await bcrypt.compare(password, user.password);
 
       if (!isValidPassword) {
         return { error: true, message: "Usuário/email ou senha incorretos" };
@@ -93,16 +93,8 @@ class AuthService {
     }
   }
 
-  async getResetHint(email) {
-    const user = await UserService.findUserForPasswordReset(email);
-    if (!user) return { error: true, message: "Usuário não encontrado" };
-    return { error: false, message: user.resetCodeHint };
-  }
-
   async resetPassword(email, code, newPassword) {
-    const user = await UserService.findUserForPasswordReset(email);
-    if (!user) return { error: true, message: "Dados de recuperação inválidos" };
-    return UserService.resetPassword(user, code, newPassword);
+    return UserService.resetPassword(email, code, newPassword);
   }
 
   async getSetupStatus() {
@@ -156,7 +148,7 @@ class AuthService {
             transaction,
             lock: transaction.LOCK.UPDATE,
           });
-          if (!user || !bcrypt.compareSync(password, user.password)) {
+          if (!user || !await bcrypt.compare(password, user.password)) {
             return {
               error: true,
               message: "Email ou senha da conta existente incorretos",
@@ -177,6 +169,11 @@ class AuthService {
           };
         }
 
+        const recoveryCode = String(crypto.randomInt(100000, 1000000));
+        const [recoveryCodeHash, passwordHash] = await Promise.all([
+          bcrypt.hash(recoveryCode, 10),
+          bcrypt.hash(password, 10),
+        ]);
         const [claimed] = await SystemSetting.update(
           { adminSetupComplete: true },
           {
@@ -188,11 +185,10 @@ class AuthService {
           return { error: true, message: "A configuração inicial já foi concluída" };
         }
 
-        const recoveryCode = String(crypto.randomInt(100000, 1000000));
         if (user) {
           user.username = normalizedUsername;
           user.isAdmin = true;
-          user.resetCodeHash = bcrypt.hashSync(recoveryCode, 10);
+          user.resetCodeHash = recoveryCodeHash;
           user.resetCodeHint = `${recoveryCode.slice(0, 2)}***${recoveryCode.slice(-1)}`;
           await user.save({ transaction });
         } else {
@@ -201,9 +197,9 @@ class AuthService {
               fullname: normalizedUsername,
               username: normalizedUsername,
               email: normalizedEmail,
-              password: bcrypt.hashSync(password, 10),
+              password: passwordHash,
               isAdmin: true,
-              resetCodeHash: bcrypt.hashSync(recoveryCode, 10),
+              resetCodeHash: recoveryCodeHash,
               resetCodeHint: `${recoveryCode.slice(0, 2)}***${recoveryCode.slice(-1)}`,
             },
             { transaction }
