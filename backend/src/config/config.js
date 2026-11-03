@@ -1,6 +1,3 @@
-
-const fs = require('fs');
-
 const config = {
   username: process.env.MYSQL_USER,
   password: process.env.MYSQL_PASSWORD,
@@ -9,12 +6,10 @@ const config = {
   port: Number(process.env.MYSQL_PORT || 3306),
   dialect: 'mysql',
   dialectOptions: {
-    ssl: process.env.DB_SSL_CA
-      ? {
-          ca: process.env.DB_SSL_CA,
-          rejectUnauthorized: true
-        }
-      : undefined
+    ssl: {
+      ca: process.env.DB_SSL_CA,
+      rejectUnauthorized: true
+    }
   },
   logging: false
 };
