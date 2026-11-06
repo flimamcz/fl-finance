@@ -1468,6 +1468,24 @@ body.dark-mode .debt-installment-date .debt-installment-sequence {
   color: #17694f;
 }
 
+.debts-success-toast {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 20;
+  max-width: min(420px, calc(100vw - 32px));
+  margin: 0;
+  box-shadow: 0 8px 24px rgba(22, 65, 54, 0.18);
+  animation: debt-rise 180ms ease both;
+}
+
+.debts-success-toast small {
+  margin-left: auto;
+  color: #477a69;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
 .debts-empty-state {
   display: grid;
   justify-items: center;

@@ -113,7 +113,27 @@ function Debts() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [noticeCountdown, setNoticeCountdown] = useState(null);
   const handledDashboardEdit = useRef(null);
+
+  useEffect(() => {
+    if (!notice || noticeCountdown === null) {
+      if (!notice) setNoticeCountdown(null);
+      return undefined;
+    }
+
+    if (noticeCountdown === 0) {
+      setNotice("");
+      setNoticeCountdown(null);
+      return undefined;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setNoticeCountdown((countdown) => countdown === null ? null : countdown - 1);
+    }, 1000);
+
+    return () => window.clearTimeout(timeout);
+  }, [notice, noticeCountdown]);
 
   useEffect(() => {
     if (!formOpen) return undefined;
@@ -503,6 +523,7 @@ function Debts() {
       });
       setDebtEditor(null);
       setNotice("Dívida atualizada.");
+      setNoticeCountdown(3);
       await loadDebts();
     } catch (requestError) {
       setError(requestError.message);
@@ -718,7 +739,13 @@ function Debts() {
         </section>
 
         {error && <div className="debts-message debts-error" role="alert"><FiAlertCircle />{error}</div>}
-        {notice && <div className="debts-message debts-success" role="status"><FiCheck />{notice}</div>}
+        {notice && (
+          <div className={`debts-message debts-success${noticeCountdown !== null ? " debts-success-toast" : ""}`} role="status">
+            <FiCheck />
+            <span>{notice}</span>
+            {noticeCountdown !== null && <small>Fechando em {noticeCountdown}s</small>}
+          </div>
+        )}
 
         {formOpen && (
           <div className="debt-modal-backdrop" onClick={() => setFormOpen(false)}>
