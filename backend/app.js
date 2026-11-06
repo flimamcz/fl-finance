@@ -18,8 +18,7 @@ if (process.env.TRUST_PROXY === "1") {
 const defaultOrigins = process.env.NODE_ENV === "production"
   ? ""
   : "http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173";
-const allowedOrigins = (process.env.FRONTEND_ORIGINS || defaultOrigins)
-  .split(",")
+const allowedOrigins = ["https://fl-finance.vercel.app", ...(process.env.FRONTEND_ORIGINS || defaultOrigins).split(",")]
   .map((origin) => origin.trim())
   .filter(Boolean);
 
@@ -33,7 +32,7 @@ app.use(cors({
     console.warn(`CORS bloqueou origem: ${origin}`);
     return callback(null, false);
   },
-  methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: false,
   maxAge: 86400
