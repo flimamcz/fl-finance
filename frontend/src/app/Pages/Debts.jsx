@@ -967,10 +967,15 @@ function Debts() {
                         <details
                           className="debt-record"
                           key={debt.id}
-                          onToggle={(event) => setExpandedDebtId(event.currentTarget.open ? debt.id : null)}
                           open={expandedDebtId === debt.id}
                         >
-                          <summary className="debt-record-summary">
+                          <summary
+                            className="debt-record-summary"
+                            onClick={(event) => {
+                              event.preventDefault();
+                              setExpandedDebtId((currentId) => currentId === debt.id ? null : debt.id);
+                            }}
+                          >
                             <div className="debt-record-name">
                               <input
                                 aria-label={`Selecionar dívida ${debt.name}`}
