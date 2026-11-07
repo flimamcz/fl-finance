@@ -13,45 +13,44 @@ const port = Number(process.env.PORT) || 5000;
 const host = process.env.HOST || (process.env.NODE_ENV === "production" ? "0.0.0.0" : "127.0.0.1");
 const settleDebts = () => {
   settleDueInstallments().catch((error) => {
-    console.error("Erro ao processar parcelas vencidas:", error);
+    console.error("Scheduled debt settlement failed:", error?.name || "UnknownError");
   });
 };
 
 settleDebts();
 setInterval(settleDebts, 60 * 1000);
-// ❌ REMOVIDO host fixo (isso causava o EACCES)
 
-console.log('\n🚀 === INICIANDO SERVIDOR ===');
-console.log('📅', new Date().toISOString());
-console.log('⚙️  Ambiente:', process.env.NODE_ENV || 'development');
-console.log('🗄️  MYSQL_HOST:', process.env.MYSQL_HOST || 'NÃO DEFINIDO');
-
-// ================================
-// START SERVER (SEM IP FIXO)
-// ================================
-app.listen(port, host, () => {
-  console.log('\n✅ === SERVIDOR INICIADO ===');
-  console.log(`   🔗 API:        http://localhost:${port}`);
-  console.log(`   🖥️  Bind:       ${host}:${port}`);
-  console.log('\n📌 ENDPOINTS:');
-  console.log(`   🔐 Auth:       http://localhost:${port}/auth`);
-  console.log(`   💰 Transações: http://localhost:${port}/transactions`);
-  console.log(`   📊 Tipos:      http://localhost:${port}/types`);
-  console.log(`   👤 Usuários:   http://localhost:${port}/users`);
-  console.log(`   🩺 Health:     http://localhost:${port}/health`);
-  console.log(`\n🚀 Pronto para receber requisições!`);
+console.info("Starting FL Finance API", {
+  environment: process.env.NODE_ENV || "development",
+  port,
 });
 
-// ================================
-// TRATAMENTO GLOBAL DE ERROS
-// ================================
-process.on('uncaughtException', (error) => {
-  console.error('💥 ERRO NÃO TRATADO:', error);
-  console.error('💥 Stack:', error.stack);
+const server = app.listen(port, host, () => {
+  console.info("FL Finance API is listening", {
+    environment: process.env.NODE_ENV || "development",
+    port,
+  });
+});
+
+server.on("error", (error) => {
+  console.error("FL Finance API failed to listen", {
+    name: error.name,
+    code: error.code,
+  });
   process.exit(1);
 });
 
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('💥 PROMISE REJEITADA:', reason);
-  console.error('💥 Na promise:', promise);
+process.on("uncaughtException", (error) => {
+  console.error("Uncaught server exception", {
+    name: error.name,
+    code: error.code,
+  });
+  process.exit(1);
+});
+
+process.on("unhandledRejection", (reason) => {
+  console.error("Unhandled server rejection", {
+    name: reason instanceof Error ? reason.name : typeof reason,
+  });
+  process.exit(1);
 });

@@ -124,8 +124,6 @@ function Login() {
         throw new Error("O navegador bloqueou o cookie de sessão. Habilite cookies de terceiros ou use domínios próprios para o app e a API.");
       }
 
-      console.log('✅ Login bem-sucedido!');
-
       saveAuthSession(
         session.csrfToken || data.csrfToken,
         { ...data.user, ...session.user },
@@ -134,7 +132,7 @@ function Login() {
       window.location.replace('/home');
       
     } catch (err) {
-      console.error('❌ Erro no login:', err);
+      console.error("Login failed:", err.name);
       setError(err.message || "Erro ao fazer login");
       
     } finally {

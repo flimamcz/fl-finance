@@ -360,7 +360,7 @@ function ExportModal({ isOpen, onClose, transactions, filters = {} }) {
       // Salvar arquivo
       doc.save(`relatorio-financeiro-${Date.now()}.pdf`);
     } catch (error) {
-      console.error('Erro ao gerar PDF:', error);
+      console.error("PDF export failed:", error.name);
       alert('Erro ao gerar PDF. Verifique o console para mais detalhes.');
     } finally {
       setIsExporting(false);
@@ -484,7 +484,7 @@ function ExportModal({ isOpen, onClose, transactions, filters = {} }) {
       const blob = new Blob([wbout], { type: 'application/octet-stream' });
       saveAs(blob, `backup-finflow-completo-${Date.now()}.xlsx`);
     } catch (error) {
-      console.error('Erro ao gerar Excel:', error);
+      console.error("Spreadsheet export failed:", error.name);
       alert('Erro ao gerar Excel. Verifique o console para mais detalhes.');
     } finally {
       setIsExporting(false);
@@ -501,7 +501,7 @@ function ExportModal({ isOpen, onClose, transactions, filters = {} }) {
       const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
       saveAs(blob, `backup-finflow-completo-${Date.now()}.csv`);
     } catch (error) {
-      console.error('Erro ao gerar CSV:', error);
+      console.error("CSV export failed:", error.name);
       alert('Erro ao gerar CSV. Verifique o console para mais detalhes.');
     } finally {
       setIsExporting(false);
@@ -545,7 +545,7 @@ function ExportModal({ isOpen, onClose, transactions, filters = {} }) {
       const blob = new Blob([jsonString], { type: 'application/json' });
       saveAs(blob, `backup-finflow-completo-${Date.now()}.json`);
     } catch (error) {
-      console.error('Erro ao gerar JSON:', error);
+      console.error("JSON export failed:", error.name);
       alert('Erro ao gerar JSON. Verifique o console para mais detalhes.');
     } finally {
       setIsExporting(false);

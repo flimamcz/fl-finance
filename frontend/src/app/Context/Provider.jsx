@@ -133,7 +133,7 @@ function Provider({ children }) {
       return sortedTransactions;
       
     } catch (error) {
-      console.error("❌ Context Erro ao buscar transações:", error.message);
+      console.error("Transaction load failed:", error.name);
       setError(error.message);
       const sessionExpired = (
         error.message.includes("401") ||
@@ -189,7 +189,7 @@ function Provider({ children }) {
       setTypesTransactions(typesData);
       return typesData;
     } catch (error) {
-      console.error("❌ Context Erro ao buscar tipos:", error);
+      console.error("Transaction type load failed:", error.name);
       return [];
     }
   }, [API_BASE_URL]);
@@ -229,7 +229,7 @@ function Provider({ children }) {
         
         return data;
       } catch (error) {
-        console.error("❌ Context Erro ao criar transação:", error);
+        console.error("Transaction creation failed:", error.name);
         throw error;
       } finally {
         setLoading(false);
@@ -301,7 +301,7 @@ function Provider({ children }) {
 
         return data;
       } catch (error) {
-        console.error("❌ Context Erro ao deletar transação:", error);
+        console.error("Transaction deletion failed:", error.name);
         throw error;
       } finally {
         setLoading(false);
@@ -324,7 +324,7 @@ function Provider({ children }) {
           setAmounts(calculateAmounts([]));
         }
       } catch (error) {
-        console.error("❌ Context Erro na inicialização:", error);
+        console.error("Financial data initialization failed:", error.name);
       }
     };
 

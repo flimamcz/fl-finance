@@ -42,7 +42,7 @@ const searchTrasctions = async (req, res) => {
     });
     
   } catch (error) {
-    console.error("Erro ao consultar transações:", error);
+    console.error("Transaction lookup failed:", error.name);
     return res.status(500).json({ 
       error: true, 
       message: "Erro interno no servidor" 
@@ -127,7 +127,7 @@ const createTrasaction = async (req, res) => {
     return res.status(201).json(returnMessage);
     
   } catch (error) {
-    console.error('❌ Controller ERROR:', error);
+    console.error("Transaction creation failed:", error.name);
     return res.status(500).json({ 
       error: true, 
       message: "Erro interno no servidor" 
@@ -203,7 +203,7 @@ const importTransactions = async (req, res) => {
       linkedDebtInstallments: result.linkedDebtInstallments,
     });
   } catch (error) {
-    console.error("Erro ao importar transações:", error);
+    console.error("Transaction import failed:", error.name);
     return res.status(500).json({ error: true, message: "Erro interno ao importar transações." });
   }
 };
@@ -220,7 +220,7 @@ const importBackup = async (req, res) => {
     if (error.name === "BackupValidationError") {
       return res.status(400).json({ error: true, message: error.message });
     }
-    console.error("Erro ao restaurar backup:", error);
+    console.error("Backup restore failed:", error.name);
     return res.status(500).json({ error: true, message: "Erro interno ao restaurar o backup. Nenhum dado foi gravado." });
   }
 };
@@ -296,7 +296,7 @@ const updateTransaction = async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ Controller ERROR:', error);
+    console.error("Transaction update failed:", error.name);
     return res.status(500).json({ 
       error: true, 
       message: "Erro interno no servidor" 
@@ -341,7 +341,7 @@ const deleteTransaction = async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ Controller ERROR:', error);
+    console.error("Transaction deletion failed:", error.name);
     return res.status(500).json({ 
       error: true, 
       message: "Erro interno no servidor" 
@@ -389,7 +389,7 @@ const getCategoriesByType = async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ Controller ERROR (categorias):', error.message);
+    console.error("Category lookup failed:", error.name);
     return res.status(500).json({ 
       error: true, 
       message: "Erro interno no servidor" 
@@ -419,7 +419,7 @@ const getAllCategories = async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ Controller ERROR (todas categorias):', error.message);
+    console.error("Category listing failed:", error.name);
     return res.status(500).json({ 
       error: true, 
       message: "Erro interno no servidor" 
@@ -467,7 +467,7 @@ const validateCategory = async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ Controller ERROR (validar categoria):', error.message);
+    console.error("Category validation failed:", error.name);
     return res.status(500).json({ 
       error: true, 
       message: "Erro interno no servidor" 

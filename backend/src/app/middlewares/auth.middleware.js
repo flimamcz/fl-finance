@@ -52,7 +52,7 @@ const authenticate = async (req, res, next) => {
       });
     }
 
-    console.error("Erro ao autenticar requisição:", error);
+    console.error("Authentication middleware failed:", error.name);
     return res.status(500).json({
       error: true,
       message: "Erro na autenticação",

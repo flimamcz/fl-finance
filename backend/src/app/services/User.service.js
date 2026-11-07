@@ -29,7 +29,7 @@ const getMyProfile = async (userId) => {
     return { error: null, message: userData };
     
   } catch (error) {
-    console.error('❌ Service ERROR getMyProfile:', error);
+    console.error("Profile lookup failed:", error.name);
     return { error: "DATABASE_ERROR", message: "Erro ao buscar usuário" };
   }
 };
@@ -37,8 +37,9 @@ const getMyProfile = async (userId) => {
 const updateMyProfile = async (userId, updateData) => {
   try {
     // Buscar usuário
-    const user = await User.findOne({ 
-      where: { id: userId }
+    const user = await User.findOne({
+      where: { id: userId },
+      attributes: ["id", "fullname", "email", "photo", "createdAt"],
     });
     
     if (!user) {
@@ -86,13 +87,18 @@ const updateMyProfile = async (userId, updateData) => {
     await user.save();
     
     // Retornar dados atualizados (sem password)
-    const userResponse = user.toJSON();
-    delete userResponse.password;
+    const userResponse = {
+      fullname: user.fullname,
+      email: user.email,
+      photo: user.photo,
+      createdAt: user.createdAt,
+      joinedDate: user.createdAt,
+    };
     
     return { error: null, message: userResponse };
     
   } catch (error) {
-    console.error('❌ Service ERROR updateMyProfile:', error);
+    console.error("Profile update failed:", error.name);
     return { error: "DATABASE_ERROR", message: "Erro ao atualizar usuário" };
   }
 };
@@ -137,7 +143,7 @@ const updatePassword = async (userId, currentPassword, newPassword) => {
     return { error: null, message: "Senha alterada com sucesso" };
     
   } catch (error) {
-    console.error('❌ Service ERROR updatePassword:', error);
+    console.error("Password update failed:", error.name);
     return { error: "DATABASE_ERROR", message: "Erro ao alterar senha" };
   }
 };
@@ -159,7 +165,7 @@ const searchUsers = async () => {
     return { error: null, message: users };
     
   } catch (error) {
-    console.error('❌ Service ERROR searchUsers:', error);
+    console.error("User directory lookup failed:", error.name);
     return { error: "DATABASE_ERROR", message: "Erro ao buscar usuários" };
   }
 };
@@ -222,7 +228,7 @@ const createUser = async (dataUser) => {
     return { error: null, message: userWithoutPassword };
     
   } catch (error) {
-    console.error('❌ Service ERROR createUser:', error);
+    console.error("Account creation failed:", error.name);
     return { error: "DATABASE_ERROR", message: "Erro ao criar usuário" };
   }
 };
@@ -273,7 +279,7 @@ const findUserForLogin = async (identifier) => {
     return { error: null, message: user };
     
   } catch (error) {
-    console.error('❌ Service ERROR findUserForLogin:', error);
+    console.error("Login account lookup failed:", error.name);
     return { error: "DATABASE_ERROR", message: "Erro ao buscar usuário para login" };
   }
 };
@@ -301,7 +307,7 @@ const verifyCredentials = async (email, password) => {
     return { error: null, message: userWithoutPassword };
     
   } catch (error) {
-    console.error('❌ Service ERROR verifyCredentials:', error);
+    console.error("Credential verification failed:", error.name);
     return { error: "DATABASE_ERROR", message: "Erro ao verificar credenciais" };
   }
 };

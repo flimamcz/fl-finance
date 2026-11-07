@@ -9,7 +9,7 @@ const setupStatus = async (req, res) => {
     res.set("Cache-Control", "no-store");
     return res.status(200).json(await authService.getSetupStatus());
   } catch (error) {
-    console.error("Erro ao consultar configuração inicial:", error.message);
+    console.error("Setup status request failed:", error.name);
     return res.status(500).json({ error: true, message: "Não foi possível verificar a configuração inicial" });
   }
 };
@@ -35,7 +35,7 @@ const setupAdmin = async (req, res) => {
       expiresAt,
     });
   } catch (error) {
-    console.error("Controller setup admin error:", error);
+    console.error("Admin setup request failed:", error.name);
     return res.status(500).json({ error: true, message: "Erro interno no servidor" });
   }
 };
@@ -73,7 +73,7 @@ const resetPassword = async (req, res) => {
       recoveryCode: result.recoveryCode,
     });
   } catch (error) {
-    console.error("Erro ao redefinir senha:", error);
+    console.error("Password recovery request failed:", error.name);
     return res.status(500).json({ error: true, message: "Não foi possível redefinir a senha." });
   }
 };
@@ -110,7 +110,7 @@ const login = async (req, res) => {
     });
     
   } catch (error) {
-    console.error("Controller login error:", error);
+    console.error("Login request failed:", error.name);
     return res.status(500).json({ 
       error: true, 
       message: "Erro interno no servidor" 
@@ -147,7 +147,7 @@ const verify = async (req, res) => {
     });
     
   } catch (error) {
-    console.error("Controller verify error:", error);
+    console.error("Session verification request failed:", error.name);
     return res.status(500).json({ 
       error: true, 
       message: "Erro interno no servidor" 
@@ -192,7 +192,7 @@ const register = async (req, res) => {
     });
     
   } catch (error) {
-    console.error("Controller register error:", error);
+    console.error("Registration request failed:", error.name);
     return res.status(500).json({ 
       error: true, 
       message: "Erro interno no servidor" 

@@ -74,8 +74,6 @@ function EditTransactionModal({
         isSalary: Number(formData.typeId) === 1 && formData.isSalary,
       };
 
-      console.log("🔄 Enviando atualização:", updateData);
-
       const response = await apiFetch(`${API_BASE_URL}/transactions`, {
         method: "PATCH", // Note: SEU BACKEND usa PATCH, não PUT
         headers: {
@@ -90,8 +88,6 @@ function EditTransactionModal({
         throw new Error(data.message || `Erro ${response.status}`);
       }
 
-      console.log("✅ Atualização bem-sucedida:", data);
-
       // Atualizar a lista de transações
       await getAllTransactions();
 
@@ -100,7 +96,7 @@ function EditTransactionModal({
       onClose();
 
     } catch (error) {
-      console.error("❌ Erro na atualização:", error);
+      console.error("Transaction update failed:", error.name);
       setError(error.message || "Falha ao atualizar transação");
     } finally {
       setLoading(false);

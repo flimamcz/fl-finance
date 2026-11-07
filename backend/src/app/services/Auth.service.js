@@ -78,8 +78,7 @@ class AuthService {
         },
       };
     } catch (error) {
-      console.error("❌ AuthService login error:", error);
-      console.error("❌ Stack:", error.stack);
+      console.error("Authentication failed:", error.name);
       return { error: true, message: "Erro interno no servidor" };
     }
   }
@@ -207,7 +206,7 @@ class AuthService {
         };
       });
     } catch (error) {
-      console.error("Erro ao concluir configuração inicial:", error.message);
+      console.error("Initial account setup failed:", error.name);
       return { error: true, message: "Não foi possível concluir a configuração inicial" };
     }
   }
@@ -233,7 +232,7 @@ class AuthService {
         },
       };
     } catch (error) {
-      console.error("❌ AuthService register error:", error);
+      console.error("Registration failed:", error.name);
       return { error: true, message: "Erro ao registrar usuário" };
     }
   }
@@ -250,7 +249,7 @@ class AuthService {
       }
       return { error: false, message: decoded };
     } catch (error) {
-      console.error("❌ Token verification failed:", error.message);
+      console.error("Session token verification failed:", error.name);
       return { error: true, message: "Token inválido ou expirado" };
     }
   }

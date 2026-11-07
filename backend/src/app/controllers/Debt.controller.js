@@ -12,7 +12,7 @@ const listDebts = async (req, res) => {
     const data = await debtService.listDebts(req.user.id);
     return res.status(200).json({ error: false, data });
   } catch (error) {
-    console.error("Erro ao listar dívidas:", error);
+    console.error("Debt lookup failed:", error.name);
     return res.status(500).json({ error: true, message: "Não foi possível listar as dívidas." });
   }
 };
@@ -24,7 +24,7 @@ const createDebt = async (req, res) => {
     const data = await debtService.listDebts(req.user.id);
     return res.status(201).json({ error: false, data });
   } catch (error) {
-    console.error("Erro ao criar dívida:", error);
+    console.error("Debt creation failed:", error.name);
     return res.status(500).json({ error: true, message: "Não foi possível criar a dívida." });
   }
 };
@@ -40,7 +40,7 @@ const payInstallment = async (req, res) => {
     const data = await debtService.listDebts(req.user.id);
     return res.status(200).json({ error: false, data });
   } catch (error) {
-    console.error("Erro ao quitar parcela:", error);
+    console.error("Debt installment payment failed:", error.name);
     return res.status(500).json({ error: true, message: "Não foi possível quitar a parcela." });
   }
 };
@@ -52,7 +52,7 @@ const unpayInstallment = async (req, res) => {
     const data = await debtService.listDebts(req.user.id);
     return res.status(200).json({ error: false, data });
   } catch (error) {
-    console.error("Erro ao desfazer pagamento da parcela:", error);
+    console.error("Debt installment payment reversal failed:", error.name);
     return res.status(500).json({ error: true, message: "Não foi possível desfazer o pagamento da parcela." });
   }
 };
@@ -64,7 +64,7 @@ const updateDebt = async (req, res) => {
     const data = await debtService.listDebts(req.user.id);
     return res.status(200).json({ error: false, data });
   } catch (error) {
-    console.error("Erro ao atualizar dívida:", error);
+    console.error("Debt update failed:", error.name);
     return res.status(500).json({ error: true, message: "Não foi possível atualizar a dívida." });
   }
 };
@@ -76,7 +76,7 @@ const updateInstallment = async (req, res) => {
     const data = await debtService.listDebts(req.user.id);
     return res.status(200).json({ error: false, data });
   } catch (error) {
-    console.error("Erro ao atualizar parcela:", error);
+    console.error("Debt installment update failed:", error.name);
     return res.status(500).json({ error: true, message: "Não foi possível atualizar a parcela." });
   }
 };
@@ -88,7 +88,7 @@ const settleDebt = async (req, res) => {
     const data = await debtService.listDebts(req.user.id);
     return res.status(200).json({ error: false, data });
   } catch (error) {
-    console.error("Erro ao liquidar dívida:", error);
+    console.error("Debt settlement failed:", error.name);
     return res.status(500).json({ error: true, message: "Não foi possível liquidar a dívida." });
   }
 };
@@ -98,7 +98,7 @@ const deleteDebt = async (req, res) => {
     const result = await debtService.deleteDebt(req.user.id, req.params.id);
     return sendServiceResult(res, result);
   } catch (error) {
-    console.error("Erro ao excluir dívida:", error);
+    console.error("Debt deletion failed:", error.name);
     return res.status(500).json({ error: true, message: "Não foi possível excluir a dívida." });
   }
 };

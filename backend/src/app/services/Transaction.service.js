@@ -124,7 +124,7 @@ const searchTransactions = async (userId = null) => {
     return { error: null, message: transactionsWithDebtInstallments };
     
   } catch (error) {
-    console.error("Erro ao buscar transações:", error);
+    console.error("Transaction query failed:", error.name);
     return { error: "DATABASE_ERROR", message: "Erro ao buscar transações" };
   }
 };
@@ -166,7 +166,7 @@ const createTransaction = async (dataTransaction) => {
     
     return { error: null, message: transactionWithCategory };
   } catch (error) {
-    console.error("Erro ao criar transação:", error);
+    console.error("Transaction creation failed:", error.name);
     return { error: "Bad Request", message: "Erro ao criar transação!" };
   }
 };
@@ -261,7 +261,7 @@ const createTransactionsBatch = async (userId, transactions) => {
       linkedDebtInstallments,
     };
   } catch (error) {
-    console.error("Erro ao importar lote de transações:", error);
+    console.error("Transaction batch import failed:", error.name);
     return { error: "IMPORT_FAILED", message: "Não foi possível importar as transações." };
   }
 };
@@ -329,7 +329,7 @@ const updateTransaction = async (transactionId, userId, dataTransaction) => {
     };
     
   } catch (error) {
-    console.error('❌ Erro ao atualizar:', error);
+    console.error("Transaction update failed:", error.name);
     return { error: "ERROR", message: "Erro ao atualizar transação" };
   }
 };
@@ -396,7 +396,7 @@ const deleteTransaction = async (id, userId = null) => {
     };
     
   } catch (error) {
-    console.error('❌ Erro ao deletar:', error);
+    console.error("Transaction deletion failed:", error.name);
     return {
       error: "Bad Request",
       message: `Erro ao deletar transação!`,
@@ -421,7 +421,7 @@ const getCategoriesByType = async (typeId = null) => {
     return { error: null, message: categories };
     
   } catch (error) {
-    console.error("Erro ao buscar categorias:", error);
+    console.error("Category query failed:", error.name);
     return { error: "DATABASE_ERROR", message: "Erro ao buscar categorias" };
   }
 };
@@ -453,7 +453,7 @@ const getAllCategories = async () => {
     };
     
   } catch (error) {
-    console.error("Erro ao buscar categorias:", error);
+    console.error("Category query failed:", error.name);
     return { error: "DATABASE_ERROR", message: "Erro ao buscar categorias" };
   }
 };

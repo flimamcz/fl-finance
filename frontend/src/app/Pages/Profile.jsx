@@ -62,8 +62,6 @@ function Profile() {
     setIsLoading(true);
     
     try {
-      console.log('🔍 Carregando dados do perfil...');
-      
       // Buscar dados do usuário
       const userResponse = await apiFetch(`${API_BASE_URL}/users/me`, {
         method: "GET",
@@ -92,7 +90,7 @@ function Profile() {
           }
         }
       } catch (transError) {
-        console.log('⚠️ Não foi possível contar transações:', transError.message);
+        console.error("Could not load profile transaction count:", transError.name);
       }
 
       // Preencher formulário
@@ -122,7 +120,7 @@ function Profile() {
       setMessage({ type: '', text: '' });
       
     } catch (error) {
-      console.error("Erro ao carregar dados:", error);
+      console.error("Profile data load failed:", error.name);
       setMessage({ 
         type: 'error', 
         text: error.message || 'Erro ao carregar dados do perfil' 
@@ -299,7 +297,7 @@ function Profile() {
       }
       
     } catch (error) {
-      console.error("Erro ao atualizar:", error);
+      console.error("Profile update failed:", error.name);
       setMessage({ 
         type: 'error', 
         text: error.message || 'Erro ao atualizar perfil. Tente novamente.' 

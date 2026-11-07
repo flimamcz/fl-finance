@@ -8,8 +8,6 @@ module.exports = {
       `SELECT id FROM users WHERE email IN ('flp@test.com', 'edu@test.com') ORDER BY id;`
     );
 
-    console.log('🔍 Usuários encontrados para seed:', users);
-    
     if (!users || users.length < 2) {
       console.info('ℹ️ Pulando transações de exemplo: crie usuários pelo fluxo de setup.');
       return;
@@ -18,8 +16,6 @@ module.exports = {
     const user1 = users.find(u => u.id === 1) || users[0];
     const user2 = users.find(u => u.id === 2) || users[1];
     
-    console.log(`✅ User 1 ID: ${user1.id}, User 2 ID: ${user2.id}`);
-
     return queryInterface.bulkInsert(
       "transactions",
       [

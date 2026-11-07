@@ -517,7 +517,7 @@ function Home() {
           return getLast30DaysData(transactions, now);
       }
     } catch (error) {
-      console.error("Erro ao processar dados do gráfico:", error);
+      console.error("Chart data processing failed:", error.name);
       return [];
     }
   }, [
@@ -886,7 +886,7 @@ function Home() {
       setCountdown(3);
       setIsTooltipClosing(false);
     } catch (error) {
-      console.error("Erro ao excluir:", error);
+      console.error("Record deletion failed:", error.name);
       setModalTitle("Erro");
       setModalMessage(`${error.message || "Falha ao excluir transação"}`);
       setShowErrorTooltip(true);

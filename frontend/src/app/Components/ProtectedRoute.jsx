@@ -35,12 +35,10 @@ const ProtectedRoute = ({ children }) => {
 
   // ✅ Só redireciona se NÃO estiver autenticado E não estiver loading
   if (!isAuthenticated) {
-    console.log('🔒 ProtectedRoute: Usuário não autenticado, redirecionando para login');
     return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
 
   // ✅ Se autenticado, renderiza o conteúdo
-  console.log('✅ ProtectedRoute: Usuário autenticado, permitindo acesso');
   return children;
 };
 

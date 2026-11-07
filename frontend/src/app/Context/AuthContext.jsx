@@ -70,10 +70,10 @@ export const AuthProvider = ({ children }) => {
             setAmounts([]);
             return;
           }
-          console.error("Extrato indisponível; sessão mantida:", transactionError.message);
+          console.error("Transaction history unavailable; session retained:", transactionError.name);
         }
       } catch (error) {
-        console.error("Erro ao carregar usuário:", error);
+        console.error("Session initialization failed:", error.name);
         clearAuthSession();
         setUser(null);
         setTransactions([]);
@@ -125,7 +125,7 @@ export const AuthProvider = ({ children }) => {
     try {
       await apiFetch(`${API_BASE_URL}/auth/logout`, { method: "POST" });
     } catch (error) {
-      console.error("Não foi possível encerrar a sessão no servidor:", error);
+      console.error("Server logout request failed:", error.name);
     } finally {
       clearAuthSession();
       setUser(null);

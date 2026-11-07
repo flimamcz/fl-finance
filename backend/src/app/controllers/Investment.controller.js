@@ -59,7 +59,7 @@ const listMovements = async (req, res) => {
       balance: result.balance,
     });
   } catch (error) {
-    console.error("Erro ao listar movimentações de investimento:", error);
+    console.error("Investment movement lookup failed:", error.name);
     return res.status(500).json({
       error: true,
       message: "Não foi possível carregar as movimentações de investimento.",
@@ -85,7 +85,7 @@ const createMovement = async (req, res) => {
       balance: latest.balance,
     });
   } catch (error) {
-    console.error("Erro ao registrar movimentação de investimento:", error);
+    console.error("Investment movement creation failed:", error.name);
     return res.status(500).json({
       error: true,
       message: "Não foi possível registrar a movimentação.",
@@ -119,7 +119,7 @@ const updateMovement = async (req, res) => {
       balance: latest.balance,
     });
   } catch (error) {
-    console.error("Erro ao atualizar movimentação de investimento:", error);
+    console.error("Investment movement update failed:", error.name);
     return res.status(500).json({
       error: true,
       message: "Não foi possível atualizar a movimentação.",
@@ -145,7 +145,7 @@ const deleteMovement = async (req, res) => {
       balance: latest.balance,
     });
   } catch (error) {
-    console.error("Erro ao excluir movimentação de investimento:", error);
+    console.error("Investment movement deletion failed:", error.name);
     return res.status(500).json({
       error: true,
       message: "Não foi possível excluir a movimentação.",
@@ -184,7 +184,7 @@ const deleteMovements = async (req, res) => {
       balance: latest.balance,
     });
   } catch (error) {
-    console.error("Erro ao excluir movimentações de investimento:", error);
+    console.error("Investment movement batch deletion failed:", error.name);
     return res.status(500).json({
       error: true,
       message: "Não foi possível excluir as movimentações selecionadas.",

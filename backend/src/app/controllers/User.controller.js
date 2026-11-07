@@ -75,7 +75,7 @@ const getMyProfile = async (req, res) => {
       data: message,
     });
   } catch (error) {
-    console.error("❌ Controller ERROR getMyProfile:", error.message);
+    console.error("Profile request failed:", error.name);
     return res.status(500).json({
       error: true,
       message: "Erro interno ao buscar perfil",
@@ -155,15 +155,13 @@ const updateMyProfile = async (req, res) => {
       });
     }
 
-    console.log("✅ Perfil atualizado com sucesso");
-
     return res.status(200).json({
       error: false,
       message: "Perfil atualizado com sucesso!",
       data: message,
     });
   } catch (error) {
-    console.error("❌ Controller ERROR updateMyProfile:", error.message);
+    console.error("Profile update request failed:", error.name);
     return res.status(500).json({
       error: true,
       message: "Erro interno ao atualizar perfil",
@@ -226,14 +224,12 @@ const updatePassword = async (req, res) => {
       });
     }
 
-    console.log("✅ Senha alterada com sucesso");
-
     return res.status(200).json({
       error: false,
       message: "Senha alterada com sucesso!",
     });
   } catch (error) {
-    console.error("❌ Controller ERROR updatePassword:", error.message);
+    console.error("Password update request failed:", error.name);
     return res.status(500).json({
       error: true,
       message: "Erro interno ao alterar senha",
