@@ -266,18 +266,9 @@ const createTransactionsBatch = async (userId, transactions) => {
   }
 };
 
-const updateTransaction = async (dataTransaction) => {
+const updateTransaction = async (transactionId, userId, dataTransaction) => {
   try {
-    // ✅ CORREÇÃO: Verifica também pelo user_id para segurança
-    const whereClause = { id: dataTransaction.id };
-    
-    // Se tiver userId no update, adiciona à verificação
-    if (dataTransaction.userId) {
-      whereClause.user_id = dataTransaction.userId;
-    } else if (dataTransaction.user_id) {
-      whereClause.user_id = dataTransaction.user_id;
-    }
-    
+    const whereClause = { id: transactionId, user_id: Number(userId) };
     const findTransaction = await Transaction.findOne({
       where: whereClause,
     });
@@ -306,28 +297,23 @@ const updateTransaction = async (dataTransaction) => {
       };
     }
 
-    // Remove campos que não devem ser atualizados
-    const updateData = { ...dataTransaction };
-    delete updateData.id;
-    
-    // Converte userId para user_id se necessário
-    if (updateData.userId !== undefined) {
-      updateData.user_id = updateData.userId;
-      delete updateData.userId;
+    const updateData = {};
+    for (const field of ["value", "typeId", "description", "date", "status", "isSalary"]) {
+      if (Object.prototype.hasOwnProperty.call(dataTransaction, field)) {
+        updateData[field] = dataTransaction[field];
+      }
     }
-    
-    // ✅ NOVO: Trata categoryId
-    if (updateData.categoryId !== undefined) {
-      updateData.category_id = updateData.categoryId;
-      delete updateData.categoryId;
+    if (Object.prototype.hasOwnProperty.call(dataTransaction, "categoryId")) {
+      updateData.category_id = dataTransaction.categoryId;
     }
     
     await Transaction.update(updateData, {
-      where: { id: dataTransaction.id }
+      where: whereClause
     });
 
     // Busca transação atualizada com categoria
-    const updatedTransaction = await Transaction.findByPk(dataTransaction.id, {
+    const updatedTransaction = await Transaction.findOne({
+      where: whereClause,
       include: [
         {
           model: Category,

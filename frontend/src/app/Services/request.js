@@ -9,9 +9,22 @@ export const API_BASE_URL =
 
 const api = axios.create({
   baseURL: API_BASE_URL,
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
+});
+
+api.interceptors.request.use((config) => {
+  const method = (config.method || "get").toUpperCase();
+  if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
+    const csrfToken = sessionStorage.getItem("csrfToken");
+    if (csrfToken) {
+      config.headers = config.headers || {};
+      config.headers["X-CSRF-Token"] = csrfToken;
+    }
+  }
+  return config;
 });
 
 export const requestPost = async (endpoint, body) => {
@@ -32,14 +45,6 @@ export const requestUpdate = async (endpoint, body) => {
 export const requestDelete = async (endpoint) => {
   const { data } = await api.delete(endpoint);
   return data;
-};
-
-export const setToken = (token) => {
-  if (token) {
-    api.defaults.headers.common.Authorization = token;
-  } else {
-    delete api.defaults.headers.common.Authorization;
-  }
 };
 
 export default api;

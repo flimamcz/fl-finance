@@ -10,6 +10,7 @@ import {
   FiUser,
 } from "react-icons/fi";
 import { API_BASE_URL } from "../Services/request";
+import { apiFetch } from "../Services/apiFetch";
 import { saveAuthSession } from "../Services/authStorage";
 import "../Styles/Login.css";
 
@@ -36,7 +37,7 @@ function AccountSetup() {
   }, []);
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/auth/setup-status`, { cache: "no-store" })
+    apiFetch(`${API_BASE_URL}/auth/setup-status`, { cache: "no-store" })
       .then((response) => response.json())
       .then((data) => {
         if (!data.setupRequired) navigate("/login", { replace: true });
@@ -65,7 +66,7 @@ function AccountSetup() {
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/setup`, {
+      const response = await apiFetch(`${API_BASE_URL}/auth/setup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -78,7 +79,16 @@ function AccountSetup() {
       if (!response.ok || data.error) {
         throw new Error(data.message || "Não foi possível concluir a configuração.");
       }
-      setCreatedAccount(data);
+      const sessionResponse = await apiFetch(`${API_BASE_URL}/auth/verify`, { cache: "no-store" });
+      const session = await sessionResponse.json();
+      if (!sessionResponse.ok || session.error) {
+        throw new Error("O navegador bloqueou o cookie de sessão. Habilite cookies de terceiros ou use domínios próprios para o app e a API.");
+      }
+      setCreatedAccount({
+        ...data,
+        csrfToken: session.csrfToken || data.csrfToken,
+        user: { ...data.user, ...session.user },
+      });
     } catch (requestError) {
       setError(requestError.message || "Erro ao concluir a configuração.");
     } finally {
@@ -87,7 +97,7 @@ function AccountSetup() {
   };
 
   const enterApp = () => {
-    saveAuthSession(createdAccount.token, createdAccount.user, true);
+    saveAuthSession(createdAccount.csrfToken, createdAccount.user, true);
     window.location.replace("/home");
   };
 

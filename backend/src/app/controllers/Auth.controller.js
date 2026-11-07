@@ -1,5 +1,8 @@
 // src/app/controllers/Auth.controller.js
 const authService = require('../services/Auth.service');
+const jwt = require("jsonwebtoken");
+const { clearAuthCookies, csrfCookieName, getCookie, sessionCookieName, setAuthCookies } =
+  require("../services/AuthCookie.service");
 
 const setupStatus = async (req, res) => {
   try {
@@ -22,7 +25,14 @@ const setupAdmin = async (req, res) => {
     if (result.error) {
       return res.status(400).json(result);
     }
-    return res.status(201).json({ error: false, ...result.message });
+    const csrfToken = setAuthCookies(res, result.message.token, true);
+    const expiresAt = jwt.decode(result.message.token).exp * 1000;
+    return res.status(201).json({
+      error: false,
+      user: result.message.user,
+      csrfToken,
+      expiresAt,
+    });
   } catch (error) {
     console.error("Controller setup admin error:", error);
     return res.status(500).json({ error: true, message: "Erro interno no servidor" });
@@ -69,7 +79,7 @@ const resetPassword = async (req, res) => {
 
 const login = async (req, res) => {
   try {
-    const { identifier, username, email, password } = req.body;
+    const { identifier, username, email, password, rememberMe } = req.body;
     const loginIdentifier = identifier || username || email;
     
     if (!loginIdentifier || !password) {
@@ -88,9 +98,13 @@ const login = async (req, res) => {
       });
     }
 
+    const csrfToken = setAuthCookies(res, message.token, rememberMe === true);
+    const expiresAt = jwt.decode(message.token).exp * 1000;
     return res.status(200).json({
       error: false,
-      ...message
+      user: message.user,
+      csrfToken,
+      expiresAt,
     });
     
   } catch (error) {
@@ -104,19 +118,18 @@ const login = async (req, res) => {
 
 const verify = async (req, res) => {
   try {
-    const authHeader = req.headers.authorization;
-    
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const token = getCookie(req, sessionCookieName);
+    if (!token) {
       return res.status(401).json({ 
         error: true, 
-        message: "Token não fornecido" 
+        message: "Sessão ausente"
       });
     }
 
-    const token = authHeader.split(' ')[1];
     const { error, message } = await authService.verifyToken(token);
     
     if (error) {
+      clearAuthCookies(res);
       return res.status(401).json({ 
         error: true, 
         message 
@@ -125,7 +138,9 @@ const verify = async (req, res) => {
 
     return res.status(200).json({
       error: false,
-      user: message
+      user: message,
+      csrfToken: getCookie(req, csrfCookieName),
+      expiresAt: jwt.decode(token).exp * 1000,
     });
     
   } catch (error) {
@@ -136,6 +151,11 @@ const verify = async (req, res) => {
     });
   }
 
+};
+
+const logout = (req, res) => {
+  clearAuthCookies(res);
+  return res.status(200).json({ error: false });
 };
 
 const register = async (req, res) => {
@@ -179,6 +199,7 @@ const register = async (req, res) => {
 
 module.exports = {
   login,
+  logout,
   verify,
   setupStatus,
   setupAdmin,

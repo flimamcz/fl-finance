@@ -3,6 +3,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 const { Op } = require("sequelize");
 const { User, SystemSetting, sequelize } = require("../../models");
 const UserService = require("./User.service");
@@ -32,6 +33,8 @@ test("login accepts usernames and email addresses", async () => {
       assert.equal(result.error, false);
       assert.equal(result.message.user.username, "test.user");
       assert.equal(typeof result.message.token, "string");
+      const decodedToken = jwt.decode(result.message.token);
+      assert.equal(decodedToken.exp - decodedToken.iat, 8 * 60 * 60);
     }
 
     assert.equal(foundQueries.length, 2);
@@ -40,6 +43,24 @@ test("login accepts usernames and email addresses", async () => {
     }
   } finally {
     User.findOne = originalFindOne;
+    if (previousSecret === undefined) delete process.env.JWT_SECRET;
+    else process.env.JWT_SECRET = previousSecret;
+  }
+});
+
+test("token verification rejects sessions older than eight hours", async () => {
+  const previousSecret = process.env.JWT_SECRET;
+  process.env.JWT_SECRET = "test-only-signing-secret";
+
+  try {
+    const token = jwt.sign(
+      { id: 8, iat: Math.floor(Date.now() / 1000) - 9 * 60 * 60 },
+      process.env.JWT_SECRET,
+      { expiresIn: "24h" }
+    );
+    const result = await AuthService.verifyToken(token);
+    assert.equal(result.error, true);
+  } finally {
     if (previousSecret === undefined) delete process.env.JWT_SECRET;
     else process.env.JWT_SECRET = previousSecret;
   }

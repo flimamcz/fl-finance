@@ -27,9 +27,7 @@ import {
   requestGet,
   requestPost,
   requestUpdate,
-  setToken,
 } from "../Services/request";
-import { getStoredToken } from "../Services/authStorage";
 import "../Styles/Investments.css";
 
 const currentLocalMonth = () => {
@@ -148,9 +146,6 @@ function Investments() {
     let active = true;
     const loadMovements = async () => {
       try {
-        const token = getStoredToken();
-        if (!token) throw new Error("Sua sessão não foi encontrada. Entre novamente.");
-        setToken(`Bearer ${token}`);
         const response = await requestGet("/investments");
         if (active) setMovements(Array.isArray(response.data) ? response.data : []);
       } catch (error) {
@@ -279,9 +274,6 @@ function Investments() {
     }
 
     try {
-      const token = getStoredToken();
-      if (!token) throw new Error("Sua sessão não foi encontrada. Entre novamente.");
-      setToken(`Bearer ${token}`);
       setSavingMovement(true);
       const movementData = {
         type: movementType,
@@ -405,9 +397,6 @@ function Investments() {
     setMovementError("");
     setMovementSuccess("");
     try {
-      const token = getStoredToken();
-      if (!token) throw new Error("Sua sessão não foi encontrada. Entre novamente.");
-      setToken(`Bearer ${token}`);
       if (confirmation.type === "single") setDeletingMovementId(confirmation.movement.id);
       else setDeletingSelectedMovements(true);
       const response = confirmation.type === "single"

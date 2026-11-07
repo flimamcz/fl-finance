@@ -1,78 +1,73 @@
-// AuthContext.jsx - VERSÃO SIMPLIFICADA
-import { createContext, useState, useContext, useEffect } from "react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { apiFetch } from "../Services/apiFetch";
 import { API_BASE_URL } from "../Services/request";
 import {
   clearAuthSession,
-  getStoredToken,
+  getRememberMe,
   getStoredUser,
   saveAuthSession,
+  saveCsrfToken,
 } from "../Services/authStorage";
+import MyContext from "../Context/Context";
 
 const AuthContext = createContext({});
-import MyContext from "../Context/Context";
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [sessionExpiresAt, setSessionExpiresAt] = useState(null);
   const navigate = useNavigate();
+  const { setTransactions, setAmounts, getAllTransactions } = useContext(MyContext);
 
-  const { setTransactions, setAmounts, getAllTransactions } =
-    useContext(MyContext);
-
-  // ✅ Função para verificar token
-  const verifyToken = async (token) => {
+  const verifyToken = useCallback(async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/verify`, {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
+      const response = await apiFetch(`${API_BASE_URL}/auth/verify`, { cache: "no-store" });
       const data = await response.json();
 
-      if (data.error) {
+      if (!response.ok || data.error) {
         return { valid: false, user: null };
       }
 
-      return { valid: true, user: data.user };
-    } catch (error) {
+      if (data.csrfToken) saveCsrfToken(data.csrfToken);
+      return {
+        valid: true,
+        user: data.user,
+        csrfToken: data.csrfToken,
+        expiresAt: data.expiresAt,
+      };
+    } catch {
       return { valid: false, user: null, unavailable: true };
     }
-  };
+  }, []);
 
-  // ✅ Carregar usuário ao iniciar
   useEffect(() => {
+    let active = true;
     const loadUser = async () => {
       try {
-        const token = getStoredToken();
+        const verification = await verifyToken();
+        if (!active) return;
+
+        if (!verification.valid) {
+          if (!verification.unavailable) {
+            clearAuthSession();
+            setTransactions([]);
+            setAmounts([]);
+          } else {
+            const storedUser = getStoredUser();
+            if (storedUser) setUser(JSON.parse(storedUser));
+          }
+          return;
+        }
+
         const storedUser = getStoredUser();
-
-        console.log("🔍 AuthContext: Verificando localStorage...");
-        console.log("   Token encontrado:", token ? "SIM" : "NÃO");
-        console.log("   User encontrado:", storedUser ? "SIM" : "NÃO");
-
-        if (!token || !storedUser) {
-          console.log("ℹ️ Nenhum usuário autenticado");
-          setLoading(false);
-          return;
-        }
-
-        // Verifica se token ainda é válido
-        const verification = await verifyToken(token);
-
-        if (!verification.valid && !verification.unavailable) {
-          console.log("⚠️ Token expirado, limpando...");
-          clearAuthSession();
-          setUser(null);
-          setTransactions([]);
-          setAmounts([]);
-          return;
-        }
-
-        const userData = JSON.parse(storedUser);
-        setUser(userData);
+        const verifiedUser = {
+          ...(storedUser ? JSON.parse(storedUser) : {}),
+          ...verification.user,
+        };
+        saveAuthSession(verification.csrfToken, verifiedUser, getRememberMe());
+        setUser(verifiedUser);
+        setSessionExpiresAt(verification.expiresAt);
         try {
           await getAllTransactions();
         } catch (transactionError) {
@@ -83,67 +78,69 @@ export const AuthProvider = ({ children }) => {
             setAmounts([]);
             return;
           }
-          console.error("❌ Extrato indisponível; sessão mantida:", transactionError.message);
+          console.error("Extrato indisponível; sessão mantida:", transactionError.message);
         }
-        console.log("✅ Usuário carregado:", userData.email);
       } catch (error) {
-        console.error("❌ Erro ao carregar usuário:", error);
+        console.error("Erro ao carregar usuário:", error);
         clearAuthSession();
         setUser(null);
         setTransactions([]);
         setAmounts([]);
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     };
 
     loadUser();
-  }, []);
+    return () => {
+      active = false;
+    };
+  }, [getAllTransactions, setAmounts, setTransactions, verifyToken]);
 
-  // ✅ Função de login SIMPLIFICADA
-  const login = async (userData, token, rememberMe = false) => {
-    console.log("🔑 AuthContext.login() chamado");
-    console.log("   User ID:", userData.id);
-    console.log("   Email:", userData.email);
+  useEffect(() => {
+    if (!user || !sessionExpiresAt) return undefined;
 
-    try {
-      setTransactions([]); // Limpa transações antes de carregar novas
-      // Verifica token (opcional, já foi verificado no Login.jsx)
-      const verification = await verifyToken(token);
-
-      if (!verification.valid) {
-        throw new Error("Token inválido");
-      }
-
-      saveAuthSession(token, userData, rememberMe);
-      setUser(userData);
-
-      console.log("✅ Estado atualizado, navegando para /home");
-      getAllTransactions(); // Chama a função para obter todas as transações
-
-      // Navega para home
-      navigate("/home");
-    } catch (error) {
-      console.error("❌ Erro no authContext.login():", error);
-
-      // Em caso de erro, limpa tudo
+    const expireSession = () => {
       clearAuthSession();
       setUser(null);
+      setSessionExpiresAt(null);
+      setTransactions([]);
+      setAmounts([]);
+      navigate("/login", { replace: true });
+    };
+    const timeout = window.setTimeout(
+      expireSession,
+      Math.max(0, Number(sessionExpiresAt) - Date.now())
+    );
+    return () => window.clearTimeout(timeout);
+  }, [user, sessionExpiresAt, navigate, setTransactions, setAmounts]);
 
-      throw error;
-    }
+  const login = async (userData, csrfToken, expiresAt, rememberMe = false) => {
+    const verification = await verifyToken();
+    if (!verification.valid) throw new Error("Sessão inválida. Faça login novamente.");
+
+    const activeCsrfToken = csrfToken || verification.csrfToken;
+    saveAuthSession(activeCsrfToken, userData, rememberMe);
+    setUser(userData);
+    setSessionExpiresAt(expiresAt || verification.expiresAt);
+    setTransactions([]);
+    await getAllTransactions();
+    navigate("/home");
   };
 
-  // ✅ Função de logout
-  const logout = () => {
-    console.log("🚪 AuthContext: Logout");
-
-    clearAuthSession();
-    setUser(null);
-    setTransactions([]); // Limpa transações ao deslogar
-    setAmounts([]); // Reseta valores ao deslogar
-    // Navega para login
-    navigate("/login");
+  const logout = async () => {
+    try {
+      await apiFetch(`${API_BASE_URL}/auth/logout`, { method: "POST" });
+    } catch (error) {
+      console.error("Não foi possível encerrar a sessão no servidor:", error);
+    } finally {
+      clearAuthSession();
+      setUser(null);
+      setSessionExpiresAt(null);
+      setTransactions([]);
+      setAmounts([]);
+      navigate("/login", { replace: true });
+    }
   };
 
   const value = {
@@ -158,7 +155,4 @@ export const AuthProvider = ({ children }) => {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  return context;
-};
+export const useAuth = () => useContext(AuthContext);

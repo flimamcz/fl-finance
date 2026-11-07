@@ -243,10 +243,12 @@ const updateTransaction = async (req, res) => {
       });
     }
     
-    const updateData = {
-      ...req.body,
-      user_id: req.user.id
-    };
+    const editableFields = ["value", "typeId", "description", "date", "status", "isSalary", "categoryId"];
+    const updateData = Object.fromEntries(
+      editableFields
+        .filter((field) => Object.prototype.hasOwnProperty.call(req.body, field))
+        .map((field) => [field, req.body[field]])
+    );
 
     if (updateData.isSalary !== undefined && typeof updateData.isSalary !== "boolean") {
       return res.status(400).json({
@@ -274,7 +276,11 @@ const updateTransaction = async (req, res) => {
     }
     
     
-    const { error, message } = await transactionService.updateTransaction(updateData);
+    const { error, message } = await transactionService.updateTransaction(
+      req.body.id,
+      req.user.id,
+      updateData
+    );
     
     if (error) {
       return res.status(400).json({ 

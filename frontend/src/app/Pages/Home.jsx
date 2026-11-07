@@ -48,7 +48,7 @@ import { useNavigate } from "react-router-dom";
 import Header from "../Components/Header";
 import MyContext from "../Context/Context";
 import { API_BASE_URL } from "../Services/request";
-import { getStoredToken } from "../Services/authStorage";
+import { apiFetch } from "../Services/apiFetch";
 import EditTransactionModal from "../Components/EditTransactionModal";
 
 import "../Styles/Home.css";
@@ -858,11 +858,10 @@ function Home() {
     try {
       const url = `${API_BASE_URL}/${endpoint}/${id}`;
 
-      const response = await fetch(url, {
+      const response = await apiFetch(url, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${getStoredToken()}`,
         },
       });
 
@@ -968,11 +967,10 @@ function Home() {
         typeId: parseInt(transactionData.typeId),
       };
 
-      const response = await fetch(`${API_BASE_URL}/transactions`, {
+      const response = await apiFetch(`${API_BASE_URL}/transactions`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${getStoredToken()}`,
         },
         body: JSON.stringify(dataToSend),
       });

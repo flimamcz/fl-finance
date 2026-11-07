@@ -2,7 +2,7 @@ import { useState, useEffect, useContext } from "react";
 import { FiX, FiCheckCircle, FiClock, FiAlertCircle, FiEdit2 } from "react-icons/fi";
 import MyContext from "../Context/Context";
 import { API_BASE_URL } from "../Services/request";
-import { getStoredToken } from "../Services/authStorage";
+import { apiFetch } from "../Services/apiFetch";
 
 function EditTransactionModal({ 
   isOpen, 
@@ -76,11 +76,10 @@ function EditTransactionModal({
 
       console.log("🔄 Enviando atualização:", updateData);
 
-      const response = await fetch(`${API_BASE_URL}/transactions`, {
+      const response = await apiFetch(`${API_BASE_URL}/transactions`, {
         method: "PATCH", // Note: SEU BACKEND usa PATCH, não PUT
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${getStoredToken()}`,
         },
         body: JSON.stringify(updateData),
       });

@@ -2,7 +2,8 @@ import PropTypes from "prop-types";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import MyContext from "./Context";
 import { API_BASE_URL } from "../Services/request";
-import { clearAuthSession, getStoredToken, getStoredUser } from "../Services/authStorage";
+import { apiFetch } from "../Services/apiFetch";
+import { clearAuthSession, getStoredUser } from "../Services/authStorage";
 
 function Provider({ children }) {
   const [transactions, setTransactions] = useState([]);
@@ -81,18 +82,14 @@ function Provider({ children }) {
       setLoading(true);
       setError(null);
 
-      const token = getStoredToken();
-
-      if (!token) {
+      if (!getStoredUser()) {
         throw new Error("Token não encontrado. Faça login novamente.");
       }
 
-
-      const response = await fetch(`${API_BASE_URL}/transactions`, {
+      const response = await apiFetch(`${API_BASE_URL}/transactions`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -161,15 +158,16 @@ function Provider({ children }) {
   // ✅ 4. FUNÇÃO PARA BUSCAR TIPOS
   const getAllTypes = useCallback(async () => {
     try {
-      const token = getStoredToken();
-      const headers = {
-        "Content-Type": "application/json",
-        ...(token && { Authorization: `Bearer ${token}` })
-      };
+      if (!getStoredUser()) {
+        setTypesTransactions([]);
+        return [];
+      }
 
-      const response = await fetch(`${API_BASE_URL}/types`, {
+      const response = await apiFetch(`${API_BASE_URL}/types`, {
         method: "GET",
-        headers: headers,
+        headers: {
+          "Content-Type": "application/json",
+        },
       });
 
       if (!response.ok) {
@@ -202,17 +200,14 @@ function Provider({ children }) {
       try {
         setLoading(true);
 
-        const token = getStoredToken();
-
-        if (!token) {
+        if (!getStoredUser()) {
           throw new Error("Token não encontrado. Faça login novamente.");
         }
 
-        const response = await fetch(`${API_BASE_URL}/transactions`, {
+        const response = await apiFetch(`${API_BASE_URL}/transactions`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify(transactionData),
         });
@@ -245,14 +240,12 @@ function Provider({ children }) {
 
   const importTransactions = useCallback(
     async (transactionsBatch) => {
-      const token = getStoredToken();
-      if (!token) throw new Error("Token não encontrado. Faça login novamente.");
+      if (!getStoredUser()) throw new Error("Sessão não encontrada. Faça login novamente.");
 
-      const response = await fetch(`${API_BASE_URL}/transactions/import`, {
+      const response = await apiFetch(`${API_BASE_URL}/transactions/import`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ transactions: transactionsBatch }),
       });
@@ -278,17 +271,14 @@ function Provider({ children }) {
       try {
         setLoading(true);
 
-        const token = getStoredToken();
-
-        if (!token) {
+        if (!getStoredUser()) {
           throw new Error("Token não encontrado. Faça login novamente.");
         }
 
-        const response = await fetch(`${API_BASE_URL}/transactions/${id}`, {
+        const response = await apiFetch(`${API_BASE_URL}/transactions/${id}`, {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
         });
 
@@ -324,14 +314,12 @@ function Provider({ children }) {
   useEffect(() => {
     const init = async () => {
       try {
-        const token = getStoredToken();
         const user = getStoredUser();
 
-        if (token && user) {
+        if (user) {
           await Promise.all([getAllTypes(), getAllTransactions()]);
         } else {
-          await getAllTypes();
-          // Limpa dados de transações e amounts
+          setTypesTransactions([]);
           setTransactions([]);
           setAmounts(calculateAmounts([]));
         }

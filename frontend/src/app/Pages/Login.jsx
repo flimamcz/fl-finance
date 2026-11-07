@@ -13,6 +13,7 @@ import {
   FiTrendingUp,
 } from "react-icons/fi";
 import { API_BASE_URL } from '../Services/request';
+import { apiFetch } from "../Services/apiFetch";
 import {
   getRememberedEmail,
   getRememberMe,
@@ -34,7 +35,7 @@ function Login() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/auth/setup-status`, { cache: "no-store" })
+    apiFetch(`${API_BASE_URL}/auth/setup-status`, { cache: "no-store" })
       .then((response) => response.json())
       .then((data) => {
         if (data.setupRequired) navigate("/setup", { replace: true });
@@ -104,26 +105,33 @@ function Login() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      const response = await apiFetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ identifier: email.trim(), password }),
+        body: JSON.stringify({ identifier: email.trim(), password, rememberMe }),
       });
 
       const data = await response.json();
 
-      if (data.error) {
-        throw new Error(data.message);
+      if (!response.ok || data.error) {
+        throw new Error(data.message || `Erro ${response.status} ao entrar.`);
+      }
+
+      const sessionResponse = await apiFetch(`${API_BASE_URL}/auth/verify`, { cache: "no-store" });
+      const session = await sessionResponse.json();
+      if (!sessionResponse.ok || session.error) {
+        throw new Error("O navegador bloqueou o cookie de sessão. Habilite cookies de terceiros ou use domínios próprios para o app e a API.");
       }
 
       console.log('✅ Login bem-sucedido!');
-      console.log('👤 User ID recebido:', data.user.id);
-      console.log('📧 Email recebido:', data.user.email);
 
-      saveAuthSession(data.token, data.user, rememberMe);
-      // Recarrega para o AuthProvider validar o token e restaurar a sessão.
+      saveAuthSession(
+        session.csrfToken || data.csrfToken,
+        { ...data.user, ...session.user },
+        rememberMe
+      );
       window.location.replace('/home');
       
     } catch (err) {

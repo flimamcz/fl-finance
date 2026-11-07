@@ -2,7 +2,7 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { Debt, DebtInstallment, Transaction } = require("../../models");
+const { Debt, DebtInstallment, InvestmentMovement, Transaction } = require("../../models");
 const transactionService = require("./Transaction.service");
 
 test("import links confirmed matching debt payments and skips already represented installments", async () => {
@@ -170,5 +170,50 @@ test("import skips a pending debt installment instead of creating a second futur
     DebtInstallment.update = originals.updateInstallment;
     Transaction.bulkCreate = originals.bulkCreate;
     Transaction.sequelize.transaction = originals.databaseTransaction;
+  }
+});
+
+test("transaction updates use the authenticated owner and ignore client-supplied ownership fields", async () => {
+  const originals = {
+    findOne: Transaction.findOne,
+    update: Transaction.update,
+    findInstallment: DebtInstallment.findOne,
+    findMovement: InvestmentMovement.findOne,
+  };
+  const queries = [];
+  let update;
+
+  Transaction.findOne = async (options) => {
+    queries.push(options);
+    return { id: 41 };
+  };
+  Transaction.update = async (values, options) => {
+    update = { values, options };
+    return [1];
+  };
+  DebtInstallment.findOne = async () => null;
+  InvestmentMovement.findOne = async () => null;
+
+  try {
+    const result = await transactionService.updateTransaction(41, 7, {
+      id: 99,
+      userId: 2,
+      user_id: 2,
+      value: "25.00",
+      categoryId: 4,
+    });
+
+    assert.equal(result.error, null);
+    assert.deepEqual(queries.map(({ where }) => where), [
+      { id: 41, user_id: 7 },
+      { id: 41, user_id: 7 },
+    ]);
+    assert.deepEqual(update.values, { value: "25.00", category_id: 4 });
+    assert.deepEqual(update.options.where, { id: 41, user_id: 7 });
+  } finally {
+    Transaction.findOne = originals.findOne;
+    Transaction.update = originals.update;
+    DebtInstallment.findOne = originals.findInstallment;
+    InvestmentMovement.findOne = originals.findMovement;
   }
 });

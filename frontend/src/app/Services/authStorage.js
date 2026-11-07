@@ -1,10 +1,12 @@
-const AUTH_KEYS = ["token", "user"];
-
-export const getStoredToken = () =>
-  localStorage.getItem("token") || sessionStorage.getItem("token");
+const AUTH_KEYS = ["token", "user", "csrfToken"];
 
 export const getStoredUser = () =>
   localStorage.getItem("user") || sessionStorage.getItem("user");
+
+export const saveCsrfToken = (csrfToken) => {
+  if (csrfToken) sessionStorage.setItem("csrfToken", csrfToken);
+  else sessionStorage.removeItem("csrfToken");
+};
 
 export const getRememberMe = () => localStorage.getItem("rememberMe") === "true";
 
@@ -17,11 +19,11 @@ export const clearAuthSession = () => {
   });
 };
 
-export const saveAuthSession = (token, user, rememberMe) => {
+export const saveAuthSession = (csrfToken, user, rememberMe) => {
   clearAuthSession();
   const storage = rememberMe ? localStorage : sessionStorage;
-  storage.setItem("token", token);
   storage.setItem("user", JSON.stringify(user));
+  saveCsrfToken(csrfToken);
   localStorage.setItem("rememberMe", String(rememberMe));
 
   if (rememberMe && user?.email) {

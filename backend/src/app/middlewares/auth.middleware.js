@@ -1,20 +1,32 @@
 const authService = require('../services/Auth.service');
+const crypto = require("crypto");
+const { csrfCookieName, getCookie, sessionCookieName } = require("../services/AuthCookie.service");
+
+const safeMethods = new Set(["GET", "HEAD", "OPTIONS"]);
+
+const isValidCsrfToken = (cookieToken, headerToken) => {
+  if (typeof cookieToken !== "string" || typeof headerToken !== "string") return false;
+  const cookieBuffer = Buffer.from(cookieToken);
+  const headerBuffer = Buffer.from(headerToken);
+  return cookieBuffer.length === headerBuffer.length
+    && crypto.timingSafeEqual(cookieBuffer, headerBuffer);
+};
 
 const authenticate = async (req, res, next) => {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({
-        error: true,
-        message: "Token de autorização inválido ou ausente.",
-      });
-    }
-
-    const token = authHeader.slice(7).trim();
+    const token = getCookie(req, sessionCookieName);
     if (!token) {
       return res.status(401).json({
         error: true,
-        message: "Token de autorização inválido ou ausente.",
+        message: "Sessão ausente. Faça login novamente.",
+      });
+    }
+
+    if (!safeMethods.has(req.method)
+      && !isValidCsrfToken(getCookie(req, csrfCookieName), req.get("X-CSRF-Token"))) {
+      return res.status(401).json({
+        error: true,
+        message: "Token CSRF inválido ou ausente.",
       });
     }
 

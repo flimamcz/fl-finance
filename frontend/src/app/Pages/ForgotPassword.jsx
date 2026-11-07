@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { FiAlertCircle, FiCheck, FiEye, FiEyeOff, FiKey, FiLock, FiMail, FiShield } from "react-icons/fi";
 import { API_BASE_URL } from "../Services/request";
+import { apiFetch } from "../Services/apiFetch";
 import "../Styles/Login.css";
 
 function ForgotPassword() {
@@ -30,7 +31,7 @@ function ForgotPassword() {
     setError("");
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
+      const response = await apiFetch(`${API_BASE_URL}/auth/forgot-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim().toLowerCase() }),
@@ -54,7 +55,7 @@ function ForgotPassword() {
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
+      const response = await apiFetch(`${API_BASE_URL}/auth/reset-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim().toLowerCase(), code, newPassword }),

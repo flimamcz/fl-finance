@@ -33,11 +33,22 @@ app.use(cors({
     return callback(null, false);
   },
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: false,
+  allowedHeaders: ["Content-Type", "X-CSRF-Token"],
+  credentials: true,
   maxAge: 86400
 }));
 
+app.use((req, res, next) => {
+  if (["GET", "HEAD", "OPTIONS"].includes(req.method)) return next();
+
+  const origin = req.get("Origin");
+  if (origin && allowedOrigins.includes(origin)) return next();
+
+  return res.status(403).json({
+    error: true,
+    message: "Origem não autorizada para esta operação.",
+  });
+});
 
 app.use((req, res, next) => {
   res.set("X-Content-Type-Options", "nosniff");

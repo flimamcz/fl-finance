@@ -17,7 +17,7 @@ import {
 import Header from "../Components/Header";
 import MyContext from "../Context/Context";
 import { API_BASE_URL } from "../Services/request";
-import { getStoredToken } from "../Services/authStorage";
+import { apiFetch } from "../Services/apiFetch";
 import "../Styles/Debts.css";
 
 const localDateString = () => {
@@ -152,11 +152,10 @@ function Debts() {
   }, [formOpen]);
 
   const apiRequest = useCallback(async (path, options = {}) => {
-    const response = await fetch(`${API_BASE_URL}${path}`, {
+    const response = await apiFetch(`${API_BASE_URL}${path}`, {
       ...options,
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${getStoredToken()}`,
         ...options.headers,
       },
     });

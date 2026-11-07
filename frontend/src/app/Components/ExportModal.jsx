@@ -5,7 +5,7 @@ import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { API_BASE_URL } from "../Services/request";
-import { getStoredToken } from "../Services/authStorage";
+import { apiFetch } from "../Services/apiFetch";
 import '../Styles/ExportModal.css';
 
 function ExportModal({ isOpen, onClose, transactions, filters = {} }) {
@@ -34,13 +34,10 @@ function ExportModal({ isOpen, onClose, transactions, filters = {} }) {
       setLoadingRelatedData(true);
       setRelatedDataError("");
       try {
-        const token = getStoredToken();
-        if (!token) throw new Error("Sua sessão expirou. Entre novamente para exportar seus dados.");
-        const headers = { Authorization: `Bearer ${token}` };
         const [debtsResponse, investmentsResponse, categoriesResponse] = await Promise.all([
-          fetch(`${API_BASE_URL}/debts`, { headers }),
-          fetch(`${API_BASE_URL}/investments`, { headers }),
-          fetch(`${API_BASE_URL}/transactions/categories`, { headers }),
+          apiFetch(`${API_BASE_URL}/debts`),
+          apiFetch(`${API_BASE_URL}/investments`),
+          apiFetch(`${API_BASE_URL}/transactions/categories`),
         ]);
         const [debtsResult, investmentsResult, categoriesResult] = await Promise.all([
           debtsResponse.json(),

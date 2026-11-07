@@ -12,6 +12,7 @@ import {
   FiUser,
 } from "react-icons/fi";
 import { API_BASE_URL } from "../Services/request";
+import { apiFetch } from "../Services/apiFetch";
 import "../Styles/Login.css";
 
 function Register() {
@@ -43,7 +44,7 @@ function Register() {
   }, []);
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/auth/setup-status`, { cache: "no-store" })
+    apiFetch(`${API_BASE_URL}/auth/setup-status`, { cache: "no-store" })
       .then((response) => response.json())
       .then((data) => {
         if (data.setupRequired) navigate("/setup", { replace: true });
@@ -75,7 +76,7 @@ function Register() {
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/register`, {
+      const response = await apiFetch(`${API_BASE_URL}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

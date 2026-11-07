@@ -4,6 +4,7 @@ const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const { User, SystemSetting, sequelize } = require("../../models");
 const UserService = require("./User.service");
+const SESSION_LIFETIME = "8h";
 
 const getJwtSecret = () => {
   if (!process.env.JWT_SECRET) {
@@ -22,7 +23,7 @@ const makeToken = (user) =>
       isAdmin: Boolean(user.isAdmin),
     },
     getJwtSecret(),
-    { expiresIn: "24h" }
+    { expiresIn: SESSION_LIFETIME }
   );
 
 const publicUser = (user) => ({
@@ -234,14 +235,11 @@ class AuthService {
         return { error: true, message };
       }
 
-      const token = makeToken(message);
-
       return {
         error: false,
         message: {
           user: publicUser(message),
           recoveryCode: message.recoveryCode,
-          token,
         },
       };
     } catch (error) {
@@ -254,7 +252,8 @@ class AuthService {
     try {
       const decoded = jwt.verify(
         token,
-        getJwtSecret()
+        getJwtSecret(),
+        { maxAge: SESSION_LIFETIME }
       );
       return { error: false, message: decoded };
     } catch (error) {

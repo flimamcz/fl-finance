@@ -16,7 +16,7 @@ import {
 import Header from "../Components/Header";
 import MyContext from "../Context/Context";
 import { API_BASE_URL } from "../Services/request";
-import { getStoredToken } from "../Services/authStorage";
+import { apiFetch } from "../Services/apiFetch";
 import {
   getTransactionFingerprint,
   parseCSVFile,
@@ -188,13 +188,10 @@ function ImportTransactions() {
     setError("");
     try {
       if (backupData) {
-        const token = getStoredToken();
-        if (!token) throw new Error("Sua sessão expirou. Entre novamente para restaurar o backup.");
-        const response = await fetch(`${API_BASE_URL}/transactions/import-backup`, {
+        const response = await apiFetch(`${API_BASE_URL}/transactions/import-backup`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ backup: backupData }),
         });

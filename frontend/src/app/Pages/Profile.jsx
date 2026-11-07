@@ -10,7 +10,7 @@ import Header from "../Components/Header";
 import { useAuth } from "../Context/AuthContext";
 import MyContext from "../Context/Context";
 import { API_BASE_URL } from "../Services/request";
-import { getStoredToken } from "../Services/authStorage";
+import { apiFetch } from "../Services/apiFetch";
 import "../Styles/Profile.css";
 
 function Profile() {
@@ -62,22 +62,13 @@ function Profile() {
     setIsLoading(true);
     
     try {
-      const token = getStoredToken();
-      
-      if (!token) {
-        setMessage({ type: 'error', text: 'Sessão expirada. Faça login novamente.' });
-        logout();
-        return;
-      }
-
       console.log('🔍 Carregando dados do perfil...');
       
       // Buscar dados do usuário
-      const userResponse = await fetch(`${API_BASE_URL}/users/me`, {
+      const userResponse = await apiFetch(`${API_BASE_URL}/users/me`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -90,11 +81,7 @@ function Profile() {
       // Buscar contagem de transações
       let transactionCount = 0;
       try {
-        const transResponse = await fetch(`${API_BASE_URL}/transactions`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const transResponse = await apiFetch(`${API_BASE_URL}/transactions`);
         
         if (transResponse.ok) {
           const transData = await transResponse.json();
@@ -261,12 +248,6 @@ function Profile() {
     setMessage({ type: '', text: '' });
 
     try {
-      const token = getStoredToken();
-      
-      if (!token) {
-        throw new Error('Sessão expirada. Faça login novamente.');
-      }
-
       let endpoint, method, bodyData;
       
       if (changePassword) {
@@ -289,11 +270,10 @@ function Profile() {
       
       console.log('📤 Enviando dados:', { endpoint, bodyData });
       
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      const response = await apiFetch(`${API_BASE_URL}${endpoint}`, {
         method,
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(bodyData),
       });
