@@ -2,12 +2,14 @@ import { useCallback, useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import {
   FiAlertCircle,
+  FiArchive,
   FiCheck,
   FiChevronLeft,
   FiChevronRight,
   FiClock,
   FiLock,
   FiRefreshCw,
+  FiRotateCcw,
   FiSearch,
   FiShield,
   FiUnlock,
@@ -32,7 +34,7 @@ const formatDate = (date) => {
 function Admin() {
   const { user } = useAuth();
   const [users, setUsers] = useState([]);
-  const [summary, setSummary] = useState({ total: 0, active: 0, blocked: 0, admins: 0 });
+  const [summary, setSummary] = useState({ total: 0, active: 0, blocked: 0, archived: 0, admins: 0 });
   const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0 });
   const [page, setPage] = useState(1);
   const [query, setQuery] = useState("");
@@ -143,6 +145,56 @@ function Admin() {
     }
   };
 
+  const archiveUser = async (targetUser) => {
+    const confirmed = window.confirm(
+      `Arquivar a conta de ${targetUser.fullname}?\n\nA pessoa perderá o acesso imediatamente. A conta e os dados financeiros poderão ser restaurados por 30 dias; depois, serão excluídos permanentemente.`,
+    );
+    if (!confirmed) return;
+
+    setActionUserId(targetUser.id);
+    setError("");
+    setNotice("");
+    try {
+      const response = await apiFetch(`${API_BASE_URL}/admin/users/${targetUser.id}`, {
+        method: "DELETE",
+      });
+      const result = await response.json();
+      if (!response.ok || result.error) {
+        throw new Error(result.message || "Não foi possível arquivar a conta.");
+      }
+      setNotice("Conta arquivada. O acesso foi encerrado; restaure em até 30 dias para evitar a exclusão definitiva.");
+      await loadUsers();
+    } catch (requestError) {
+      setError(requestError.message || "Falha ao arquivar a conta.");
+    } finally {
+      setActionUserId(null);
+    }
+  };
+
+  const restoreUser = async (targetUser) => {
+    if (!window.confirm(`Restaurar a conta de ${targetUser.fullname}?`)) return;
+
+    setActionUserId(targetUser.id);
+    setError("");
+    setNotice("");
+    try {
+      const response = await apiFetch(
+        `${API_BASE_URL}/admin/users/${targetUser.id}/restore`,
+        { method: "PATCH" },
+      );
+      const result = await response.json();
+      if (!response.ok || result.error) {
+        throw new Error(result.message || "Não foi possível restaurar a conta.");
+      }
+      setNotice("Conta restaurada. Os dados financeiros foram preservados.");
+      await loadUsers();
+    } catch (requestError) {
+      setError(requestError.message || "Falha ao restaurar a conta.");
+    } finally {
+      setActionUserId(null);
+    }
+  };
+
   const copyRecoveryCode = async () => {
     try {
       await navigator.clipboard.writeText(recovery.code);
@@ -185,6 +237,11 @@ function Admin() {
             <strong>{summary.blocked}</strong>
           </article>
           <article className="admin-summary-card">
+            <span className="admin-summary-icon is-archived"><FiArchive aria-hidden="true" /></span>
+            <span className="admin-summary-label">Arquivadas</span>
+            <strong>{summary.archived}</strong>
+          </article>
+          <article className="admin-summary-card">
             <span className="admin-summary-icon is-admin"><FiShield aria-hidden="true" /></span>
             <span className="admin-summary-label">Administradores ativos</span>
             <strong>{summary.admins}</strong>
@@ -224,6 +281,7 @@ function Admin() {
                   <option value="all">Todos os status</option>
                   <option value="active">Ativos</option>
                   <option value="blocked">Bloqueados</option>
+                  <option value="archived">Arquivados (excluir em 30 dias)</option>
                 </select>
               </label>
             </div>
@@ -260,16 +318,21 @@ function Admin() {
                     </td>
                     <td>
                       <div className="admin-account-badges">
-                        <span className={`admin-status-badge ${account.isBlocked ? "is-blocked" : "is-active"}`}>
-                          {account.isBlocked ? "Bloqueada" : "Ativa"}
+                        <span className={`admin-status-badge ${account.isArchived ? "is-archived" : account.isBlocked ? "is-blocked" : "is-active"}`}>
+                          {account.isArchived ? "Arquivada" : account.isBlocked ? "Bloqueada" : "Ativa"}
                         </span>
                         {account.isAdmin && <span className="admin-role-badge">Admin</span>}
+                        {account.isArchived && account.archivedAt && (
+                          <small className="admin-archive-expiry">
+                            Exclusão em {formatDate(new Date(new Date(account.archivedAt).getTime() + 30 * 24 * 60 * 60 * 1000))}
+                          </small>
+                        )}
                       </div>
                     </td>
                     <td className="admin-date">{formatDate(account.createdAt)}</td>
                     <td>
                       <div className="admin-row-actions">
-                        <button
+                        {!account.isArchived && <button
                           type="button"
                           className="admin-action-button recovery"
                           onClick={() => generateRecoveryCode(account)}
@@ -278,8 +341,18 @@ function Admin() {
                         >
                           <FiRefreshCw aria-hidden="true" />
                           <span>Redefinir acesso</span>
-                        </button>
-                        {account.isBlocked ? (
+                        </button>}
+                        {account.isArchived ? (
+                          <button
+                            type="button"
+                            className="admin-action-button restore"
+                            onClick={() => restoreUser(account)}
+                            disabled={actionUserId === account.id}
+                          >
+                            <FiRotateCcw aria-hidden="true" />
+                            <span>Restaurar</span>
+                          </button>
+                        ) : account.isBlocked ? (
                           <button
                             type="button"
                             className="admin-action-button unblock"
@@ -300,6 +373,18 @@ function Admin() {
                           >
                             <FiLock aria-hidden="true" />
                             <span>Bloquear</span>
+                          </button>
+                        )}
+                        {!account.isArchived && (
+                          <button
+                            type="button"
+                            className="admin-action-button archive"
+                            onClick={() => archiveUser(account)}
+                            disabled={actionUserId === account.id || account.isCurrentUser}
+                            title={account.isCurrentUser ? "Você não pode arquivar a própria conta" : "Arquivar por 30 dias"}
+                          >
+                            <FiArchive aria-hidden="true" />
+                            <span>Excluir</span>
                           </button>
                         )}
                       </div>

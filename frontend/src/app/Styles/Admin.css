@@ -109,7 +109,7 @@
 
 .admin-summary {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 16px;
   margin-bottom: 22px;
 }
@@ -155,6 +155,11 @@
 .admin-summary-icon.is-admin {
   background: #f0edff;
   color: #6b55be;
+}
+
+.admin-summary-icon.is-archived {
+  background: #fff7e6;
+  color: #a66b00;
 }
 
 .admin-summary-label {
@@ -351,6 +356,17 @@
   color: #c7523c;
 }
 
+.admin-status-badge.is-archived {
+  background: #fff7e6;
+  color: #8a5a00;
+}
+
+.admin-archive-expiry {
+  flex-basis: 100%;
+  color: #8a5a00;
+  font-size: 10px;
+}
+
 .admin-role-badge {
   background: #f0edff;
   color: #6b55be;
@@ -387,6 +403,14 @@
 }
 
 .admin-action-button.unblock {
+  color: #16834b;
+}
+
+.admin-action-button.archive {
+  color: #a33e37;
+}
+
+.admin-action-button.restore {
   color: #16834b;
 }
 

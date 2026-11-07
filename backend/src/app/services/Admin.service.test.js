@@ -11,7 +11,7 @@ test("admin user listing returns only account management fields and pagination",
   const counts = [];
   User.findAll = async (options) => {
     assert.deepEqual(options.attributes, [
-      "id", "fullname", "username", "email", "isAdmin", "isBlocked", "createdAt",
+      "id", "fullname", "username", "email", "isAdmin", "isBlocked", "createdAt", "deletedAt",
     ]);
     assert.equal(options.limit, 20);
     assert.equal(options.offset, 20);
@@ -23,12 +23,14 @@ test("admin user listing returns only account management fields and pagination",
       isAdmin: false,
       isBlocked: true,
       createdAt: new Date("2025-01-01T00:00:00.000Z"),
+      deletedAt: null,
       password: "must-not-return",
     }];
   };
   User.count = async ({ where }) => {
     counts.push(where);
     if (where.isAdmin === true) return 1;
+    if (where.deletedAt) return 0;
     return where.isBlocked === true ? 2 : where.isBlocked === false ? 8 : 10;
   };
 
@@ -44,8 +46,8 @@ test("admin user listing returns only account management fields and pagination",
     assert.equal(result.users[0].isCurrentUser, false);
     assert.equal("password" in result.users[0], false);
     assert.deepEqual(result.pagination, { page: 2, pageSize: 20, total: 2, totalPages: 1 });
-    assert.deepEqual(result.summary, { total: 10, active: 8, blocked: 2, admins: 1 });
-    assert.equal(counts.length, 4);
+    assert.deepEqual(result.summary, { total: 10, active: 8, blocked: 2, archived: 0, admins: 1 });
+    assert.equal(counts.length, 5);
   } finally {
     User.findAll = originals.findAll;
     User.count = originals.count;
@@ -171,4 +173,101 @@ test("admin recovery code is stored hashed with a short expiry", async () => {
 test("admin cannot issue a recovery code for their own account from the admin panel", async () => {
   const result = await AdminService.generateRecoveryCode(3, 3);
   assert.equal(result.error, "SELF_RESET");
+});
+
+test("admin cannot archive their own account", async () => {
+  const originalTransaction = sequelize.transaction;
+  sequelize.transaction = async () => {
+    throw new Error("Transaction must not start for self-archive");
+  };
+  try {
+    const result = await AdminService.archiveUser(3, 3);
+    assert.equal(result.error, "SELF_ARCHIVE");
+  } finally {
+    sequelize.transaction = originalTransaction;
+  }
+});
+
+test("admin cannot archive the last active administrator", async () => {
+  const originals = { findByPk: User.findByPk, findAll: User.findAll, transaction: sequelize.transaction };
+  User.findByPk = async () => ({ id: 9, isAdmin: true, isBlocked: false });
+  User.findAll = async () => [{ id: 9 }];
+  sequelize.transaction = async (callback) => callback({ LOCK: { UPDATE: "UPDATE" } });
+
+  try {
+    const result = await AdminService.archiveUser(3, 9);
+    assert.equal(result.error, "LAST_ADMIN");
+  } finally {
+    User.findByPk = originals.findByPk;
+    User.findAll = originals.findAll;
+    sequelize.transaction = originals.transaction;
+  }
+});
+
+test("archiving revokes sessions and marks the account reversible", async () => {
+  const originals = { findByPk: User.findByPk, transaction: sequelize.transaction };
+  const user = {
+    id: 12,
+    fullname: "Member",
+    username: "member",
+    email: "member@example.com",
+    isAdmin: false,
+    isBlocked: false,
+    sessionVersion: 4,
+    createdAt: new Date("2025-01-01T00:00:00.000Z"),
+    deletedAt: null,
+    async save({ fields }) {
+      assert.deepEqual(fields, ["sessionVersion"]);
+    },
+    async destroy() {
+      this.deletedAt = new Date();
+    },
+  };
+  User.findByPk = async () => user;
+  sequelize.transaction = async (callback) => callback({ LOCK: { UPDATE: "UPDATE" } });
+
+  try {
+    const result = await AdminService.archiveUser(3, 12);
+    assert.equal(user.sessionVersion, 5);
+    assert.equal(result.user.isArchived, true);
+    assert.ok(result.user.archivedAt);
+  } finally {
+    User.findByPk = originals.findByPk;
+    sequelize.transaction = originals.transaction;
+  }
+});
+
+test("restoring an archived user revokes old sessions", async () => {
+  const originals = { findByPk: User.findByPk, transaction: sequelize.transaction };
+  const user = {
+    id: 12,
+    fullname: "Member",
+    username: "member",
+    email: "member@example.com",
+    isAdmin: false,
+    isBlocked: false,
+    sessionVersion: 5,
+    createdAt: new Date("2025-01-01T00:00:00.000Z"),
+    deletedAt: new Date("2025-03-01T00:00:00.000Z"),
+    async save({ fields }) {
+      assert.deepEqual(fields, ["sessionVersion"]);
+    },
+    async restore() {
+      this.deletedAt = null;
+    },
+  };
+  User.findByPk = async (_id, options) => {
+    assert.equal(options.paranoid, false);
+    return user;
+  };
+  sequelize.transaction = async (callback) => callback({ LOCK: { UPDATE: "UPDATE" } });
+
+  try {
+    const result = await AdminService.restoreUser(3, 12);
+    assert.equal(user.sessionVersion, 6);
+    assert.equal(result.user.isArchived, false);
+  } finally {
+    User.findByPk = originals.findByPk;
+    sequelize.transaction = originals.transaction;
+  }
 });

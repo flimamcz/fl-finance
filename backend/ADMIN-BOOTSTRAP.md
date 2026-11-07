@@ -43,3 +43,12 @@ npm run admin:bootstrap
 
 O comando solicita usuário, email e senha sem exibi-la. Ele também só funciona
 uma vez e não promove contas existentes.
+
+## Arquivamento de contas
+
+No painel `/admin`, “Excluir” arquiva a conta e encerra suas sessões, sem apagar
+os dados financeiros nesse momento. Contas arquivadas aparecem no filtro
+“Arquivados” e podem ser restauradas durante 30 dias. Depois desse prazo, o
+backend remove permanentemente a conta e seus dados vinculados em uma rotina
+executada ao iniciar o serviço e, enquanto estiver ativo, a cada hora. Mantenha
+as migrações aplicadas e o serviço backend ativo para que a rotina execute.

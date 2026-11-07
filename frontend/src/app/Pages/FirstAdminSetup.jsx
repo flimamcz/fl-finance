@@ -91,7 +91,7 @@ function FirstAdminSetup() {
             </label>
             <label>
               Usuário
-              <input name="username" autoComplete="username" value={form.username} onChange={update} required minLength={3} maxLength={30} pattern="[a-zA-Z0-9._-]+" />
+              <input name="username" autoComplete="username" value={form.username} onChange={update} required minLength={3} maxLength={30} pattern="[a-zA-Z0-9._\\-]+" />
             </label>
             <label>
               Email

@@ -66,8 +66,18 @@ const UserModel = (sequelize, DataTypes) => {
         type: DataTypes.DATE,
         allowNull: true,
       },
+      deletedAt: {
+        field: "deleted_at",
+        type: DataTypes.DATE,
+        allowNull: true,
+      },
     },
-    { timestamp: true, underscored: true}
+    {
+      timestamps: true,
+      underscored: true,
+      paranoid: true,
+      deletedAt: "deletedAt",
+    }
   );
 
   return User;

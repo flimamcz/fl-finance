@@ -3,6 +3,7 @@ const path = require("path");
 require("dotenv").config({ path: path.resolve(__dirname, "..", ".env") });
 const app = require("./app");
 const { settleDueInstallments } = require("./src/app/services/Debt.service");
+const { purgeExpiredArchivedAccounts } = require("./src/app/services/ArchivedAccountPurge.service");
 
 if (!process.env.JWT_SECRET) {
   console.error("JWT_SECRET precisa estar configurado para iniciar o servidor.");
@@ -19,6 +20,25 @@ const settleDebts = () => {
 
 settleDebts();
 setInterval(settleDebts, 60 * 1000);
+
+let archivePurgeRunning = false;
+const purgeArchivedAccounts = async () => {
+  if (archivePurgeRunning) return;
+  archivePurgeRunning = true;
+  try {
+    const purgedCount = await purgeExpiredArchivedAccounts();
+    if (purgedCount > 0) {
+      console.info("Expired archived accounts purged", { count: purgedCount });
+    }
+  } catch (error) {
+    console.error("Scheduled archived account purge failed:", error.name);
+  } finally {
+    archivePurgeRunning = false;
+  }
+};
+
+purgeArchivedAccounts();
+setInterval(purgeArchivedAccounts, 60 * 60 * 1000);
 
 console.info("Starting FL Finance API", {
   environment: process.env.NODE_ENV || "development",
