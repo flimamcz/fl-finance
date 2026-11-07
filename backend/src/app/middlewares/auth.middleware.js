@@ -14,6 +14,7 @@ const isValidCsrfToken = (cookieToken, headerToken) => {
 
 const authenticate = async (req, res, next) => {
   try {
+    res.set("Cache-Control", "no-store");
     const token = getCookie(req, sessionCookieName);
     if (!token) {
       return res.status(401).json({
@@ -40,9 +41,6 @@ const authenticate = async (req, res, next) => {
 
     req.user = {
       id: message.id,
-      email: message.email,
-      username: message.username,
-      name: message.name,
       isAdmin: Boolean(message.isAdmin),
     };
     return next();

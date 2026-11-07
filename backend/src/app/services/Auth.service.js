@@ -5,6 +5,7 @@ const crypto = require("crypto");
 const { User, SystemSetting, sequelize } = require("../../models");
 const UserService = require("./User.service");
 const SESSION_LIFETIME = "8h";
+const TOKEN_VERSION = 2;
 
 const getJwtSecret = () => {
   if (!process.env.JWT_SECRET) {
@@ -17,25 +18,14 @@ const makeToken = (user) =>
   jwt.sign(
     {
       id: user.id,
-      email: user.email,
-      username: user.username,
-      name: user.fullname || user.username,
       isAdmin: Boolean(user.isAdmin),
+      ver: TOKEN_VERSION,
     },
     getJwtSecret(),
     { expiresIn: SESSION_LIFETIME }
   );
 
-const publicUser = (user) => ({
-  id: user.id,
-  name: user.fullname || user.username,
-  username: user.username,
-  email: user.email,
-  isAdmin: Boolean(user.isAdmin),
-  user_pf: user.user_pf,
-  positionWork: user.positionWork,
-  createdAt: user.createdAt,
-});
+const publicUser = () => ({ authenticated: true });
 
 class AuthService {
   async login(identifier, password) {
@@ -255,6 +245,9 @@ class AuthService {
         getJwtSecret(),
         { maxAge: SESSION_LIFETIME }
       );
+      if (decoded.ver !== TOKEN_VERSION) {
+        return { error: true, message: "Token version is no longer supported" };
+      }
       return { error: false, message: decoded };
     } catch (error) {
       console.error("❌ Token verification failed:", error.message);

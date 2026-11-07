@@ -31,10 +31,15 @@ test("login accepts usernames and email addresses", async () => {
     for (const identifier of [" TEST.USER ", "TEST@EXAMPLE.COM"]) {
       const result = await AuthService.login(identifier, "test-password");
       assert.equal(result.error, false);
-      assert.equal(result.message.user.username, "test.user");
+      assert.deepEqual(result.message.user, { authenticated: true });
       assert.equal(typeof result.message.token, "string");
       const decodedToken = jwt.decode(result.message.token);
       assert.equal(decodedToken.exp - decodedToken.iat, 8 * 60 * 60);
+      assert.equal(decodedToken.email, undefined);
+      assert.equal(decodedToken.username, undefined);
+      assert.equal(decodedToken.name, undefined);
+      assert.equal(decodedToken.isAdmin, false);
+      assert.equal(decodedToken.ver, 2);
     }
 
     assert.equal(foundQueries.length, 2);
@@ -101,7 +106,7 @@ test("initial setup creates one admin account and then closes", async () => {
       password: "a-strong-password",
     });
     assert.equal(result.error, false);
-    assert.equal(result.message.user.isAdmin, true);
+    assert.deepEqual(result.message.user, { authenticated: true });
     assert.equal(savedAccount.isAdmin, true);
     assert.notEqual(savedAccount.password, "a-strong-password");
     assert.equal(bcrypt.compareSync("a-strong-password", savedAccount.password), true);
@@ -162,7 +167,7 @@ test("initial setup ignores only migration placeholder accounts", async () => {
 
     assert.equal(result.error, false);
     assert.equal(createdUser.isAdmin, true);
-    assert.equal(result.message.user.username, "owner");
+    assert.deepEqual(result.message.user, { authenticated: true });
   } finally {
     SystemSetting.findByPk = originals.findByPk;
     SystemSetting.update = originals.update;
@@ -225,7 +230,7 @@ test("initial setup promotes an existing account only after password verificatio
     assert.equal(result.error, false);
     assert.equal(account.username, "owner");
     assert.equal(account.isAdmin, true);
-    assert.equal(result.message.user.isAdmin, true);
+    assert.deepEqual(result.message.user, { authenticated: true });
   } finally {
     SystemSetting.findByPk = originals.findByPk;
     SystemSetting.update = originals.update;

@@ -5,7 +5,6 @@ import { API_BASE_URL } from "../Services/request";
 import {
   clearAuthSession,
   getRememberMe,
-  getStoredUser,
   saveAuthSession,
   saveCsrfToken,
 } from "../Services/authStorage";
@@ -53,20 +52,13 @@ export const AuthProvider = ({ children }) => {
             clearAuthSession();
             setTransactions([]);
             setAmounts([]);
-          } else {
-            const storedUser = getStoredUser();
-            if (storedUser) setUser(JSON.parse(storedUser));
           }
           return;
         }
 
-        const storedUser = getStoredUser();
-        const verifiedUser = {
-          ...(storedUser ? JSON.parse(storedUser) : {}),
-          ...verification.user,
-        };
-        saveAuthSession(verification.csrfToken, verifiedUser, getRememberMe());
-        setUser(verifiedUser);
+        const authenticatedUser = { authenticated: true };
+        saveAuthSession(verification.csrfToken, authenticatedUser, getRememberMe());
+        setUser(authenticatedUser);
         setSessionExpiresAt(verification.expiresAt);
         try {
           await getAllTransactions();
@@ -115,13 +107,14 @@ export const AuthProvider = ({ children }) => {
     return () => window.clearTimeout(timeout);
   }, [user, sessionExpiresAt, navigate, setTransactions, setAmounts]);
 
-  const login = async (userData, csrfToken, expiresAt, rememberMe = false) => {
+  const login = async (_userData, csrfToken, expiresAt, rememberMe = false) => {
     const verification = await verifyToken();
     if (!verification.valid) throw new Error("Sessão inválida. Faça login novamente.");
 
     const activeCsrfToken = csrfToken || verification.csrfToken;
-    saveAuthSession(activeCsrfToken, userData, rememberMe);
-    setUser(userData);
+    const authenticatedUser = { authenticated: true };
+    saveAuthSession(activeCsrfToken, authenticatedUser, rememberMe);
+    setUser(authenticatedUser);
     setSessionExpiresAt(expiresAt || verification.expiresAt);
     setTransactions([]);
     await getAllTransactions();

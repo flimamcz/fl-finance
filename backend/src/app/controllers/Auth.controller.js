@@ -16,6 +16,7 @@ const setupStatus = async (req, res) => {
 
 const setupAdmin = async (req, res) => {
   try {
+    res.set("Cache-Control", "no-store");
     const { username, email, password } = req.body;
     if (!username || !email || !password) {
       return res.status(400).json({ error: true, message: "Usuário, email e senha são obrigatórios" });
@@ -79,6 +80,7 @@ const resetPassword = async (req, res) => {
 
 const login = async (req, res) => {
   try {
+    res.set("Cache-Control", "no-store");
     const { identifier, username, email, password, rememberMe } = req.body;
     const loginIdentifier = identifier || username || email;
     
@@ -118,6 +120,7 @@ const login = async (req, res) => {
 
 const verify = async (req, res) => {
   try {
+    res.set("Cache-Control", "no-store");
     const token = getCookie(req, sessionCookieName);
     if (!token) {
       return res.status(401).json({ 
@@ -138,7 +141,7 @@ const verify = async (req, res) => {
 
     return res.status(200).json({
       error: false,
-      user: message,
+      user: { authenticated: true },
       csrfToken: getCookie(req, csrfCookieName),
       expiresAt: jwt.decode(token).exp * 1000,
     });

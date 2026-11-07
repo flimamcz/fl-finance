@@ -8,6 +8,11 @@ const { authenticate } = require("./auth.middleware");
 const makeResponse = () => ({
   statusCode: null,
   body: null,
+  headers: {},
+  set(name, value) {
+    this.headers[name] = value;
+    return this;
+  },
   status(statusCode) {
     this.statusCode = statusCode;
     return this;
@@ -77,8 +82,10 @@ test("valid session and CSRF cookies authenticate the request", async () => {
     await authenticate(req, res, () => { nextCalled = true; });
 
     assert.equal(nextCalled, true);
+    assert.equal(res.headers["Cache-Control"], "no-store");
     assert.equal(req.user.id, 8);
-    assert.equal(req.user.email, "user@example.com");
+    assert.equal(req.user.email, undefined);
+    assert.equal(req.user.username, undefined);
   } finally {
     authService.verifyToken = originalVerifyToken;
   }

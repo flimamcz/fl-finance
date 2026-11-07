@@ -14,7 +14,7 @@ const getMyProfile = async (userId) => {
   try {
     const user = await User.findOne({
       where: { id: userId },
-      attributes: ['id', 'fullname', 'username', 'email', 'isAdmin', 'photo', 'createdAt'] // Não retorna password!
+      attributes: ['fullname', 'email', 'photo', 'createdAt']
     });
 
     if (!user) {

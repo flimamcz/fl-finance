@@ -15,7 +15,6 @@ import {
 import { API_BASE_URL } from '../Services/request';
 import { apiFetch } from "../Services/apiFetch";
 import {
-  getRememberedEmail,
   getRememberMe,
   saveAuthSession,
 } from "../Services/authStorage";
@@ -24,7 +23,7 @@ import "../Styles/Login.css";
 const EMAIL_DOMAINS = ["gmail.com", "outlook.com", "hotmail.com", "icloud.com", "yahoo.com"];
 
 function Login() {
-  const [email, setEmail] = useState(getRememberedEmail);
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(getRememberMe);
   const [showPassword, setShowPassword] = useState(false);

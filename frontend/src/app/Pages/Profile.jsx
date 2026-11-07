@@ -268,8 +268,6 @@ function Profile() {
         };
       }
       
-      console.log('📤 Enviando dados:', { endpoint, bodyData });
-      
       const response = await apiFetch(`${API_BASE_URL}${endpoint}`, {
         method,
         headers: {
@@ -279,8 +277,6 @@ function Profile() {
       });
       
       const result = await response.json();
-      console.log('📥 Resposta:', result);
-      
       if (!response.ok || result.error) {
         throw new Error(result.message || `Erro ${response.status}`);
       }
@@ -290,17 +286,6 @@ function Profile() {
         type: 'success', 
         text: result.message || 'Operação realizada com sucesso!' 
       });
-      
-      // Atualizar localStorage sem reload
-      if (!changePassword) {
-        const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
-        const updatedUser = { 
-          ...currentUser, 
-          name: formData.name,
-          email: formData.email
-        };
-        localStorage.setItem("user", JSON.stringify(updatedUser));
-      }
       
       // Limpar campos de senha
       if (changePassword) {

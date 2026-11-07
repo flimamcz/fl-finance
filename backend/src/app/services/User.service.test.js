@@ -23,6 +23,33 @@ test("user directory query excludes password and recovery credentials", async ()
   }
 });
 
+test("own profile query only selects fields used by the profile screen", async () => {
+  const originalFindOne = User.findOne;
+  let queryOptions;
+  User.findOne = async (options) => {
+    queryOptions = options;
+    return {
+      toJSON: () => ({
+        fullname: "Owner",
+        email: "owner@example.com",
+        photo: null,
+        createdAt: new Date("2024-01-01T00:00:00.000Z"),
+      }),
+    };
+  };
+
+  try {
+    const result = await UserService.getMyProfile(1);
+    assert.equal(result.error, null);
+    assert.deepEqual(queryOptions.attributes, ["fullname", "email", "photo", "createdAt"]);
+    assert.equal("id" in result.message, false);
+    assert.equal("isAdmin" in result.message, false);
+    assert.equal("username" in result.message, false);
+  } finally {
+    User.findOne = originalFindOne;
+  }
+});
+
 test("password recovery rotates its code and consumes the previous one", async () => {
   const originals = {
     findOne: User.findOne,
