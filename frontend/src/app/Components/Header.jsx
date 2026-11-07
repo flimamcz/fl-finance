@@ -9,6 +9,7 @@ import {
   FiMoreHorizontal,
   FiPieChart,
   FiMoon,
+  FiShield,
   FiSun,
   FiTrendingDown,
   FiUploadCloud,
@@ -110,7 +111,8 @@ function Header() {
   const secondaryMobileItems = navItems.filter(
     ({ label }) => !mobilePrimaryLabels.includes(label),
   );
-  const isMoreActive = isProfilePage || secondaryMobileItems.some(({ path }) => location.pathname === path);
+  const isAdminPage = location.pathname === "/admin";
+  const isMoreActive = isProfilePage || isAdminPage || secondaryMobileItems.some(({ path }) => location.pathname === path);
 
   return (
     <>
@@ -152,7 +154,7 @@ function Header() {
           </button>
           <button
             type="button"
-            className={`app-nav-link more-trigger ${isProfilePage ? "active" : ""}`}
+            className={`app-nav-link more-trigger ${isProfilePage || isAdminPage ? "active" : ""}`}
             aria-expanded={moreOpen}
             aria-controls="more-navigation-menu"
             onClick={() => setMoreOpen((open) => !open)}
@@ -175,6 +177,16 @@ function Header() {
               <FiUser aria-hidden="true" />
               <span>Meu perfil</span>
             </NavLink>
+            {user?.isAdmin && (
+              <NavLink
+                to="/admin"
+                className={({ isActive }) => `more-menu-link ${isActive ? "active" : ""}`}
+                onClick={() => setMoreOpen(false)}
+              >
+                <FiShield aria-hidden="true" />
+                <span>Painel administrativo</span>
+              </NavLink>
+            )}
             <button
               type="button"
               className="more-menu-link logout-link"
@@ -227,6 +239,16 @@ function Header() {
               <FiUser aria-hidden="true" />
               <span>Meu perfil</span>
             </NavLink>
+            {user?.isAdmin && (
+              <NavLink
+                to="/admin"
+                className={({ isActive }) => `more-menu-link ${isActive ? "active" : ""}`}
+                onClick={() => setMoreOpen(false)}
+              >
+                <FiShield aria-hidden="true" />
+                <span>Painel administrativo</span>
+              </NavLink>
+            )}
             <button
               type="button"
               className="more-menu-link logout-link"

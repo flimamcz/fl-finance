@@ -91,10 +91,11 @@ const login = async (req, res) => {
       });
     }
 
-    const { error, message } = await authService.login(loginIdentifier, password);
+    const loginResult = await authService.login(loginIdentifier, password);
+    const { error, message } = loginResult;
     
     if (error) {
-      return res.status(401).json({ 
+      return res.status(loginResult.blocked ? 403 : 401).json({
         error: true, 
         message 
       });
@@ -141,7 +142,7 @@ const verify = async (req, res) => {
 
     return res.status(200).json({
       error: false,
-      user: { authenticated: true },
+      user: { authenticated: true, isAdmin: Boolean(message.isAdmin) },
       csrfToken: getCookie(req, csrfCookieName),
       expiresAt: jwt.decode(token).exp * 1000,
     });

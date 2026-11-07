@@ -39,7 +39,8 @@ test("login accepts usernames and email addresses", async () => {
       assert.equal(decodedToken.username, undefined);
       assert.equal(decodedToken.name, undefined);
       assert.equal(decodedToken.isAdmin, false);
-      assert.equal(decodedToken.ver, 2);
+      assert.equal(decodedToken.ver, 3);
+      assert.equal(decodedToken.sv, 0);
     }
 
     assert.equal(foundQueries.length, 2);
@@ -66,6 +67,61 @@ test("token verification rejects sessions older than eight hours", async () => {
     const result = await AuthService.verifyToken(token);
     assert.equal(result.error, true);
   } finally {
+    if (previousSecret === undefined) delete process.env.JWT_SECRET;
+    else process.env.JWT_SECRET = previousSecret;
+  }
+});
+
+test("blocked account cannot log in with otherwise valid credentials", async () => {
+  const originalFindOne = User.findOne;
+  const previousSecret = process.env.JWT_SECRET;
+  User.findOne = async () => ({
+    id: 8,
+    username: "test.user",
+    email: "test@example.com",
+    password: bcrypt.hashSync("test-password", 4),
+    isAdmin: false,
+    isBlocked: true,
+  });
+  process.env.JWT_SECRET = "test-only-signing-secret";
+
+  try {
+    const result = await AuthService.login("test.user", "test-password");
+    assert.equal(result.error, true);
+    assert.equal(result.blocked, true);
+    assert.equal(result.message, "Esta conta está bloqueada. Entre em contato com o suporte.");
+  } finally {
+    User.findOne = originalFindOne;
+    if (previousSecret === undefined) delete process.env.JWT_SECRET;
+    else process.env.JWT_SECRET = previousSecret;
+  }
+});
+
+test("session verification uses current account status and administrator role", async () => {
+  const originalFindByPk = User.findByPk;
+  const previousSecret = process.env.JWT_SECRET;
+  process.env.JWT_SECRET = "test-only-signing-secret";
+  User.findByPk = async () => ({ id: 8, isAdmin: false, isBlocked: false, sessionVersion: 0 });
+
+  try {
+    const token = jwt.sign(
+      { id: 8, isAdmin: true, ver: 3, sv: 0 },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+    const result = await AuthService.verifyToken(token);
+    assert.equal(result.error, false);
+    assert.deepEqual(result.message, { id: 8, isAdmin: false });
+
+    User.findByPk = async () => ({ id: 8, isAdmin: true, isBlocked: true, sessionVersion: 0 });
+    const blockedResult = await AuthService.verifyToken(token);
+    assert.equal(blockedResult.error, true);
+
+    User.findByPk = async () => ({ id: 8, isAdmin: false, isBlocked: false, sessionVersion: 1 });
+    const revokedResult = await AuthService.verifyToken(token);
+    assert.equal(revokedResult.error, true);
+  } finally {
+    User.findByPk = originalFindByPk;
     if (previousSecret === undefined) delete process.env.JWT_SECRET;
     else process.env.JWT_SECRET = previousSecret;
   }

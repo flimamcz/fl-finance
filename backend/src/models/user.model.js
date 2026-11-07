@@ -22,6 +22,18 @@ const UserModel = (sequelize, DataTypes) => {
         allowNull: false,
         defaultValue: false,
       },
+      isBlocked: {
+        field: "is_blocked",
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+      },
+      sessionVersion: {
+        field: "session_version",
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+      },
       createdAt: {
         field: "created_at",
         type: DataTypes.DATE,
@@ -47,6 +59,11 @@ const UserModel = (sequelize, DataTypes) => {
       resetCodeHint: {
         field: "reset_code_hint",
         type: DataTypes.STRING(6),
+        allowNull: true,
+      },
+      resetCodeExpiresAt: {
+        field: "reset_code_expires_at",
+        type: DataTypes.DATE,
         allowNull: true,
       },
     },

@@ -8,6 +8,7 @@ const typesRouter = require("./src/app/routes/type.routes");
 const authRouter = require("./src/app/routes/auth.routes");
 const debtsRouter = require("./src/app/routes/debts.routes");
 const investmentsRouter = require("./src/app/routes/investments.routes");
+const adminRouter = require("./src/app/routes/admin.routes");
 
 const app = express();
 
@@ -71,6 +72,7 @@ app.use("/debts", debtsRouter);
 app.use("/investments", investmentsRouter);
 app.use("/types", typesRouter);
 app.use("/auth", authRouter);
+app.use("/admin", adminRouter);
 
 // Rota de health check
 app.get("/health", (req, res) => {
@@ -94,6 +96,7 @@ app.get("/", (req, res) => {
         register: "POST /auth/register (after setup)",
         verify: "GET /auth/verify"
       },
+      admin: "GET /admin/users (administrators only)",
       transactions: {
         list: "GET /transactions (com autenticação)",
         create: "POST /transactions (com autenticação)",

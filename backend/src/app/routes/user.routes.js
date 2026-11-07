@@ -1,11 +1,6 @@
 const express = require("express");
 const { authenticate } = require('../middlewares/auth.middleware');
-const requireAdmin = (req, res, next) => {
-  if (!req.user?.isAdmin) {
-    return res.status(403).json({ error: true, message: "Acesso restrito a administradores." });
-  }
-  return next();
-};
+const { requireAdmin } = require("../middlewares/admin.middleware");
 
 // Importando do controller ATUAL (com as novas funções placeholder)
 const {

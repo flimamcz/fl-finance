@@ -1,0 +1,111 @@
+"use strict";
+
+const crypto = require("crypto");
+const bcrypt = require("bcryptjs");
+const { Op } = require("sequelize");
+const { User, sequelize } = require("../../models");
+
+const RECOVERY_CODE_LIFETIME_MS = 30 * 60 * 1000;
+const RECOVERY_CODE_SALT_ROUNDS = 10;
+
+const toAdminListUser = (user, adminId) => ({
+  id: user.id,
+  fullname: user.fullname,
+  username: user.username,
+  email: user.email,
+  isAdmin: Boolean(user.isAdmin),
+  isBlocked: Boolean(user.isBlocked),
+  isCurrentUser: Number(user.id) === Number(adminId),
+  createdAt: user.createdAt,
+});
+
+const listUsers = async ({ adminId, query, status, page, pageSize }) => {
+  const where = {};
+  if (status === "active") where.isBlocked = false;
+  if (status === "blocked") where.isBlocked = true;
+  if (query) {
+    where[Op.or] = [
+      { fullname: { [Op.like]: `%${query}%` } },
+      { username: { [Op.like]: `%${query}%` } },
+      { email: { [Op.like]: `%${query}%` } },
+    ];
+  }
+
+  const [users, total, activeUsers, blockedUsers, admins] = await Promise.all([
+    User.findAll({
+      where,
+      attributes: ["id", "fullname", "username", "email", "isAdmin", "isBlocked", "createdAt"],
+      order: [["createdAt", "DESC"], ["id", "DESC"]],
+      limit: pageSize,
+      offset: (page - 1) * pageSize,
+    }),
+    User.count({ where }),
+    User.count({ where: { isBlocked: false } }),
+    User.count({ where: { isBlocked: true } }),
+    User.count({ where: { isAdmin: true, isBlocked: false } }),
+  ]);
+
+  return {
+    users: users.map((user) => toAdminListUser(user, adminId)),
+    pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) },
+    summary: { total: activeUsers + blockedUsers, active: activeUsers, blocked: blockedUsers, admins },
+  };
+};
+
+const setUserBlocked = async (adminId, targetId, blocked) => {
+  if (blocked && Number(adminId) === Number(targetId)) {
+    return { error: "SELF_BLOCK", message: "Não é possível bloquear a própria conta." };
+  }
+
+  return sequelize.transaction(async (transaction) => {
+    const user = await User.findByPk(targetId, {
+      attributes: ["id", "fullname", "username", "email", "isAdmin", "isBlocked", "sessionVersion", "createdAt"],
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+    if (!user) return { error: "NOT_FOUND", message: "Usuário não encontrado." };
+
+    if (blocked && user.isAdmin && !user.isBlocked) {
+      const activeAdmins = await User.findAll({
+        where: { isAdmin: true, isBlocked: false },
+        attributes: ["id"],
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (activeAdmins.length <= 1) {
+        return { error: "LAST_ADMIN", message: "Não é possível bloquear o último administrador ativo." };
+      }
+    }
+
+    if (Boolean(user.isBlocked) !== blocked) {
+      user.isBlocked = blocked;
+      user.sessionVersion = (Number(user.sessionVersion) || 0) + 1;
+      await user.save({ transaction, fields: ["isBlocked", "sessionVersion"] });
+    }
+
+    return { user: toAdminListUser(user, adminId) };
+  });
+};
+
+const generateRecoveryCode = async (adminId, targetId) => {
+  if (Number(adminId) === Number(targetId)) {
+    return { error: "SELF_RESET", message: "Para redefinir seu próprio acesso, use a recuperação de senha." };
+  }
+
+  const user = await User.findByPk(targetId, {
+    attributes: ["id", "fullname", "username", "email", "isAdmin", "isBlocked", "sessionVersion", "createdAt"],
+  });
+  if (!user) return { error: "NOT_FOUND", message: "Usuário não encontrado." };
+
+  const recoveryCode = String(crypto.randomInt(100000, 1000000));
+  const expiresAt = new Date(Date.now() + RECOVERY_CODE_LIFETIME_MS);
+  user.sessionVersion = (Number(user.sessionVersion) || 0) + 1;
+  user.resetCodeHash = await bcrypt.hash(recoveryCode, RECOVERY_CODE_SALT_ROUNDS);
+  user.resetCodeHint = `${recoveryCode.slice(0, 2)}***${recoveryCode.slice(-1)}`;
+  user.resetCodeExpiresAt = expiresAt;
+  await user.save({ fields: ["resetCodeHash", "resetCodeHint", "resetCodeExpiresAt", "sessionVersion"] });
+
+  return { user: toAdminListUser(user, adminId), recoveryCode, expiresAt };
+};
+
+module.exports = { generateRecoveryCode, listUsers, setUserBlocked };

@@ -5,7 +5,7 @@ const crypto = require("crypto");
 const { User, SystemSetting, sequelize } = require("../../models");
 const UserService = require("./User.service");
 const SESSION_LIFETIME = "8h";
-const TOKEN_VERSION = 2;
+const TOKEN_VERSION = 3;
 
 const getJwtSecret = () => {
   if (!process.env.JWT_SECRET) {
@@ -20,6 +20,7 @@ const makeToken = (user) =>
       id: user.id,
       isAdmin: Boolean(user.isAdmin),
       ver: TOKEN_VERSION,
+      sv: Number(user.sessionVersion) || 0,
     },
     getJwtSecret(),
     { expiresIn: SESSION_LIFETIME }
@@ -68,6 +69,10 @@ class AuthService {
 
       if (!isValidPassword) {
         return { error: true, message: "Usuário/email ou senha incorretos" };
+      }
+
+      if (user.isBlocked) {
+        return { error: true, blocked: true, message: "Esta conta está bloqueada. Entre em contato com o suporte." };
       }
 
       return {
@@ -178,8 +183,10 @@ class AuthService {
         if (user) {
           user.username = normalizedUsername;
           user.isAdmin = true;
+          user.sessionVersion = (Number(user.sessionVersion) || 0) + 1;
           user.resetCodeHash = recoveryCodeHash;
           user.resetCodeHint = `${recoveryCode.slice(0, 2)}***${recoveryCode.slice(-1)}`;
+          user.resetCodeExpiresAt = new Date(Date.now() + 30 * 60 * 1000);
           await user.save({ transaction });
         } else {
           user = await User.create(
@@ -191,6 +198,7 @@ class AuthService {
               isAdmin: true,
               resetCodeHash: recoveryCodeHash,
               resetCodeHint: `${recoveryCode.slice(0, 2)}***${recoveryCode.slice(-1)}`,
+              resetCodeExpiresAt: new Date(Date.now() + 30 * 60 * 1000),
             },
             { transaction }
           );
@@ -247,7 +255,16 @@ class AuthService {
       if (decoded.ver !== TOKEN_VERSION) {
         return { error: true, message: "Token version is no longer supported" };
       }
-      return { error: false, message: decoded };
+      const user = await User.findByPk(decoded.id, {
+        attributes: ["id", "isAdmin", "isBlocked", "sessionVersion"],
+      });
+      if (!user || user.isBlocked || decoded.sv !== Number(user.sessionVersion)) {
+        return { error: true, message: "Account is unavailable" };
+      }
+      return {
+        error: false,
+        message: { id: user.id, isAdmin: Boolean(user.isAdmin) },
+      };
     } catch (error) {
       console.error("Session token verification failed:", error.name);
       return { error: true, message: "Token inválido ou expirado" };

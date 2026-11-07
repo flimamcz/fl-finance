@@ -294,6 +294,7 @@ function Profile() {
           confirmPassword: ""
         }));
         setChangePassword(false);
+        await logout();
       }
       
     } catch (error) {

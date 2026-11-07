@@ -97,6 +97,7 @@ test("password recovery rotates its code and consumes the previous one", async (
   const user = {
     resetCodeHash: bcrypt.hashSync("123456", 4),
     resetCodeHint: "12***6",
+    resetCodeExpiresAt: new Date(Date.now() - 1000),
     async save() {},
   };
   const transaction = { LOCK: { UPDATE: "UPDATE" } };
@@ -109,12 +110,18 @@ test("password recovery rotates its code and consumes the previous one", async (
   sequelize.transaction = async (callback) => callback(transaction);
 
   try {
+    const expiredResult = await UserService.resetPassword("owner@example.com", "123456", "new-password");
+    assert.equal(expiredResult.error, "INVALID_CODE");
+
+    user.resetCodeHash = bcrypt.hashSync("123456", 4);
+    user.resetCodeExpiresAt = new Date(Date.now() + 60_000);
     const result = await UserService.resetPassword("owner@example.com", "123456", "new-password");
     assert.equal(result.error, null);
     assert.match(result.recoveryCode, /^\d{6}$/);
     assert.equal(await bcrypt.compare("123456", user.resetCodeHash), false);
     assert.equal(await bcrypt.compare(result.recoveryCode, user.resetCodeHash), true);
     assert.equal(await bcrypt.compare("new-password", user.password), true);
+    assert.ok(new Date(user.resetCodeExpiresAt).getTime() > Date.now());
   } finally {
     User.findOne = originals.findOne;
     sequelize.transaction = originals.transaction;

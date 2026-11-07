@@ -138,6 +138,7 @@ const updatePassword = async (userId, currentPassword, newPassword) => {
     
     // 5. ATUALIZAR NO BANCO
     user.password = newPasswordHash;
+    user.sessionVersion = (Number(user.sessionVersion) || 0) + 1;
     await user.save();
     
     return { error: null, message: "Senha alterada com sucesso" };
@@ -195,6 +196,7 @@ const createUser = async (dataUser) => {
 
     // CRIAR HASH DA SENHA
     const resetCode = String(crypto.randomInt(100000, 1000000));
+    const resetCodeExpiresAt = new Date(Date.now() + 30 * 60 * 1000);
     const [hashedPassword, resetCodeHash] = await Promise.all([
       bcrypt.hash(dataUser.password, SALT_ROUNDS),
       bcrypt.hash(resetCode, SALT_ROUNDS),
@@ -208,6 +210,7 @@ const createUser = async (dataUser) => {
       password: hashedPassword,
       resetCodeHash,
       resetCodeHint: `${resetCode.slice(0, 2)}***${resetCode.slice(-1)}`,
+      resetCodeExpiresAt,
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -240,7 +243,9 @@ const resetPassword = async (email, code, newPassword) => {
       transaction,
       lock: transaction.LOCK.UPDATE,
     });
-    if (!user?.resetCodeHash || !await bcrypt.compare(code, user.resetCodeHash)) {
+    if (!user?.resetCodeHash
+      || (user.resetCodeExpiresAt && new Date(user.resetCodeExpiresAt).getTime() <= Date.now())
+      || !await bcrypt.compare(code, user.resetCodeHash)) {
       return { error: "INVALID_CODE", message: "Email ou código de recuperação inválidos." };
     }
 
@@ -250,6 +255,8 @@ const resetPassword = async (email, code, newPassword) => {
       bcrypt.hash(recoveryCode, SALT_ROUNDS),
     ]);
     user.resetCodeHint = `${recoveryCode.slice(0, 2)}***${recoveryCode.slice(-1)}`;
+    user.resetCodeExpiresAt = new Date(Date.now() + 30 * 60 * 1000);
+    user.sessionVersion = (Number(user.sessionVersion) || 0) + 1;
     await user.save({ transaction });
     return {
       error: null,

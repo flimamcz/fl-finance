@@ -17,6 +17,7 @@ const Revenues = lazy(() => import("./app/Pages/Revenues"));
 const Expenses = lazy(() => import("./app/Pages/Expenses"));
 const TransactionAnalytics = lazy(() => import("./app/Pages/TransactionAnalytics"));
 const ImportTransactions = lazy(() => import("./app/Pages/ImportTransactions"));
+const Admin = lazy(() => import("./app/Pages/Admin"));
 const appShellPaths = new Set([
   "/home",
   "/profile",
@@ -26,6 +27,7 @@ const appShellPaths = new Set([
   "/transactions",
   "/import-transactions",
   "/investments",
+  "/admin",
 ]);
 
 function App() {
@@ -128,6 +130,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Profile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute>
+                  <Admin />
                 </ProtectedRoute>
               }
             />

@@ -1,0 +1,20 @@
+"use strict";
+
+const express = require("express");
+const { authenticate } = require("../middlewares/auth.middleware");
+const { requireAdmin } = require("../middlewares/admin.middleware");
+const {
+  generateRecoveryCode,
+  listUsers,
+  setUserBlocked,
+} = require("../controllers/Admin.controller");
+
+const router = express.Router();
+
+router.use(authenticate, requireAdmin);
+router.get("/users", listUsers);
+router.patch("/users/:id/block", setUserBlocked(true));
+router.patch("/users/:id/unblock", setUserBlocked(false));
+router.post("/users/:id/recovery-code", generateRecoveryCode);
+
+module.exports = router;

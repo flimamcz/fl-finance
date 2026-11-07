@@ -56,7 +56,10 @@ export const AuthProvider = ({ children }) => {
           return;
         }
 
-        const authenticatedUser = { authenticated: true };
+        const authenticatedUser = {
+          authenticated: true,
+          isAdmin: Boolean(verification.user?.isAdmin),
+        };
         saveAuthSession(verification.csrfToken, authenticatedUser, getRememberMe());
         setUser(authenticatedUser);
         setSessionExpiresAt(verification.expiresAt);
@@ -112,7 +115,10 @@ export const AuthProvider = ({ children }) => {
     if (!verification.valid) throw new Error("Sessão inválida. Faça login novamente.");
 
     const activeCsrfToken = csrfToken || verification.csrfToken;
-    const authenticatedUser = { authenticated: true };
+    const authenticatedUser = {
+      authenticated: true,
+      isAdmin: Boolean(verification.user?.isAdmin),
+    };
     saveAuthSession(activeCsrfToken, authenticatedUser, rememberMe);
     setUser(authenticatedUser);
     setSessionExpiresAt(expiresAt || verification.expiresAt);

@@ -15,6 +15,9 @@ const requiredVariables = [
   "MYSQL_PASSWORD",
   "MYSQL_DATABASE",
 ];
+const sequelizeConfig = require("../src/config/config.js")[
+  process.env.NODE_ENV || "development"
+];
 const missingVariables = requiredVariables.filter(
   (variable) => !process.env[variable]
 );
@@ -28,8 +31,10 @@ if (missingVariables.length > 0) {
 async function migrateDatabase() {
   const connection = await mysql.createConnection({
     host: process.env.MYSQL_HOST,
+    port: Number(process.env.MYSQL_PORT || 3306),
     user: process.env.MYSQL_USER,
     password: process.env.MYSQL_PASSWORD,
+    ssl: sequelizeConfig.dialectOptions?.ssl,
   });
 
   try {
@@ -41,7 +46,7 @@ async function migrateDatabase() {
     await connection.end();
   }
 
-  console.log(`Database "${process.env.MYSQL_DATABASE}" is ready.`);
+  console.log("Database is ready.");
 
   const sequelizeCli = require.resolve("sequelize-cli/lib/sequelize");
   const migration = spawnSync(
@@ -64,6 +69,9 @@ async function migrateDatabase() {
 }
 
 migrateDatabase().catch((error) => {
-  console.error("Database migration failed:", error);
+  console.error("Database migration failed:", {
+    name: error.name,
+    code: error.code,
+  });
   process.exitCode = 1;
 });
