@@ -43,15 +43,6 @@ function Register() {
     );
   }, []);
 
-  useEffect(() => {
-    apiFetch(`${API_BASE_URL}/auth/setup-status`, { cache: "no-store" })
-      .then((response) => response.json())
-      .then((data) => {
-        if (data.setupRequired) navigate("/setup", { replace: true });
-      })
-      .catch(() => {});
-  }, [navigate]);
-
   const handleChange = (event) => {
     setFormData((current) => ({
       ...current,

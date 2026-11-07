@@ -33,17 +33,6 @@ function Login() {
   const [particles, setParticles] = useState([]);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    apiFetch(`${API_BASE_URL}/auth/setup-status`, { cache: "no-store" })
-      .then((response) => response.json())
-      .then((data) => {
-        if (data.setupRequired) navigate("/setup", { replace: true });
-      })
-      .catch(() => {
-        // Login remains available if setup-status cannot be reached.
-      });
-  }, [navigate]);
-
   // Gerar partículas para background
   useEffect(() => {
     const newParticles = Array.from({ length: 15 }, (_, i) => ({

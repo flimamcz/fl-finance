@@ -5,8 +5,9 @@ const {
   limitRegister,
   limitRecoveryByEmail,
   limitRecoveryByIp,
-  limitSetup,
+  limitFirstAdmin,
 } = require("../middlewares/rateLimit.middleware");
+const { create: createFirstAdmin } = require("../controllers/FirstAdmin.controller");
 const {
   login,
   logout,
@@ -14,19 +15,16 @@ const {
   verify,
   forgotPassword,
   resetPassword,
-  setupStatus,
-  setupAdmin,
 } = require('../controllers/Auth.controller');
 
 const router = express.Router();
 
-router.get('/setup-status', setupStatus);
-router.post('/setup', limitSetup, setupAdmin);
 router.post('/login', limitLogin, login);
 router.post('/logout', logout);
 router.post('/register', limitRegister, register);
 router.post('/forgot-password', limitRecoveryByIp, limitRecoveryByEmail, forgotPassword);
 router.post('/reset-password', limitRecoveryByIp, limitRecoveryByEmail, resetPassword);
+router.post('/first-admin', limitFirstAdmin, createFirstAdmin);
 router.get('/verify', verify);
 
 module.exports = router;

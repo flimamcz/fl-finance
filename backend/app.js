@@ -38,7 +38,7 @@ app.use(cors({
     return callback(null, false);
   },
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "X-CSRF-Token"],
+  allowedHeaders: ["Content-Type", "X-CSRF-Token", "X-Admin-Bootstrap-Token"],
   credentials: true,
   maxAge: 86400
 }));
@@ -91,8 +91,6 @@ app.get("/", (req, res) => {
     endpoints: {
       auth: {
         login: "POST /auth/login",
-        setupStatus: "GET /auth/setup-status",
-        setup: "POST /auth/setup (one-time)",
         register: "POST /auth/register (after setup)",
         verify: "GET /auth/verify"
       },

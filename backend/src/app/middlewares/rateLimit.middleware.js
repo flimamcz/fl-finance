@@ -59,17 +59,16 @@ const limitRecoveryByEmail = createRateLimiter({
   windowMs: 15 * 60 * 1000,
   keyGenerator: (req) => getNormalizedEmail(req) || getClientIp(req),
 });
-const limitSetup = createRateLimiter({
+const limitFirstAdmin = createRateLimiter({
   limit: 5,
   windowMs: 15 * 60 * 1000,
   keyGenerator: getClientIp,
 });
-
 module.exports = {
   createRateLimiter,
   limitLogin,
   limitRegister,
   limitRecoveryByEmail,
   limitRecoveryByIp,
-  limitSetup,
+  limitFirstAdmin,
 };

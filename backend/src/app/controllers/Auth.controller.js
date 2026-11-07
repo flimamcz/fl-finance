@@ -4,42 +4,6 @@ const jwt = require("jsonwebtoken");
 const { clearAuthCookies, csrfCookieName, getCookie, sessionCookieName, setAuthCookies } =
   require("../services/AuthCookie.service");
 
-const setupStatus = async (req, res) => {
-  try {
-    res.set("Cache-Control", "no-store");
-    return res.status(200).json(await authService.getSetupStatus());
-  } catch (error) {
-    console.error("Setup status request failed:", error.name);
-    return res.status(500).json({ error: true, message: "Não foi possível verificar a configuração inicial" });
-  }
-};
-
-const setupAdmin = async (req, res) => {
-  try {
-    res.set("Cache-Control", "no-store");
-    const { username, email, password } = req.body;
-    if (!username || !email || !password) {
-      return res.status(400).json({ error: true, message: "Usuário, email e senha são obrigatórios" });
-    }
-
-    const result = await authService.setupAdmin({ username, email, password });
-    if (result.error) {
-      return res.status(400).json(result);
-    }
-    const csrfToken = setAuthCookies(res, result.message.token, true);
-    const expiresAt = jwt.decode(result.message.token).exp * 1000;
-    return res.status(201).json({
-      error: false,
-      user: result.message.user,
-      csrfToken,
-      expiresAt,
-    });
-  } catch (error) {
-    console.error("Admin setup request failed:", error.name);
-    return res.status(500).json({ error: true, message: "Erro interno no servidor" });
-  }
-};
-
 const forgotPassword = async (req, res) => {
   const email = req.body?.email;
   if (typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
@@ -205,8 +169,6 @@ module.exports = {
   login,
   logout,
   verify,
-  setupStatus,
-  setupAdmin,
   register,
   forgotPassword,
   resetPassword

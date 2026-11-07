@@ -9,7 +9,7 @@ module.exports = {
     );
 
     if (!users || users.length < 2) {
-      console.info('ℹ️ Pulando transações de exemplo: crie usuários pelo fluxo de setup.');
+      console.info('ℹ️ Pulando transações de exemplo: usuários de demonstração ausentes.');
       return;
     }
 

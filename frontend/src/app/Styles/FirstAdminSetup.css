@@ -1,0 +1,148 @@
+.first-admin {
+  min-height: 100vh;
+  min-height: 100dvh;
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: #f1f5f9;
+  color: #172033;
+}
+
+.first-admin__card {
+  width: min(100%, 460px);
+  box-sizing: border-box;
+  padding: 34px;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 18px 55px rgba(15, 23, 42, .1);
+}
+
+.first-admin__icon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border-radius: 14px;
+  background: #eef2ff;
+  color: #4f46e5;
+  font-size: 23px;
+}
+
+.first-admin__eyebrow {
+  margin: 22px 0 8px;
+  color: #4f46e5;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .12em;
+}
+
+.first-admin h1 {
+  margin: 0;
+  font-size: clamp(24px, 5vw, 30px);
+  line-height: 1.2;
+}
+
+.first-admin__intro,
+.first-admin__footnote {
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.first-admin__form {
+  display: grid;
+  gap: 15px;
+  margin-top: 24px;
+}
+
+.first-admin__form label {
+  display: grid;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.first-admin__form input {
+  width: 100%;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 9px;
+  background: #fff;
+  color: #172033;
+  font: inherit;
+}
+
+.first-admin__form input:focus {
+  border-color: #6366f1;
+  outline: 3px solid rgba(99, 102, 241, .14);
+}
+
+.first-admin__form small {
+  color: #64748b;
+  font-weight: 400;
+}
+
+.first-admin__button {
+  display: inline-flex;
+  min-height: 46px;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border: 0;
+  border-radius: 10px;
+  background: #4f46e5;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.first-admin__button:disabled {
+  cursor: wait;
+  opacity: .7;
+}
+
+.first-admin__error,
+.first-admin__success {
+  padding: 12px;
+  border-radius: 9px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.first-admin__error {
+  margin: 0;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.first-admin__success {
+  margin-top: 24px;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.first-admin__success .first-admin__button {
+  width: 100%;
+  margin-top: 10px;
+}
+
+.first-admin__footnote {
+  margin: 20px 0 0;
+  font-size: 12px;
+}
+
+@media (max-width: 520px) {
+  .first-admin {
+    padding: 14px;
+  }
+
+  .first-admin__card {
+    padding: 24px 20px;
+  }
+}

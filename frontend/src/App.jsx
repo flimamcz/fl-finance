@@ -6,8 +6,8 @@ import ProtectedRoute from "./app/Components/ProtectedRoute";
 import "./app/Styles/App.css";
 
 const Login = lazy(() => import("./app/Pages/Login"));
+const FirstAdminSetup = lazy(() => import("./app/Pages/FirstAdminSetup"));
 const Register = lazy(() => import("./app/Pages/Register"));
-const AccountSetup = lazy(() => import("./app/Pages/AccountSetup"));
 const ForgotPassword = lazy(() => import("./app/Pages/ForgotPassword"));
 const Home = lazy(() => import("./app/Pages/Home"));
 const Profile = lazy(() => import("./app/Pages/Profile"));
@@ -114,7 +114,7 @@ function App() {
           <Routes location={location}>
             <Route path="/" element={<Navigate to="/home" replace />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/setup" element={<AccountSetup />} />
+            <Route path="/first-admin" element={<FirstAdminSetup />} />
             <Route path="/register" element={<Register />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route
