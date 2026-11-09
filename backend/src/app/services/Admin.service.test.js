@@ -271,3 +271,182 @@ test("restoring an archived user revokes old sessions", async () => {
     sequelize.transaction = originals.transaction;
   }
 });
+
+test("admin profile and role changes are limited to editable fields and revoke sessions", async () => {
+  const originals = {
+    findByPk: User.findByPk,
+    findOne: User.findOne,
+    transaction: sequelize.transaction,
+  };
+  const user = {
+    id: 12,
+    fullname: "Member",
+    username: "member",
+    email: "member@example.com",
+    isAdmin: false,
+    isBlocked: false,
+    sessionVersion: 4,
+    createdAt: new Date("2025-01-01T00:00:00.000Z"),
+    deletedAt: null,
+    async save(options) {
+      assert.deepEqual(options.fields, ["fullname", "username", "email", "isAdmin", "sessionVersion"]);
+      assert.equal(options.transaction, transaction);
+    },
+  };
+  const actor = {
+    id: 3,
+    isAdmin: true,
+    isBlocked: false,
+    password: bcrypt.hashSync("admin-current-password", 4),
+  };
+  const transaction = { LOCK: { UPDATE: "UPDATE" } };
+  User.findByPk = async (id, options) => {
+    assert.equal(options.lock, transaction.LOCK.UPDATE);
+    return id === 3 ? actor : user;
+  };
+  User.findOne = async (options) => {
+    assert.equal(options.transaction, transaction);
+    assert.equal(options.paranoid, false);
+    return null;
+  };
+  sequelize.transaction = async (callback) => callback(transaction);
+
+  try {
+    const result = await AdminService.editUser(3, 12, {
+      fullname: " Member Updated ",
+      username: "Member.2",
+      email: "MEMBER2@example.com ",
+      isAdmin: true,
+      currentPassword: "admin-current-password",
+    });
+    assert.equal(result.user.fullname, "Member Updated");
+    assert.equal(result.user.username, "member.2");
+    assert.equal(result.user.email, "member2@example.com");
+    assert.equal(result.user.isAdmin, true);
+    assert.equal(user.sessionVersion, 5);
+    assert.equal("password" in result.user, false);
+  } finally {
+    User.findByPk = originals.findByPk;
+    User.findOne = originals.findOne;
+    sequelize.transaction = originals.transaction;
+  }
+});
+
+test("admin edit rejects self changes, invalid inputs, archived users, and duplicate identity", async () => {
+  const originalTransaction = sequelize.transaction;
+  sequelize.transaction = async () => {
+    throw new Error("Transaction must not start for self-edit or invalid input");
+  };
+  try {
+    const self = await AdminService.editUser(3, 3, {
+      fullname: "Admin", username: "admin", email: "admin@example.com", isAdmin: true,
+    });
+    assert.equal(self.error, "SELF_EDIT");
+    const invalid = await AdminService.editUser(3, 12, {
+      fullname: "A", username: "valid-user", email: "member@example.com", isAdmin: false,
+    });
+    assert.equal(invalid.error, "INVALID_INPUT");
+  } finally {
+    sequelize.transaction = originalTransaction;
+  }
+
+  const originals = { findByPk: User.findByPk, findOne: User.findOne, transaction: sequelize.transaction };
+  const transaction = { LOCK: { UPDATE: "UPDATE" } };
+  const user = {
+    id: 12, fullname: "Member", username: "member", email: "member@example.com",
+    isAdmin: false, isBlocked: false, sessionVersion: 0, createdAt: new Date(),
+    deletedAt: new Date(),
+  };
+  User.findByPk = async () => user;
+  User.findOne = async () => ({ id: 13 });
+  sequelize.transaction = async (callback) => callback(transaction);
+  try {
+    const archived = await AdminService.editUser(3, 12, {
+      fullname: "Member", username: "member", email: "member@example.com", isAdmin: false,
+    });
+    assert.equal(archived.error, "ARCHIVED");
+    user.deletedAt = null;
+    const duplicate = await AdminService.editUser(3, 12, {
+      fullname: "Member", username: "member", email: "member@example.com", isAdmin: false,
+    });
+    assert.equal(duplicate.error, "DUPLICATE");
+  } finally {
+    User.findByPk = originals.findByPk;
+    User.findOne = originals.findOne;
+    sequelize.transaction = originals.transaction;
+  }
+});
+
+test("admin cannot demote the last active administrator", async () => {
+  const originals = {
+    findByPk: User.findByPk,
+    findOne: User.findOne,
+    findAll: User.findAll,
+    transaction: sequelize.transaction,
+  };
+  const transaction = { LOCK: { UPDATE: "UPDATE" } };
+  const actor = {
+    id: 3,
+    isAdmin: true,
+    isBlocked: false,
+    password: bcrypt.hashSync("admin-current-password", 4),
+  };
+  User.findByPk = async (id) => id === 3 ? actor : ({
+    id: 9, fullname: "Admin", username: "admin", email: "admin@example.com",
+    isAdmin: true, isBlocked: false, sessionVersion: 2, createdAt: new Date(), deletedAt: null,
+  });
+  User.findOne = async () => null;
+  User.findAll = async (options) => {
+    assert.deepEqual(options.where, { isAdmin: true, isBlocked: false });
+    assert.equal(options.lock, transaction.LOCK.UPDATE);
+    return [{ id: 9 }];
+  };
+  sequelize.transaction = async (callback) => callback(transaction);
+  try {
+    const result = await AdminService.editUser(3, 9, {
+      fullname: "Admin", username: "admin", email: "admin@example.com", isAdmin: false,
+      currentPassword: "admin-current-password",
+    });
+    assert.equal(result.error, "LAST_ADMIN");
+  } finally {
+    User.findByPk = originals.findByPk;
+    User.findOne = originals.findOne;
+    User.findAll = originals.findAll;
+    sequelize.transaction = originals.transaction;
+  }
+});
+
+test("admin role cannot be changed without the acting administrator's current password", async () => {
+  const originals = { findByPk: User.findByPk, findOne: User.findOne, transaction: sequelize.transaction };
+  const transaction = { LOCK: { UPDATE: "UPDATE" } };
+  const target = {
+    id: 12, fullname: "Member", username: "member", email: "member@example.com",
+    isAdmin: false, isBlocked: false, sessionVersion: 4, createdAt: new Date(), deletedAt: null,
+  };
+  const actor = {
+    id: 3,
+    isAdmin: true,
+    isBlocked: false,
+    password: bcrypt.hashSync("correct-admin-password", 4),
+  };
+  User.findByPk = async (id) => id === 3 ? actor : target;
+  User.findOne = async () => null;
+  sequelize.transaction = async (callback) => callback(transaction);
+
+  try {
+    const result = await AdminService.editUser(3, 12, {
+      fullname: "Member",
+      username: "member",
+      email: "member@example.com",
+      isAdmin: true,
+      currentPassword: "wrong-password",
+    });
+    assert.equal(result.error, "REAUTH_REQUIRED");
+    assert.equal(target.isAdmin, false);
+    assert.equal(target.sessionVersion, 4);
+  } finally {
+    User.findByPk = originals.findByPk;
+    User.findOne = originals.findOne;
+    sequelize.transaction = originals.transaction;
+  }
+});

@@ -7,6 +7,7 @@ import {
   FiChevronLeft,
   FiChevronRight,
   FiClock,
+  FiEdit2,
   FiLock,
   FiRefreshCw,
   FiRotateCcw,
@@ -45,6 +46,8 @@ function Admin() {
   const [notice, setNotice] = useState("");
   const [recovery, setRecovery] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
+  const [editForm, setEditForm] = useState(null);
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
@@ -204,6 +207,59 @@ function Admin() {
     }
   };
 
+  const openUserEditor = (account) => {
+    if (account.isCurrentUser || account.isArchived) return;
+    setEditingUser(account);
+    setEditForm({
+      fullname: account.fullname,
+      username: account.username,
+      email: account.email,
+      isAdmin: account.isAdmin,
+      currentPassword: "",
+    });
+    setError("");
+  };
+
+  const saveUser = async (event) => {
+    event.preventDefault();
+    if (!editingUser || !editForm) return;
+    if (editForm.isAdmin !== editingUser.isAdmin
+      && !window.confirm(`Confirma ${editForm.isAdmin ? "conceder" : "remover"} o acesso de administrador de ${editingUser.fullname}? As sessões existentes serão encerradas.`)) {
+      return;
+    }
+
+    setActionUserId(editingUser.id);
+    setError("");
+    setNotice("");
+    try {
+      const response = await apiFetch(`${API_BASE_URL}/admin/users/${editingUser.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fullname: editForm.fullname,
+          username: editForm.username,
+          email: editForm.email,
+          isAdmin: editForm.isAdmin,
+          ...(editForm.isAdmin !== editingUser.isAdmin
+            ? { currentPassword: editForm.currentPassword }
+            : {}),
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok || result.error) {
+        throw new Error(result.message || "Não foi possível atualizar o usuário.");
+      }
+      setEditingUser(null);
+      setEditForm(null);
+      setNotice("Usuário atualizado. As sessões anteriores foram invalidadas.");
+      await loadUsers();
+    } catch (requestError) {
+      setError(requestError.message || "Falha ao atualizar o usuário.");
+    } finally {
+      setActionUserId(null);
+    }
+  };
+
   return (
     <div className="admin-page">
       <Header />
@@ -334,6 +390,16 @@ function Admin() {
                       <div className="admin-row-actions">
                         {!account.isArchived && <button
                           type="button"
+                          className="admin-action-button edit"
+                          onClick={() => openUserEditor(account)}
+                          disabled={actionUserId === account.id || account.isCurrentUser}
+                          title={account.isCurrentUser ? "Edite seu próprio perfil na página de perfil" : "Editar perfil e função"}
+                        >
+                          <FiEdit2 aria-hidden="true" />
+                          <span>Editar</span>
+                        </button>}
+                        {!account.isArchived && <button
+                          type="button"
                           className="admin-action-button recovery"
                           onClick={() => generateRecoveryCode(account)}
                           disabled={actionUserId === account.id || account.isCurrentUser}
@@ -433,6 +499,94 @@ function Admin() {
               {copied ? "Código copiado" : "Copiar código"}
             </button>
             <button type="button" className="admin-modal-done" onClick={() => setRecovery(null)}>Concluir</button>
+          </section>
+        </div>
+      )}
+      {editingUser && editForm && (
+        <div className="admin-modal-backdrop" role="presentation" onMouseDown={(event) => {
+          if (event.target === event.currentTarget && actionUserId !== editingUser.id) {
+            setEditingUser(null);
+            setEditForm(null);
+          }
+        }}>
+          <section className="admin-edit-modal" role="dialog" aria-modal="true" aria-labelledby="edit-user-title">
+            <button type="button" className="admin-modal-close" aria-label="Fechar" onClick={() => {
+              if (actionUserId !== editingUser.id) {
+                setEditingUser(null);
+                setEditForm(null);
+              }
+            }}>
+              <FiX aria-hidden="true" />
+            </button>
+            <span className="admin-recovery-icon"><FiEdit2 aria-hidden="true" /></span>
+            <h2 id="edit-user-title">Editar usuário</h2>
+            <p>Altere os dados de perfil e a função. Para conceder ou remover acesso de administrador, confirme sua senha atual.</p>
+            {error && <div className="admin-feedback is-error" role="alert"><FiAlertCircle aria-hidden="true" />{error}</div>}
+            <form className="admin-edit-form" onSubmit={saveUser}>
+              <label>
+                Nome
+                <input
+                  type="text"
+                  value={editForm.fullname}
+                  minLength={2}
+                  maxLength={100}
+                  required
+                  onChange={(event) => setEditForm({ ...editForm, fullname: event.target.value })}
+                />
+              </label>
+              <label>
+                Usuário
+                <input
+                  type="text"
+                  value={editForm.username}
+                  minLength={3}
+                  maxLength={30}
+                  pattern="[-a-zA-Z0-9._]+"
+                  required
+                  autoComplete="off"
+                  onChange={(event) => setEditForm({ ...editForm, username: event.target.value })}
+                />
+              </label>
+              {editForm.isAdmin !== editingUser.isAdmin && (
+                <label>
+                  Sua senha atual (confirmação de segurança)
+                  <input
+                    type="password"
+                    value={editForm.currentPassword}
+                    autoComplete="current-password"
+                    required
+                    onChange={(event) => setEditForm({ ...editForm, currentPassword: event.target.value })}
+                  />
+                </label>
+              )}
+              <label>
+                Email
+                <input
+                  type="email"
+                  value={editForm.email}
+                  maxLength={254}
+                  required
+                  onChange={(event) => setEditForm({ ...editForm, email: event.target.value })}
+                />
+              </label>
+              <label className="admin-role-toggle">
+                <input
+                  type="checkbox"
+                  checked={editForm.isAdmin}
+                  onChange={(event) => setEditForm({ ...editForm, isAdmin: event.target.checked })}
+                />
+                <span>Administrador</span>
+              </label>
+              <div className="admin-edit-actions">
+                <button type="button" className="admin-modal-done is-secondary" disabled={actionUserId === editingUser.id} onClick={() => {
+                  setEditingUser(null);
+                  setEditForm(null);
+                }}>Cancelar</button>
+                <button type="submit" className="admin-modal-done" disabled={actionUserId === editingUser.id}>
+                  {actionUserId === editingUser.id ? "Salvando…" : "Salvar alterações"}
+                </button>
+              </div>
+            </form>
           </section>
         </div>
       )}

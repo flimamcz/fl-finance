@@ -6,6 +6,7 @@ const { requireAdmin } = require("../middlewares/admin.middleware");
 const {
   generateRecoveryCode,
   archiveUser,
+  editUser,
   listUsers,
   restoreUser,
   setUserBlocked,
@@ -15,6 +16,7 @@ const router = express.Router();
 
 router.use(authenticate, requireAdmin);
 router.get("/users", listUsers);
+router.patch("/users/:id", editUser);
 router.patch("/users/:id/block", setUserBlocked(true));
 router.patch("/users/:id/unblock", setUserBlocked(false));
 router.post("/users/:id/recovery-code", generateRecoveryCode);

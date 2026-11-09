@@ -32,6 +32,43 @@ const listUsers = async (req, res) => {
   }
 };
 
+const editUser = async (req, res) => {
+  const targetId = Number(req.params.id);
+  if (!Number.isSafeInteger(targetId) || targetId < 1) {
+    return res.status(400).json({ error: true, message: "Identificador de usuário inválido." });
+  }
+
+  const body = req.body;
+  const requiredFields = ["fullname", "username", "email", "isAdmin"];
+  const allowedFields = [...requiredFields, "currentPassword"];
+  if (!body || typeof body !== "object" || Array.isArray(body)
+    || Object.keys(body).some((field) => !allowedFields.includes(field))
+    || requiredFields.some((field) => !Object.prototype.hasOwnProperty.call(body, field))
+    || requiredFields.slice(0, 3).some((field) => typeof body[field] !== "string")
+    || typeof body.isAdmin !== "boolean"
+    || (Object.prototype.hasOwnProperty.call(body, "currentPassword")
+      && typeof body.currentPassword !== "string")) {
+    return res.status(400).json({ error: true, message: "Informe somente nome, usuário, email e função administrativa válidos." });
+  }
+
+  try {
+    const result = await adminService.editUser(req.user.id, targetId, body);
+    if (result.error) {
+      const status = result.error === "NOT_FOUND" ? 404
+        : result.error === "NOT_AUTHORIZED" ? 403
+          : result.error === "REAUTH_REQUIRED" ? 401
+            : 400;
+      return res.status(status).json({ error: true, message: result.message });
+    }
+
+    console.info("Admin user profile or role changed");
+    return res.status(200).json({ error: false, user: result.user });
+  } catch (error) {
+    console.error("Admin user edit failed:", error.name);
+    return res.status(500).json({ error: true, message: "Não foi possível atualizar o usuário." });
+  }
+};
+
 const setUserBlocked = (blocked) => async (req, res) => {
   const targetId = Number(req.params.id);
   if (!Number.isSafeInteger(targetId) || targetId < 1) {
@@ -121,4 +158,4 @@ const restoreUser = async (req, res) => {
   }
 };
 
-module.exports = { archiveUser, generateRecoveryCode, listUsers, restoreUser, setUserBlocked };
+module.exports = { archiveUser, editUser, generateRecoveryCode, listUsers, restoreUser, setUserBlocked };

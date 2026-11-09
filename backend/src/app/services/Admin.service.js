@@ -170,8 +170,100 @@ const restoreUser = async (adminId, targetId) => {
   });
 };
 
+const editUser = async (adminId, targetId, changes) => {
+  if (Number(adminId) === Number(targetId)) {
+    return { error: "SELF_EDIT", message: "Não é possível editar a própria conta pelo painel administrativo." };
+  }
+
+  const fullname = typeof changes?.fullname === "string" ? changes.fullname.trim() : "";
+  const username = typeof changes?.username === "string" ? changes.username.trim().toLowerCase() : "";
+  const email = typeof changes?.email === "string" ? changes.email.trim().toLowerCase() : "";
+  if (fullname.length < 2 || fullname.length > 100
+    || username.length < 3 || username.length > 30 || !/^[a-z0-9._-]+$/.test(username)
+    || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+    || typeof changes?.isAdmin !== "boolean") {
+    return { error: "INVALID_INPUT", message: "Os dados informados são inválidos." };
+  }
+
+  try {
+    return await sequelize.transaction(async (transaction) => {
+      const user = await User.findByPk(targetId, {
+        paranoid: false,
+        attributes: ["id", "fullname", "username", "email", "isAdmin", "isBlocked", "sessionVersion", "createdAt", "deletedAt"],
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!user) return { error: "NOT_FOUND", message: "Usuário não encontrado." };
+      if (user.deletedAt) return { error: "ARCHIVED", message: "Contas arquivadas não podem ser editadas." };
+
+      const duplicate = await User.findOne({
+        where: {
+          id: { [Op.ne]: targetId },
+          [Op.or]: [{ username }, { email }],
+        },
+        paranoid: false,
+        attributes: ["id"],
+        transaction,
+      });
+      if (duplicate) return { error: "DUPLICATE", message: "Este usuário ou email já está em uso." };
+
+      const updatedProfile = user.fullname !== fullname
+        || user.username !== username
+        || user.email !== email;
+      const roleChanged = Boolean(user.isAdmin) !== changes.isAdmin;
+
+      if (roleChanged) {
+        const actor = await User.findByPk(adminId, {
+          attributes: ["id", "password", "isAdmin", "isBlocked"],
+          transaction,
+          lock: transaction.LOCK.UPDATE,
+        });
+        if (!actor || !actor.isAdmin || actor.isBlocked) {
+          return { error: "NOT_AUTHORIZED", message: "Seu acesso administrativo não está mais ativo." };
+        }
+        if (typeof changes.currentPassword !== "string" || !changes.currentPassword
+          || !await bcrypt.compare(changes.currentPassword, actor.password)) {
+          return { error: "REAUTH_REQUIRED", message: "Informe sua senha atual para alterar a função administrativa." };
+        }
+      }
+
+      if (roleChanged && user.isAdmin && !changes.isAdmin && !user.isBlocked) {
+        const activeAdmins = await User.findAll({
+          where: { isAdmin: true, isBlocked: false },
+          attributes: ["id"],
+          transaction,
+          lock: transaction.LOCK.UPDATE,
+        });
+        if (activeAdmins.length <= 1) {
+          return { error: "LAST_ADMIN", message: "Não é possível remover o último administrador ativo." };
+        }
+      }
+
+      if (updatedProfile || roleChanged) {
+        user.fullname = fullname;
+        user.username = username;
+        user.email = email;
+        user.isAdmin = changes.isAdmin;
+        user.sessionVersion = (Number(user.sessionVersion) || 0) + 1;
+        await user.save({
+          transaction,
+          fields: ["fullname", "username", "email", "isAdmin", "sessionVersion"],
+        });
+      }
+
+      return { user: toAdminListUser(user, adminId) };
+    });
+  } catch (error) {
+    if (error.name === "SequelizeUniqueConstraintError") {
+      return { error: "DUPLICATE", message: "Este usuário ou email já está em uso." };
+    }
+    throw error;
+  }
+};
+
 module.exports = {
   archiveUser,
+  editUser,
   generateRecoveryCode,
   listUsers,
   restoreUser,

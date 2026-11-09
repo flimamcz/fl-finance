@@ -3,7 +3,7 @@ const { Type } = require("../../models");
 const searchAllTypes = async () => {
   const allTypes = await Type.findAll();
 
-  if (!allTypes) {
+  if (allTypes.length === 0) {
     return {
       error: "NOT FOUND",
       message: "Nenhum tipo de transação encontrada!",
